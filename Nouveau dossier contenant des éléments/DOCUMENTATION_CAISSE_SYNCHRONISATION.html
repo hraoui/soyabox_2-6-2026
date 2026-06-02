@@ -1,0 +1,1673 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Documentation - Application Caisse SOYABOX POS</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 60px 40px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .header .subtitle {
+            font-size: 1.3em;
+            opacity: 0.9;
+            margin-bottom: 20px;
+        }
+
+        .header .version {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 0.9em;
+        }
+
+        .nav-toc {
+            background: #f8f9fa;
+            padding: 30px 40px;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .nav-toc h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+
+        .nav-toc ul {
+            list-style: none;
+            columns: 2;
+            column-gap: 40px;
+        }
+
+        .nav-toc li {
+            margin-bottom: 10px;
+            break-inside: avoid;
+        }
+
+        .nav-toc a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+
+        .nav-toc a:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .section {
+            margin-bottom: 60px;
+        }
+
+        .section h2 {
+            color: #667eea;
+            font-size: 2.2em;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #667eea;
+        }
+
+        .section h3 {
+            color: #764ba2;
+            font-size: 1.6em;
+            margin: 30px 0 15px 0;
+        }
+
+        .section h4 {
+            color: #555;
+            font-size: 1.3em;
+            margin: 20px 0 10px 0;
+        }
+
+        .section p {
+            margin-bottom: 15px;
+            line-height: 1.8;
+        }
+
+        .conflict-alert {
+            background: #fff3cd;
+            border-left: 5px solid #ffc107;
+            padding: 20px;
+            margin: 30px 0;
+            border-radius: 5px;
+        }
+
+        .conflict-alert.critical {
+            background: #f8d7da;
+            border-left-color: #dc3545;
+        }
+
+        .conflict-alert.high {
+            background: #fff3cd;
+            border-left-color: #ff9800;
+        }
+
+        .conflict-alert.medium {
+            background: #d1ecf1;
+            border-left-color: #17a2b8;
+        }
+
+        .conflict-alert h4 {
+            color: #856404;
+            margin-bottom: 10px;
+        }
+
+        .conflict-alert.critical h4 {
+            color: #721c24;
+        }
+
+        .conflict-alert code {
+            background: rgba(0, 0, 0, 0.1);
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .feature-box {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 25px;
+            margin: 20px 0;
+            border-left: 4px solid #667eea;
+        }
+
+        .feature-box h4 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: white;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        table thead {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        table th {
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        table tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        table code {
+            background: #f1f3f5;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+
+        .flow-diagram {
+            background: #f8f9fa;
+            border: 2px solid #667eea;
+            border-radius: 10px;
+            padding: 30px;
+            margin: 30px 0;
+            text-align: center;
+        }
+
+        .flow-diagram h4 {
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+
+        .flow-step {
+            display: inline-block;
+            background: white;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin: 10px;
+            min-width: 150px;
+            vertical-align: top;
+        }
+
+        .flow-arrow {
+            display: inline-block;
+            font-size: 2em;
+            color: #667eea;
+            margin: 0 5px;
+            vertical-align: middle;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: 600;
+            margin: 2px;
+        }
+
+        .badge.critical {
+            background: #dc3545;
+            color: white;
+        }
+
+        .badge.high {
+            background: #ff9800;
+            color: white;
+        }
+
+        .badge.medium {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .badge.low {
+            background: #6c757d;
+            color: white;
+        }
+
+        .badge.resolved {
+            background: #28a745;
+            color: white;
+        }
+
+        code {
+            background: #f1f3f5;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            color: #d63384;
+        }
+
+        pre {
+            background: #282c34;
+            color: #abb2bf;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 20px 0;
+        }
+
+        pre code {
+            background: transparent;
+            color: inherit;
+            padding: 0;
+        }
+
+        .summary-table {
+            margin: 30px 0;
+        }
+
+        .footer {
+            background: #282c34;
+            color: #abb2bf;
+            padding: 30px 40px;
+            text-align: center;
+        }
+
+        .footer p {
+            margin: 5px 0;
+        }
+
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+            .container {
+                box-shadow: none;
+            }
+            .nav-toc {
+                display: none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .nav-toc ul {
+                columns: 1;
+            }
+            .header h1 {
+                font-size: 2em;
+            }
+            .content {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📱 SOYABOX POS - Documentation Complète</h1>
+            <p class="subtitle">Application Caisse avec Synchronisation Bidirectionnelle</p>
+            <span class="version">Version 1.0 - Avril 2026</span>
+        </div>
+
+        <div class="nav-toc">
+            <h2>📋 Table des Matières</h2>
+            <ul>
+                <li><a href="#overview">1. Vue d'Ensemble</a></li>
+                <li><a href="#architecture">2. Architecture Technique</a></li>
+                <li><a href="#sync">3. Synchronisation Bidirectionnelle</a></li>
+                <li><a href="#payment">4. Système de Paiement</a></li>
+                <li><a href="#conflicts">5. Conflits Identifiés</a></li>
+                <li><a href="#roles">6. Gestion des Rôles</a></li>
+                <li><a href="#screens">7. Écrans et Navigation</a></li>
+                <li><a href="#database">8. Base de Données Locale</a></li>
+                <li><a href="#workflows">9. Workflows Principaux</a></li>
+                <li><a href="#api">10. API Backend</a></li>
+            </ul>
+        </div>
+
+        <div class="content">
+            <!-- SECTION 1: OVERVIEW -->
+            <div class="section" id="overview">
+                <h2>1. Vue d'Ensemble</h2>
+                <p>
+                    <strong>SOYABOX POS</strong> est une application de point de vente (caisse) conçue pour la gestion 
+                    de restaurants avec support multi-serveurs, multi-tables, et synchronisation bidirectionnelle avec 
+                    un backend Laravel.
+                </p>
+
+                <div class="feature-box">
+                    <h4>🎯 Fonctionnalités Principales</h4>
+                    <ul style="margin-left: 20px; line-height: 2;">
+                        <li><strong>Gestion des Tables:</strong> Plan de salle visuel avec suivi en temps réel</li>
+                        <li><strong>Commandes:</strong> Création, modification, suivi des statuts</li>
+                        <li><strong>Paiements:</strong> Simple ou multiples (Espèces, TPE, En compte)</li>
+                        <li><strong>Synchronisation:</strong> Bidirectionnelle avec backend Laravel</li>
+                        <li><strong>Multi-rôles:</strong> Serveurs, Admins, Livreurs</li>
+                        <li><strong>Mode Hors-ligne:</strong> Fonctionnement complet sans connexion</li>
+                        <li><strong>Livraison:</strong> Gestion des livreurs et assignation</li>
+                        <li><strong>Comptabilité:</strong> Rapports détaillés par serveur et méthode de paiement</li>
+                    </ul>
+                </div>
+
+                <h3>🏗️ Stack Technique</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Composant</th>
+                            <th>Technologie</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Framework Mobile</td>
+                            <td><strong>Flutter</strong></td>
+                            <td>Application cross-platform (iOS/Android)</td>
+                        </tr>
+                        <tr>
+                            <td>Base de Données Locale</td>
+                            <td><strong>Isar</strong></td>
+                            <td>Base NoSQL embarquée haute performance</td>
+                        </tr>
+                        <tr>
+                            <td>State Management</td>
+                            <td><strong>GetX</strong></td>
+                            <td>Gestion d'état réactive et injection de dépendances</td>
+                        </tr>
+                        <tr>
+                            <td>Backend</td>
+                            <td><strong>Laravel</strong></td>
+                            <td>API REST avec authentification Sanctum</td>
+                        </tr>
+                        <tr>
+                            <td>Sync Queue</td>
+                            <td><strong>File JSON persistante</strong></td>
+                            <td>File d'attente avec retry et dead-letter queue</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- SECTION 2: ARCHITECTURE -->
+            <div class="section" id="architecture">
+                <h2>2. Architecture Technique</h2>
+
+                <h3>📂 Structure des Fichiers</h3>
+                <pre><code>lib/
+├── controllers/          # Contrôleurs GetX
+│   ├── auth_controller.dart         # Authentification et session
+│   ├── pos_controller.dart          # Logique principale POS
+│   ├── sync_controller.dart         # Orchestration synchronisation
+│   └── ...
+├── models/              # Modèles de données Isar
+│   ├── pos_order.dart              # Commandes
+│   ├── pos_order_item.dart         # Articles de commande
+│   ├── pos_table.dart              # Tables
+│   ├── user.dart                   # Utilisateurs
+│   └── ...
+├── services/            # Services métier
+│   ├── database_service.dart        # CRUD Isar
+│   ├── sync_queue_service.dart      # File d'attente sync
+│   ├── api_order_pull_service.dart  # Pull commandes backend
+│   └── ...
+├── views/               # Écrans UI
+│   ├── pos_screen.dart              # Interface POS principale
+│   ├── pos_staff_menu_screen.dart   # Menu serveur
+│   ├── pos_staff_orders_screen.dart # Mes Commandes
+│   ├── pos_staff_payments_screen.dart # Mes Paiements
+│   ├── admin_dashboard_screen.dart  # Dashboard Admin
+│   └── ...
+└── utils/               # Utilitaires
+    ├── payment_method_utils.dart    # Normalisation paiements
+    ├── app_logger.dart              # Logging centralisé
+    └── ...</code></pre>
+
+                <h3>🔄 Cycle de Vie d'une Commande</h3>
+                <div class="flow-diagram">
+                    <h4>Flux de Création à Paiement</h4>
+                    <div class="flow-step">
+                        <strong>1. Création</strong><br>
+                        Table ou directe<br>
+                        <code>status: pending</code>
+                    </div>
+                    <span class="flow-arrow">→</span>
+                    <div class="flow-step">
+                        <strong>2. Confirmation</strong><br>
+                        Serveur confirme<br>
+                        <code>status: confirmed</code>
+                    </div>
+                    <span class="flow-arrow">→</span>
+                    <div class="flow-step">
+                        <strong>3. Préparation</strong><br>
+                        Cuisine prépare<br>
+                        <code>status: preparing</code>
+                    </div>
+                    <span class="flow-arrow">→</span>
+                    <div class="flow-step">
+                        <strong>4. Prêt</strong><br>
+                        Commande prête<br>
+                        <code>status: ready</code>
+                    </div>
+                    <span class="flow-arrow">→</span>
+                    <div class="flow-step">
+                        <strong>5. Livraison</strong><br>
+                        Livrée au client<br>
+                        <code>status: delivered</code>
+                    </div>
+                    <span class="flow-arrow">→</span>
+                    <div class="flow-step">
+                        <strong>6. Paiement</strong><br>
+                        Simple ou split<br>
+                        <code>paymentStatus: paid</code>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION 3: SYNC -->
+            <div class="section" id="sync">
+                <h2>3. Synchronisation Bidirectionnelle</h2>
+
+                <h3>🔁 Architecture de Sync</h3>
+                <p>
+                    L'application utilise une synchronisation <strong>bidirectionnelle</strong> avec deux flux distincts:
+                </p>
+
+                <div class="flow-diagram">
+                    <h4>Flux PUSH (Local → Backend)</h4>
+                    <div class="flow-step">
+                        <strong>Commande créée</strong><br>
+                        Localement
+                    </div>
+                    <span class="flow-arrow">→</span>
+                    <div class="flow-step">
+                        <strong>Enqueue</strong><br>
+                        <code>SyncQueueService</code><br>
+                        File persistante
+                    </div>
+                    <span class="flow-arrow">→</span>
+                    <div class="flow-step">
+                        <strong>Flush</strong><br>
+                        Toutes les 45s<br>
+                        ou immédiate
+                    </div>
+                    <span class="flow-arrow">→</span>
+                    <div class="flow-step">
+                        <strong>POST API</strong><br>
+                        <code>/api/sync/public/orders/upsert</code>
+                    </div>
+                    <span class="flow-arrow">→</span>
+                    <div class="flow-step">
+                        <strong>Backend</strong><br>
+                        Commande sauvegardée
+                    </div>
+                </div>
+
+                <div class="flow-diagram">
+                    <h4>Flux PULL (Backend → Local)</h4>
+                    <div class="flow-step">
+                        <strong>Timer</strong><br>
+                        Toutes les 60s<br>
+                        <code>SyncController</code>
+                    </div>
+                    <span class="flow-arrow">→</span>
+                    <div class="flow-step">
+                        <strong>GET API</strong><br>
+                        <code>/api/orders?restaurant_id=X</code>
+                    </div>
+                    <span class="flow-arrow">→</span>
+                    <div class="flow-step">
+                        <strong>Dédoublonnage</strong><br>
+                        Matching multi-stratégie<br>
+                        (ID, table, téléphone)
+                    </div>
+                    <span class="flow-arrow">→</span>
+                    <div class="flow-step">
+                        <strong>Upsert Local</strong><br>
+                        <code>ApiOrderPullService</code><br>
+                        Création ou mise à jour
+                    </div>
+                    <span class="flow-arrow">→</span>
+                    <div class="flow-step">
+                        <strong>UI Refresh</strong><br>
+                        <code>loadOrdersToday()</code><br>
+                        Affichage mis à jour
+                    </div>
+                </div>
+
+                <h3>⚙️ Configuration de Sync</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Paramètre</th>
+                            <th>Valeur</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Intervalle de flush</td>
+                            <td><code>45 secondes</code></td>
+                            <td>Fréquence d'envoi de la file au backend</td>
+                        </tr>
+                        <tr>
+                            <td>Intervalle de pull</td>
+                            <td><code>60 secondes</code></td>
+                            <td>Fréquence de récupération depuis le backend</td>
+                        </tr>
+                        <tr>
+                            <td>Tentatives max</td>
+                            <td><code>3</code></td>
+                            <td>Avant passage en dead-letter queue</td>
+                        </tr>
+                        <tr>
+                            <td>Rate limit initial</td>
+                            <td><code>5 secondes</code></td>
+                            <td>Délai après erreur 429 (exponential backoff)</td>
+                        </tr>
+                        <tr>
+                            <td>Rate limit max</td>
+                            <td><code>5 minutes</code></td>
+                            <td>Délai maximum après multiples erreurs</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>🛡️ Résolution de Conflits</h3>
+                <p>Le système utilise plusieurs stratégies pour éviter les doublons et conflits:</p>
+
+                <div class="feature-box">
+                    <h4>🔍 Dédoublonnage des Commandes</h4>
+                    <p><strong>Stratégie de matching (dans l'ordre):</strong></p>
+                    <ol style="margin-left: 20px; line-height: 2;">
+                        <li><code>source_local_id</code> - ID local stocké dans la commande distante</li>
+                        <li><code>table + total + heure</code> - Pour commandes POS (tolérance 30s)</li>
+                        <li><code>téléphone + total</code> - Pour commandes avec client identifié</li>
+                        <li><code>created_at + total + channel</code> - Pour commandes API/Web</li>
+                    </ol>
+                </div>
+
+                <div class="feature-box">
+                    <h4>📊 Préservation du Statut Local</h4>
+                    <p>
+                        Quand une commande est tirée du backend, le statut local est comparé au statut distant.
+                        Si le statut local est <strong>plus avancé</strong>, il est conservé.
+                    </p>
+                    <p><strong>Ordre des statuts:</strong> <code>pending → confirmed → preparing → ready → delivered</code></p>
+                </div>
+
+                <h3>📦 Champs Synchronisés</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Champ</th>
+                            <th>PUSH</th>
+                            <th>PULL</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>staffId</code></td>
+                            <td>✅</td>
+                            <td>✅</td>
+                            <td>Préservé si local > 0</td>
+                        </tr>
+                        <tr>
+                            <td><code>paymentMethod</code></td>
+                            <td>✅</td>
+                            <td>✅</td>
+                            <td><strong>⚠️ Écrasé au pull</strong></td>
+                        </tr>
+                        <tr>
+                            <td><code>paymentStatus</code></td>
+                            <td>✅</td>
+                            <td>✅</td>
+                            <td>Préservé si local avancé</td>
+                        </tr>
+                        <tr>
+                            <td><code>paymentSplit</code></td>
+                            <td>❌</td>
+                            <td>❌</td>
+                            <td><strong>❌ NON synchronisé</strong></td>
+                        </tr>
+                        <tr>
+                            <td><code>paidByStaffId</code></td>
+                            <td>❌</td>
+                            <td>❌</td>
+                            <td>Local uniquement</td>
+                        </tr>
+                        <tr>
+                            <td><code>status</code></td>
+                            <td>✅</td>
+                            <td>✅</td>
+                            <td>Comparaison avancée</td>
+                        </tr>
+                        <tr>
+                            <td><code>totalPrice</code></td>
+                            <td>✅</td>
+                            <td>✅</td>
+                            <td>Toujours synchronisé</td>
+                        </tr>
+                        <tr>
+                            <td><code>customerPhone</code></td>
+                            <td>✅</td>
+                            <td>✅</td>
+                            <td>Utilisé pour matching</td>
+                        </tr>
+                        <tr>
+                            <td><code>tableNumber</code></td>
+                            <td>✅</td>
+                            <td>✅</td>
+                            <td>Utilisé pour matching</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- SECTION 4: PAYMENT -->
+            <div class="section" id="payment">
+                <h2>4. Système de Paiement</h2>
+
+                <h3>💳 Méthodes de Paiement Supportées</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Code</th>
+                            <th>Affichage</th>
+                            <th>Icône</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>cash</code></td>
+                            <td>Espèces</td>
+                            <td>💵</td>
+                            <td>Paiement en espèces</td>
+                        </tr>
+                        <tr>
+                            <td><code>tpe</code></td>
+                            <td>TPE</td>
+                            <td>💳</td>
+                            <td>Carte bancaire / Terminal</td>
+                        </tr>
+                        <tr>
+                            <td><code>en_compte</code></td>
+                            <td>En compte</td>
+                            <td>📒</td>
+                            <td>Compte client</td>
+                        </tr>
+                        <tr>
+                            <td><code>split</code></td>
+                            <td>Partagé</td>
+                            <td>🔀</td>
+                            <td>Multiple méthodes</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>🔄 Flux de Paiement</h3>
+
+                <div class="flow-diagram">
+                    <h4>Paiement Simple</h4>
+                    <div class="flow-step">
+                        <strong>Bouton Payer</strong><br>
+                        "Mes Commandes"<br>
+                        ou "Table"
+                    </div>
+                    <span class="flow-arrow">→</span>
+                    <div class="flow-step">
+                        <strong>Dialog</strong><br>
+                        Choix méthode<br>
+                        TPE / Cash / Compte
+                    </div>
+                    <span class="flow-arrow">→</span>
+                    <div class="flow-step">
+                        <strong>markOrderAsPaid</strong><br>
+                        <code>paymentMethod: cash</code><br>
+                        <code>paymentStatus: paid</code>
+                    </div>
+                    <span class="flow-arrow">→</span>
+                    <div class="flow-step">
+                        <strong>Sauvegarde</strong><br>
+                        <code>updatePosOrder()</code><br>
+                        Isar DB
+                    </div>
+                    <span class="flow-arrow">→</span>
+                    <div class="flow-step">
+                        <strong>Sync</strong><br>
+                        Queue flush<br>
+                        Backend notifié
+                    </div>
+                </div>
+
+                <div class="flow-diagram">
+                    <h4>Paiement Split (Multiple)</h4>
+                    <div class="flow-step">
+                        <strong>Bouton Payer</strong><br>
+                        "Mes Commandes"<br>
+                        ou "Table"
+                    </div>
+                    <span class="flow-arrow">→</span>
+                    <div class="flow-step">
+                        <strong>Dialog Split</strong><br>
+                        3 champs:<br>
+                        Cash / TPE / Compte
+                    </div>
+                    <span class="flow-arrow">→</span>
+                    <div class="flow-step">
+                        <strong>Validation</strong><br>
+                        Total = Cash+TPE+Compte<br>
+                        Si >= total commande
+                    </div>
+                    <span class="flow-arrow">→</span>
+                    <div class="flow-step">
+                        <strong>markOrderAsPaidWithSplit</strong><br>
+                        <code>paymentMethod: split</code><br>
+                        <code>paymentSplit: JSON</code>
+                    </div>
+                    <span class="flow-arrow">→</span>
+                    <div class="flow-step">
+                        <strong>Sauvegarde</strong><br>
+                        JSON:<br>
+                        <code>[{method, amount}, ...]</code>
+                    </div>
+                    <span class="flow-arrow">→</span>
+                    <div class="flow-step">
+                        <strong>Affichage</strong><br>
+                        "Mes Paiements"<br>
+                        Parse JSON → détails
+                    </div>
+                </div>
+
+                <h3>📊 Affichage des Paiements</h3>
+
+                <div class="feature-box">
+                    <h4>✅ Format Correct (markOrderAsPaidWithSplit)</h4>
+                    <pre><code>paymentSplit = '[{"payment_method":"cash","amount":100.0,"timestamp":"..."},
+                 {"payment_method":"tpe","amount":150.0,"timestamp":"..."},
+                 {"payment_method":"en_compte","amount":50.0,"timestamp":"..."}]'</code></pre>
+                    <p>✅ JSON valide avec clés entre guillemets</p>
+                    <p>✅ Utilise <code>payment_method</code> (format attendu)</p>
+                    <p>✅ Parseable par <code>jsonDecode()</code></p>
+                </div>
+
+                <div class="conflict-alert critical">
+                    <h4>❌ Format Incorrect (markOrderAsPaid - paiement simple)</h4>
+                    <pre><code>paymentSplit = '[{method: cash, amount: 300.0}]'</code></pre>
+                    <p>❌ JSON invalide - clés non entre guillemets</p>
+                    <p>❌ Utilise <code>method</code> au lieu de <code>payment_method</code></p>
+                    <p>❌ Échouera lors du <code>jsonDecode()</code></p>
+                </div>
+            </div>
+
+            <!-- SECTION 5: CONFLICTS -->
+            <div class="section" id="conflicts">
+                <h2>5. Conflits Identifiés</h2>
+
+                <p>
+                    L'analyse détaillée de tous les fichiers a révélé <strong>11 conflits potentiels</strong>,
+                    classés par sévérité:
+                </p>
+
+                <!-- Conflit #1 -->
+                <div class="conflict-alert critical">
+                    <h4>🔴 #1 - Format JSON Invalide dans paymentSplit <span class="badge critical">CRITIQUE</span></h4>
+                    <p><strong>Fichier:</strong> <code>lib/controllers/pos_controller.dart</code> (ligne ~2545)</p>
+                    <p><strong>Problème:</strong> La méthode <code>markOrderAsPaid()</code> crée un JSON invalide:</p>
+                    <pre><code>// ❌ INCORRECT - produit: [{method: cash, amount: 150.0}]
+order.paymentSplit = '[{method: ${order.paymentMethod}, amount: ${order.totalPrice}}]';</code></pre>
+                    <p><strong>Contraste avec</strong> <code>markOrderAsPaidWithSplit()</code> qui produit du JSON valide:</p>
+                    <pre><code>// ✅ CORRECT - produit: [{"payment_method":"cash","amount":150.0}]
+order.paymentSplit = jsonEncode(paymentList);</code></pre>
+                    <p><strong>Impact:</strong> Tout code appelant <code>jsonDecode()</code> sur un paymentSplit créé par un paiement simple échouera.</p>
+                    <p><strong>Systèmes affectés:</strong></p>
+                    <ul style="margin-left: 20px;">
+                        <li>"Mes Paiements" - ne peut pas parser les détails</li>
+                        <li>"Comptabilité Admin" - montants incorrects</li>
+                        <li>"Dashboard Admin" - statistiques faussées</li>
+                        <li>Ticket d'impression - détails manquants</li>
+                    </ul>
+                </div>
+
+                <!-- Conflit #2 -->
+                <div class="conflict-alert high">
+                    <h4>🟠 #2 - paymentSplit Non Synchronisé <span class="badge high">ÉLEVÉ</span></h4>
+                    <p><strong>Fichiers:</strong></p>
+                    <ul style="margin-left: 20px;">
+                        <li><code>lib/services/sync_queue_service.dart</code> (lignes ~516-519)</li>
+                        <li><code>lib/services/api_order_pull_service.dart</code> (ligne ~1109)</li>
+                    </ul>
+                    <p><strong>Problème:</strong></p>
+                    <ul style="margin-left: 20px;">
+                        <li><strong>PUSH:</strong> Le payload de sync inclut <code>payment_method</code> et <code>payment_status</code>, mais PAS <code>paymentSplit</code></li>
+                        <li><strong>PULL:</strong> Aucun champ <code>payment_split</code> n'est lu depuis la réponse backend</li>
+                    </ul>
+                    <p><strong>Impact:</strong> Les détails de paiement split sont <strong>perdus</strong> lors de la synchronisation.</p>
+                </div>
+
+                <!-- Conflit #3 -->
+                <div class="conflict-alert high">
+                    <h4>🟠 #3 - _copyPosOrder Ne Copie PAS paymentSplit <span class="badge high">ÉLEVÉ</span></h4>
+                    <p><strong>Fichier:</strong> <code>lib/controllers/pos_controller.dart</code> (lignes ~323-348)</p>
+                    <p><strong>Problème:</strong> Quand une commande est éditée via <code>_copyPosOrder()</code>, le champ <code>paymentSplit</code> n'est pas copié.</p>
+                    <p><strong>Impact:</strong> Si une commande payée avec split est éditée, les détails de paiement sont <strong>perdus définitivement</strong>.</p>
+                </div>
+
+                <!-- Conflit #4 -->
+                <div class="conflict-alert medium">
+                    <h4>🔵 #4 - paymentStatus Auto-Défini à 'paid' sur Confirmation <span class="badge medium">MOYEN</span></h4>
+                    <p><strong>Fichier:</strong> <code>lib/controllers/pos_controller.dart</code> (ligne ~2205)</p>
+                    <pre><code>if (normalizedStatus == 'confirmed') {
+    order.paymentStatus = 'paid';  // ❌ Marque automatiquement comme payé
+}</code></pre>
+                    <p><strong>Problème:</strong> Quand une commande API/Web passe à <code>confirmed</code>, elle est automatiquement marquée comme payée, même sans paiement réel.</p>
+                    <p><strong>Justification:</strong> Pour les commandes Web/API, la confirmation implique le paiement en ligne.</p>
+                    <p><strong>Risque:</strong> Si une commande POS locale passe par ce chemin, elle pourrait être incorrectement marquée comme payée.</p>
+                </div>
+
+                <!-- Conflit #5 -->
+                <div class="conflict-alert medium">
+                    <h4>🔵 #5 - API Pull Écrase paymentMethod Local <span class="badge medium">MOYEN</span></h4>
+                    <p><strong>Fichier:</strong> <code>lib/services/api_order_pull_service.dart</code> (ligne ~1109)</p>
+                    <p><strong>Problème:</strong> Lors du pull, <code>paymentMethod</code> est toujours pris depuis le backend, sans préserver la valeur locale.</p>
+                    <p><strong>Contraste:</strong> <code>staffId</code> et <code>paymentStatus</code> ont une logique de préservation, mais PAS <code>paymentMethod</code>.</p>
+                    <p><strong>Impact:</strong> Si le backend a une valeur différente ou null, elle écrase le paiement local.</p>
+                </div>
+
+                <!-- Conflit #6 -->
+                <div class="conflict-alert medium">
+                    <h4>🔵 #6 - loadOrderForEdit Ne Restaure PAS paymentSplit <span class="badge medium">MOYEN</span></h4>
+                    <p><strong>Fichier:</strong> <code>lib/controllers/pos_controller.dart</code> (ligne ~2674)</p>
+                    <p><strong>Problème:</strong> Lors du chargement pour édition, <code>_paymentMethod</code> est restauré mais pas <code>paymentSplit</code>.</p>
+                    <p><strong>Impact:</strong> Si l'utilisateur sauvegarde sans modifier le paiement, <code>paymentSplit</code> est perdu.</p>
+                </div>
+
+                <!-- Conflit #7 -->
+                <div class="conflict-alert medium">
+                    <h4>🔵 #7 - Admin Accounting Définir paymentMethod Sans paymentSplit <span class="badge medium">MOYEN</span></h4>
+                    <p><strong>Fichier:</strong> <code>lib/views/admin_accounting_screen.dart</code> (lignes ~1297-1299)</p>
+                    <pre><code>order.paymentMethod = normalizePaymentMethod(paymentMethod);
+order.paymentStatus = 'paid';
+order.status = 'paid';
+// ❌ paymentSplit n'est pas défini</code></pre>
+                    <p><strong>Impact:</strong> Les commandes payées par l'admin n'ont pas de détails split, donc <code>getParsedPaymentDetails()</code> doit fallback sur <code>paymentMethod</code>.</p>
+                </div>
+
+                <!-- Conflit #8 -->
+                <div class="conflict-alert low">
+                    <h4>⚫ #8 - paymentSplit Défini Avant markOrderAsPaid <span class="badge low">FAIBLE</span></h4>
+                    <p><strong>Fichier:</strong> <code>lib/views/pos_tables_screen.dart</code> (lignes ~1395-1408)</p>
+                    <p><strong>Problème:</strong> La vue définit <code>paymentSplit</code> AVANT d'appeler <code>markOrderAsPaid()</code>.</p>
+                    <p><strong>Statut:</strong> ✅ Actuellement sûr - <code>markOrderAsPaid()</code> vérifie si vide avant d'écrire.</p>
+                    <p><strong>Risque:</strong> Pattern fragile - dépend du fait que l'appelant définisse toujours <code>paymentSplit</code> en premier.</p>
+                </div>
+
+                <!-- Conflit #9 -->
+                <div class="conflict-alert low">
+                    <h4>⚫ #9 - Multiples Endroits Modifient paymentStatus (Sans Mutex) <span class="badge low">FAIBLE</span></h4>
+                    <p><strong>Fichiers:</strong> 6 fichiers différents</p>
+                    <ul style="margin-left: 20px;">
+                        <li><code>pos_controller.dart</code>: markOrderPaid(), updateOrderStatus(), markOrderAsPaid(), markOrderAsPaidWithSplit()</li>
+                        <li><code>pos_tables_screen.dart</code>: dialog paiement</li>
+                        <li><code>admin_accounting_screen.dart</code>: paiement admin</li>
+                    </ul>
+                    <p><strong>Risque:</strong> Si deux opérations de paiement se produisent simultanément, la dernière écriture gagne.</p>
+                </div>
+
+                <!-- Conflit #10 -->
+                <div class="conflict-alert low">
+                    <h4>⚫ #10 - updatePosOrder Écrit l'Objet Entier <span class="badge low">FAIBLE</span></h4>
+                    <p><strong>Fichier:</strong> <code>lib/services/database_service.dart</code> (lignes ~441-449)</p>
+                    <p><strong>Problème:</strong> Utilise <code>Isar.put()</code> qui remplace le document entier.</p>
+                    <p><strong>Impact:</strong> Tout champ non défini sur l'objet au moment de l'update écrase la valeur précédente.</p>
+                </div>
+
+                <!-- Conflit #11 -->
+                <div class="conflict-alert low">
+                    <h4>⚫ #11 - Sync Queue Dedup Ne Protège Pas les Écritures DB Concurrentes <span class="badge low">FAIBLE</span></h4>
+                    <p><strong>Fichier:</strong> <code>lib/services/sync_queue_service.dart</code> (lignes ~414-426)</p>
+                    <p><strong>Problème:</strong> La déduplication empêche les entrées multiples dans la file, mais pas les écritures DB multiples avant le flush.</p>
+                    <p><strong>Impact:</strong> Dernière écriture gagne si <code>updatePosOrder</code> est appelé plusieurs fois rapidement.</p>
+                </div>
+
+                <h3>📊 Résumé des Conflits</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Conflit</th>
+                            <th>Sévérité</th>
+                            <th>Statut</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>1</td>
+                            <td>Format JSON invalide paymentSplit</td>
+                            <td><span class="badge critical">CRITIQUE</span></td>
+                            <td>❌ Non résolu</td>
+                        </tr>
+                        <tr>
+                            <td>2</td>
+                            <td>paymentSplit non synchronisé</td>
+                            <td><span class="badge high">ÉLEVÉ</span></td>
+                            <td>❌ Non résolu</td>
+                        </tr>
+                        <tr>
+                            <td>3</td>
+                            <td>_copyPosOrder ne copie pas paymentSplit</td>
+                            <td><span class="badge high">ÉLEVÉ</span></td>
+                            <td>❌ Non résolu</td>
+                        </tr>
+                        <tr>
+                            <td>4</td>
+                            <td>paymentStatus auto sur confirmed</td>
+                            <td><span class="badge medium">MOYEN</span></td>
+                            <td>⚠️ Comportement voulu</td>
+                        </tr>
+                        <tr>
+                            <td>5</td>
+                            <td>API pull écrase paymentMethod</td>
+                            <td><span class="badge medium">MOYEN</span></td>
+                            <td>❌ Non résolu</td>
+                        </tr>
+                        <tr>
+                            <td>6</td>
+                            <td>loadOrderForEdit sans paymentSplit</td>
+                            <td><span class="badge medium">MOYEN</span></td>
+                            <td>❌ Non résolu</td>
+                        </tr>
+                        <tr>
+                            <td>7</td>
+                            <td>Admin accounting sans paymentSplit</td>
+                            <td><span class="badge medium">MOYEN</span></td>
+                            <td>❌ Non résolu</td>
+                        </tr>
+                        <tr>
+                            <td>8</td>
+                            <td>paymentSplit défini avant markOrderAsPaid</td>
+                            <td><span class="badge low">FAIBLE</span></td>
+                            <td>✅ Actuellement sûr</td>
+                        </tr>
+                        <tr>
+                            <td>9</td>
+                            <td>Multiples writers paymentStatus</td>
+                            <td><span class="badge low">FAIBLE</span></td>
+                            <td>⚠️ Risque mineur</td>
+                        </tr>
+                        <tr>
+                            <td>10</td>
+                            <td>updatePosOrder full replace</td>
+                            <td><span class="badge low">FAIBLE</span></td>
+                            <td>ℹ️ Info seulement</td>
+                        </tr>
+                        <tr>
+                            <td>11</td>
+                            <td>Sync dedup pas de protection DB</td>
+                            <td><span class="badge low">FAIBLE</span></td>
+                            <td>⚠️ Risque mineur</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- SECTION 6: ROLES -->
+            <div class="section" id="roles">
+                <h2>6. Gestion des Rôles</h2>
+
+                <h3>👥 Rôles Supportés</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Rôle</th>
+                            <th>Code</th>
+                            <th>Accès Principal</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Super Admin</td>
+                            <td><code>superadmin</code></td>
+                            <td>Dashboard Admin</td>
+                            <td>Accès complet multi-restaurants</td>
+                        </tr>
+                        <tr>
+                            <td>Admin</td>
+                            <td><code>admin</code></td>
+                            <td>Dashboard Admin</td>
+                            <td>Gestion restaurant complet</td>
+                        </tr>
+                        <tr>
+                            <td>Serveur</td>
+                            <td><code>staff</code></td>
+                            <td>Menu POS</td>
+                            <td>Prise de commandes et paiements</td>
+                        </tr>
+                        <tr>
+                            <td>Livreur</td>
+                            <td><code>livreur</code></td>
+                            <td>Menu POS</td>
+                            <td>Same as serveur + livraisons</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>🔐 Authentification</h3>
+                <div class="flow-diagram">
+                    <h4>Flux de Connexion</h4>
+                    <div class="flow-step">
+                        <strong>Login Screen</strong><br>
+                        Email + Mot de passe<br>
+                        ou PIN code
+                    </div>
+                    <span class="flow-arrow">→</span>
+                    <div class="flow-step">
+                        <strong>Auth API</strong><br>
+                        Backend vérifie<br>
+                        Token Sanctum
+                    </div>
+                    <span class="flow-arrow">→</span>
+                    <div class="flow-step">
+                        <strong>Local Fallback</strong><br>
+                        Si offline → DB locale<br>
+                        Utilisateurs locaux
+                    </div>
+                    <span class="flow-arrow">→</span>
+                    <div class="flow-step">
+                        <strong>Redirection</strong><br>
+                        Admin → Dashboard<br>
+                        Staff → POS Lock
+                    </div>
+                    <span class="flow-arrow">→</span>
+                    <div class="flow-step">
+                        <strong>POS Lock</strong><br>
+                        Serveur entre PIN<br>
+                        ou scan badge
+                    </div>
+                    <span class="flow-arrow">→</span>
+                    <div class="flow-step">
+                        <strong>POS Menu</strong><br>
+                        Accès complet<br>
+                        avec staffId défini
+                    </div>
+                </div>
+
+                <h3>🎯 Capacités par Rôle</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Capacité</th>
+                            <th>Staff</th>
+                            <th>Admin</th>
+                            <th>Superadmin</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Créer commandes</td>
+                            <td>✅ Ses propres</td>
+                            <td>✅ Toutes</td>
+                            <td>✅ Toutes</td>
+                        </tr>
+                        <tr>
+                            <td>Payer commandes</td>
+                            <td>✅ Ses propres + API</td>
+                            <td>✅ Toutes</td>
+                            <td>✅ Toutes</td>
+                        </tr>
+                        <tr>
+                            <td>Modifier contenu</td>
+                            <td>⚠️ Ses propres, unpaid</td>
+                            <td>✅ Toutes POS</td>
+                            <td>✅ Toutes POS</td>
+                        </tr>
+                        <tr>
+                            <td>Annuler commandes</td>
+                            <td>❌ Non</td>
+                            <td>✅ Oui</td>
+                            <td>✅ Oui</td>
+                        </tr>
+                        <tr>
+                            <td>Voir comptabilité</td>
+                            <td>❌ Non</td>
+                            <td>✅ Oui</td>
+                            <td>✅ Oui</td>
+                        </tr>
+                        <tr>
+                            <td>Gérer utilisateurs</td>
+                            <td>❌ Non</td>
+                            <td>✅ Oui</td>
+                            <td>✅ Oui</td>
+                        </tr>
+                        <tr>
+                            <td>Accès tables autres serveurs</td>
+                            <td>❌ Non</td>
+                            <td>✅ Oui</td>
+                            <td>✅ Oui</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- SECTION 7: SCREENS -->
+            <div class="section" id="screens">
+                <h2>7. Écrans et Navigation</h2>
+
+                <h3>📱 Hiérarchie des Écrans</h3>
+
+                <div class="flow-diagram">
+                    <h4>Navigation Complète</h4>
+                    <div style="text-align: left; display: inline-block;">
+                        <div class="flow-step" style="width: 100%; margin: 5px 0;">
+                            <strong>Splash Screen</strong> <code>/</code>
+                        </div>
+                        <span class="flow-arrow" style="display: block; text-align: center;">↓</span>
+                        <div class="flow-step" style="width: 100%; margin: 5px 0;">
+                            <strong>Login Screen</strong> <code>/login</code>
+                        </div>
+                        <span class="flow-arrow" style="display: block; text-align: center;">↓</span>
+                        <div style="display: flex; gap: 20px; justify-content: center;">
+                            <div class="flow-step" style="flex: 1;">
+                                <strong>Admin/Superadmin</strong><br>
+                                ↓<br>
+                                <strong>Admin Dashboard</strong> <code>/admin-dashboard</code><br>
+                                ├─ Comptabilité<br>
+                                ├─ Commandes<br>
+                                ├─ Utilisateurs<br>
+                                ├─ Restaurants<br>
+                                ├─ Catalogue<br>
+                                ├─ Tables<br>
+                                ├─ Livreurs<br>
+                                └─ Import Data
+                            </div>
+                            <div class="flow-step" style="flex: 1;">
+                                <strong>Staff/Livreur</strong><br>
+                                ↓<br>
+                                <strong>POS Lock</strong> <code>/pos-lock</code><br>
+                                ↓ (PIN/Badge)<br>
+                                <strong>POS Menu</strong> <code>/pos-menu</code><br>
+                                ├─ Nouvelle Commande<br>
+                                ├─ Mes Commandes<br>
+                                ├─ Mes Paiements<br>
+                                ├─ Mes Tables<br>
+                                └─ Mobile/Web
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <h3>🖥️ Écrans Principaux</h3>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Écran</th>
+                            <th>Fichier</th>
+                            <th>Rôle</th>
+                            <th>Fonction</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>POS Principal</td>
+                            <td><code>pos_screen.dart</code></td>
+                            <td>Staff</td>
+                            <td>Interface de commande: catalogue, panier, checkout</td>
+                        </tr>
+                        <tr>
+                            <td>Menu Serveur</td>
+                            <td><code>pos_staff_menu_screen.dart</code></td>
+                            <td>Staff</td>
+                            <td>Hub avec 5 cartes d'action</td>
+                        </tr>
+                        <tr>
+                            <td>Mes Commandes</td>
+                            <td><code>pos_staff_orders_screen.dart</code></td>
+                            <td>Staff</td>
+                            <td>Liste filtrable des commandes avec actions</td>
+                        </tr>
+                        <tr>
+                            <td>Mes Paiements</td>
+                            <td><code>pos_staff_payments_screen.dart</code></td>
+                            <td>Staff</td>
+                            <td>Totaux par méthode de paiement (jour)</td>
+                        </tr>
+                        <tr>
+                            <td>Mes Tables</td>
+                            <td><code>pos_tables_screen.dart</code></td>
+                            <td>Staff</td>
+                            <td>Plan de salle visuel avec statuts</td>
+                        </tr>
+                        <tr>
+                            <td>Admin Dashboard</td>
+                            <td><code>admin_dashboard_screen.dart</code></td>
+                            <td>Admin</td>
+                            <td>Stats et accès rapide aux fonctionnalités</td>
+                        </tr>
+                        <tr>
+                            <td>Comptabilité</td>
+                            <td><code>admin_accounting_screen.dart</code></td>
+                            <td>Admin</td>
+                            <td>Rapport détaillé par serveur et méthode</td>
+                        </tr>
+                        <tr>
+                            <td>Admin Commandes</td>
+                            <td><code>admin_orders_screen.dart</code></td>
+                            <td>Admin</td>
+                            <td>Gestion et suivi des statuts</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- SECTION 8: DATABASE -->
+            <div class="section" id="database">
+                <h2>8. Base de Données Locale (Isar)</h2>
+
+                <h3>📦 Collections Isar</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Collection</th>
+                            <th>Modèle</th>
+                            <th>Nombre</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>users</code></td>
+                            <td><code>User</code></td>
+                            <td>~50</td>
+                            <td>Utilisateurs (staff, admins, livreurs)</td>
+                        </tr>
+                        <tr>
+                            <td><code>restaurants</code></td>
+                            <td><code>Restaurant</code></td>
+                            <td>~5</td>
+                            <td>Restaurants configurés</td>
+                        </tr>
+                        <tr>
+                            <td><code>categorys</code></td>
+                            <td><code>Category</code></td>
+                            <td>~20</td>
+                            <td>Catégories de produits</td>
+                        </tr>
+                        <tr>
+                            <td><code>products</code></td>
+                            <td><code>Product</code></td>
+                            <td>~200</td>
+                            <td>Articles du menu</td>
+                        </tr>
+                        <tr>
+                            <td><code>productPrices</code></td>
+                            <td><code>ProductPrice</code></td>
+                            <td>~400</td>
+                            <td>Variantes de prix (glovo, détail, etc.)</td>
+                        </tr>
+                        <tr>
+                            <td><code>posOrders</code></td>
+                            <td><code>PosOrder</code></td>
+                            <td>~1000</td>
+                            <td>Commandes (POS + API/Web/Kiosk)</td>
+                        </tr>
+                        <tr>
+                            <td><code>posOrderItems</code></td>
+                            <td><code>PosOrderItem</code></td>
+                            <td>~5000</td>
+                            <td>Articles de commande</td>
+                        </tr>
+                        <tr>
+                            <td><code>posTables</code></td>
+                            <td><code>PosTable</code></td>
+                            <td>~50</td>
+                            <td>Définitions des tables avec positions</td>
+                        </tr>
+                        <tr>
+                            <td><code>deliverys</code></td>
+                            <td><code>Delivery</code></td>
+                            <td>~20</td>
+                            <td>Profils des livreurs</td>
+                        </tr>
+                        <tr>
+                            <td><code>orderDeliverys</code></td>
+                            <td><code>OrderDelivery</code></td>
+                            <td>~500</td>
+                            <td>Assignations commande-livreur</td>
+                        </tr>
+                        <tr>
+                            <td><code>customers</code></td>
+                            <td><code>Customer</code></td>
+                            <td>~200</td>
+                            <td>Base clients</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>🔑 Index Strategiques</h3>
+                <div class="feature-box">
+                    <h4>PosOrder - Index</h4>
+                    <ul style="margin-left: 20px; line-height: 2;">
+                        <li><code>sourceLocalId</code> - Pour matching avec backend</li>
+                        <li><code>channel</code> - Pour filtrage pos/api/web/kiosk</li>
+                        <li><code>isFromApi</code> - Pour détection commandes API</li>
+                        <li><code>status</code> - Pour filtrage par statut</li>
+                        <li><code>paymentStatus</code> - Pour filtrage paiements</li>
+                        <li><code>customerPhone</code> - Pour matching par téléphone</li>
+                        <li><code>createdAt</code> - Pour requêtes par jour</li>
+                        <li><code>updatedAt</code> - Pour sync state tracking</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- SECTION 9: WORKFLOWS -->
+            <div class="section" id="workflows">
+                <h2>9. Workflows Principaux</h2>
+
+                <h3>👨‍🍳 Workflow Serveur</h3>
+                <div class="flow-diagram">
+                    <h4>Cycle de Vie Complet d'un Serveur</h4>
+                    <div style="text-align: left; display: inline-block; max-width: 800px;">
+                        <ol style="line-height: 2.5;">
+                            <li><strong>Login</strong> → "Ouvrir le POS" sur écran login</li>
+                            <li><strong>POS Lock</strong> → Entrer PIN 4-6 chiffres ou scanner badge</li>
+                            <li><strong>POS Menu</strong> → 5 cartes d'action:
+                                <ul style="margin-left: 30px; line-height: 2;">
+                                    <li><em>Nouvelle Commande</em> → Choix type (Sur place/À emporter/Livraison)</li>
+                                    <li><em>Mes Commandes</em> → Liste filtrable avec actions</li>
+                                    <li><em>Mes Paiements</em> → Totaux du jour par méthode</li>
+                                    <li><em>Mes Tables</em> → Plan de salle visuel</li>
+                                    <li><em>Mobile/Web</em> → Commandes API/Web/Pickup</li>
+                                </ul>
+                            </li>
+                            <li><strong>Prise de Commande</strong>:
+                                <ul style="margin-left: 30px; line-height: 2;">
+                                    <li>Sélection table ou type (pickup/delivery)</li>
+                                    <li>Ajout articles depuis catalogue</li>
+                                    <li>Sauvegarde → <code>status: pending</code></li>
+                                </ul>
+                            </li>
+                            <li><strong>Paiement</strong>:
+                                <ul style="margin-left: 30px; line-height: 2;">
+                                    <li>Depuis "Mes Commandes" ou "Table" → Bouton "Payer"</li>
+                                    <li>Choix: Simple (1 méthode) ou Split (multiple)</li>
+                                    <li>Confirmation → <code>paymentStatus: paid</code></li>
+                                    <li>Si table occupée → libération table</li>
+                                </ul>
+                            </li>
+                            <li><strong>Verrouillage</strong> → Bouton "Verrouiller" → Retour POS Lock</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <h3>👔 Workflow Admin</h3>
+                <div class="flow-diagram">
+                    <h4>Cycle de Gestion Admin</h4>
+                    <div style="text-align: left; display: inline-block; max-width: 800px;">
+                        <ol style="line-height: 2.5;">
+                            <li><strong>Login</strong> → Email/Mot de passe sur écran login</li>
+                            <li><strong>Dashboard Admin</strong> → Vue d'ensemble:
+                                <ul style="margin-left: 30px; line-height: 2;">
+                                    <li>Stats: Tables, Web/Mobile, CA, Total CMD</li>
+                                    <li>Répartition paiements: TPE, Cash, En compte</li>
+                                    <li>9 tuiles d'accès rapide</li>
+                                </ul>
+                            </li>
+                            <li><strong>Comptabilité</strong> (<code>/admin-accounting</code>):
+                                <ul style="margin-left: 30px; line-height: 2;">
+                                    <li>Sélecteur de date</li>
+                                    <li>Revenu par canal (POS vs Web/API)</li>
+                                    <li>Revenu par type (Sur place, Emporter, Livraison)</li>
+                                    <li>Répartition par méthode de paiement</li>
+                                    <li>Résumé par serveur avec nombre de commandes</li>
+                                </ul>
+                            </li>
+                            <li><strong>Gestion Commandes</strong> (<code>/admin-orders</code>):
+                                <ul style="margin-left: 30px; line-height: 2;">
+                                    <li>Filtres: statut, canal, serveur</li>
+                                    <li>Changement de statut</li>
+                                    <li>Annulation avec motif (admin seul)</li>
+                                    <li>Vue détaillée avec articles</li>
+                                </ul>
+                            </li>
+                            <li><strong>Gestion Utilisateurs</strong> → CRUD complet</li>
+                            <li><strong>Import Data</strong> → Sync manuelle depuis API distante</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <h3>🔄 Workflow de Synchronisation</h3>
+                <div class="flow-diagram">
+                    <h4>Sync Automatique en Arrière-plan</h4>
+                    <div style="text-align: left; display: inline-block; max-width: 800px;">
+                        <p><strong>Timer toutes les 60 secondes:</strong></p>
+                        <ol style="margin-left: 30px; line-height: 2.5;">
+                            <li><strong>Étape 1: PUSH</strong>
+                                <ul style="margin-left: 30px;">
+                                    <li>Scanner commandes non sync (<code>queueUnsyncedOrders()</code>)</li>
+                                    <li>Scanner utilisateurs non sync (<code>queueUnsyncedUsers()</code>)</li>
+                                    <li>Envoyer file au backend (<code>flushQueue()</code>)</li>
+                                </ul>
+                            </li>
+                            <li><strong>Étape 2: PULL</strong>
+                                <ul style="margin-left: 30px;">
+                                    <li>Récupérer utilisateurs depuis backend</li>
+                                    <li>Récupérer commandes API entrantes</li>
+                                </ul>
+                            </li>
+                            <li><strong>Étape 3: UI Refresh</strong>
+                                <ul style="margin-left: 30px;">
+                                    <li>Si nouvelles commandes → <code>loadOrdersToday()</code></li>
+                                    <li>Si commandes API en attente → Son de notification</li>
+                                </ul>
+                            </li>
+                        </ol>
+                        <p style="margin-top: 20px;"><strong>Événements immédiats:</strong></p>
+                        <ul style="margin-left: 30px; line-height: 2;">
+                            <li>Création commande → Enqueue + flush après 700ms</li>
+                            <li>Modification commande → Enqueue seul</li>
+                            <li>Changement statut API → HTTP direct (non queue)</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION 10: API -->
+            <div class="section" id="api">
+                <h2>10. API Backend</h2>
+
+                <h3>🌐 Endpoints Utilisés</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Méthode</th>
+                            <th>Endpoint</th>
+                            <th>Direction</th>
+                            <th>Usage</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>POST</code></td>
+                            <td>/api/login</td>
+                            <td>→</td>
+                            <td>Authentification (email + password)</td>
+                        </tr>
+                        <tr>
+                            <td><code>POST</code></td>
+                            <td>/api/login-pin</td>
+                            <td>→</td>
+                            <td>Authentification (PIN code)</td>
+                        </tr>
+                        <tr>
+                            <td><code>POST</code></td>
+                            <td>/api/sync/public/{entity}/upsert</td>
+                            <td>→</td>
+                            <td>Push users, orders, categories, products</td>
+                        </tr>
+                        <tr>
+                            <td><code>POST</code></td>
+                            <td>/api/sync/{entity}/delete</td>
+                            <td>→</td>
+                            <td>Supprimer entités</td>
+                        </tr>
+                        <tr>
+                            <td><code>POST</code></td>
+                            <td>/api/orders/{id}/update-status</td>
+                            <td>→</td>
+                            <td>Sync statut commande API</td>
+                        </tr>
+                        <tr>
+                            <td><code>GET</code></td>
+                            <td>/api/orders?restaurant_id=X</td>
+                            <td>←</td>
+                            <td>Pull commandes du restaurant</td>
+                        </tr>
+                        <tr>
+                            <td><code>GET</code></td>
+                            <td>/api/sync/orders?restaurant_id=X</td>
+                            <td>←</td>
+                            <td>Fallback pull commandes</td>
+                        </tr>
+                        <tr>
+                            <td><code>GET</code></td>
+                            <td>/api/users?restaurant_id=X</td>
+                            <td>←</td>
+                            <td>Import utilisateurs</td>
+                        </tr>
+                        <tr>
+                            <td><code>GET</code></td>
+                            <td>/api/products</td>
+                            <td>←</td>
+                            <td>Import produits</td>
+                        </tr>
+                        <tr>
+                            <td><code>GET</code></td>
+                            <td>/api/categories</td>
+                            <td>←</td>
+                            <td>Import catégories</td>
+                        </tr>
+                        <tr>
+                            <td><code>GET</code></td>
+                            <td>/api/restaurants?restaurant_id=X</td>
+                            <td>←</td>
+                            <td>Import restaurants</td>
+                        </tr>
+                        <tr>
+                            <td><code>GET</code></td>
+                            <td>/api/deliveries</td>
+                            <td>←</td>
+                            <td>Import livreurs</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>🔑 Authentification API</h3>
+                <div class="feature-box">
+                    <h4>Token-Based (Laravel Sanctum)</h4>
+                    <ul style="margin-left: 20px; line-height: 2;">
+                        <li><strong>Obtention:</strong> Via <code>/api/login</code> ou <code>/api/login-pin</code></li>
+                        <li><strong>Stockage:</strong> <code>AuthSessionService</code> local</li>
+                        <li><strong>Propagation:</strong> Automatique à tous les services sync</li>
+                        <li><strong>Refresh:</strong> Via PIN ou credentials si expiré</li>
+                        <li><strong>Endpoints publics:</strong> <code>/api/sync/public/</code> ne requiert pas Authorization</li>
+                    </ul>
+                </div>
+
+                <h3>⚡ Gestion d'Erreurs</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Code HTTP</th>
+                            <th>Signification</th>
+                            <th>Traitement</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>422</code></td>
+                            <td>Validation failed</td>
+                            <td>Essai statuts alternatifs: pending → confirmed → delivered</td>
+                        </tr>
+                        <tr>
+                            <td><code>403</code></td>
+                            <td>Non autorisé</td>
+                            <td>Après 3 essais → dead-letter queue</td>
+                        </tr>
+                        <tr>
+                            <td><code>429</code></td>
+                            <td>Rate limited</td>
+                            <td>Exponential backoff: 5s → 10s → 20s → ... → 5m max</td>
+                        </tr>
+                        <tr>
+                            <td><code>5xx</code></td>
+                            <td>Server error</td>
+                            <td>Retry 3 fois → dead-letter queue</td>
+                        </tr>
+                        <tr>
+                            <td>Offline</td>
+                            <td>Pas de réseau</td>
+                            <td>Item reste dans file, retry au prochain flush</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p><strong>SOYABOX POS - Documentation Technique</strong></p>
+            <p>Généré le: Avril 2026</p>
+            <p>Framework: Flutter | Base de données: Isar | State Management: GetX</p>
+            <p style="margin-top: 20px; font-size: 0.9em; opacity: 0.8;">
+                Ce document a été généré automatiquement par analyse exhaustive du code source.
+            </p>
+        </div>
+    </div>
+</body>
+</html>

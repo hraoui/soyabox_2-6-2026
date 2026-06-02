@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(flutter *)",
+      "Bash(pgrep *)",
+      "Bash(rm *)",
+      "Bash(pod *)",
+      "WebSearch",
+      "Bash(curl *)",
+      "Bash(php *)",
+      "Bash(chmod *)",
+      "Bash(lsof *)",
+      "Bash(cat *)",
+      "Bash(grep *)",
+      "Bash(dart *)",
+      "Bash(head *)",
+      "Bash(mv *)",
+      "Bash(echo *)",
+      "Bash(ls *)",
+      "Bash(sed *)",
+      "Read(//Users/macbookpro/Downloads/**)",
+      "Bash(find *)"
+    ]
+  },
+  "$version": 4
+}

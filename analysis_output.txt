@@ -1,0 +1,855 @@
+Analyzing soyabox_caisse-main...
+
+  error - lib/main.dart:372:50 - The name 'PosStaffPaidOrdersScreen' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib/main.dart:518:15 - 'Wrap' isn't a function. Try correcting the name to match an existing function, or define a method or function named 'Wrap'. - invocation_of_non_function
+  error - lib/main.dart:518:15 - The name 'Wrap' is defined in the libraries 'package:caisse_1/views/pos_staff_paid_orders_screen.dart' and 'package:flutter/src/widgets/basic.dart (via package:flutter/material.dart)'. Try using 'as prefix' for one of the import directives, or hiding the name from all but one of the imports. - ambiguous_import
+  error - lib/main.dart:560:14 - The name 'AppSurfaceCard' is defined in the libraries 'package:caisse_1/views/pos_staff_paid_orders_screen.dart' and 'package:caisse_1/widgets/app_card_kit.dart'. Try using 'as prefix' for one of the import directives, or hiding the name from all but one of the imports. - ambiguous_import
+  error - lib/main.dart:561:9 - The named parameter 'minHeight' isn't defined. Try correcting the name to an existing named parameter's name, or defining a named parameter with the name 'minHeight'. - undefined_named_parameter
+  error - lib/views/pos_staff_paid_orders_screen.dart:1:5 - 'return' can't be used as an identifier because it's a keyword. Try renaming this to be an identifier that isn't a keyword. - expected_identifier_but_got_keyword
+  error - lib/views/pos_staff_paid_orders_screen.dart:1:5 - Expected to find ';'. - expected_token
+  error - lib/views/pos_staff_paid_orders_screen.dart:1:5 - Variables must be declared using the keywords 'const', 'final', 'var' or a type name. Try adding the name of the type of the variable or the keyword 'var'. - missing_const_final_var_or_type
+  error - lib/views/pos_staff_paid_orders_screen.dart:2:14 - Named parameters must be enclosed in curly braces ('{' and '}'). Try surrounding the named parameters in curly braces. - named_parameter_outside_group
+  error - lib/views/pos_staff_paid_orders_screen.dart:2:14 - Using a colon as the separator before a default value is no longer supported. Try replacing the colon with an equal sign. - obsolete_colon_for_default_value
+  error - lib/views/pos_staff_paid_orders_screen.dart:2:16 - Undefined name 'EdgeInsets'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:3:13 - Named parameters must be enclosed in curly braces ('{' and '}'). Try surrounding the named parameters in curly braces. - named_parameter_outside_group
+  error - lib/views/pos_staff_paid_orders_screen.dart:3:13 - Using a colon as the separator before a default value is no longer supported. Try replacing the colon with an equal sign. - obsolete_colon_for_default_value
+  error - lib/views/pos_staff_paid_orders_screen.dart:3:15 - Undefined name 'SushiRadius'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:4:18 - Named parameters must be enclosed in curly braces ('{' and '}'). Try surrounding the named parameters in curly braces. - named_parameter_outside_group
+  error - lib/views/pos_staff_paid_orders_screen.dart:4:18 - Using a colon as the separator before a default value is no longer supported. Try replacing the colon with an equal sign. - obsolete_colon_for_default_value
+  error - lib/views/pos_staff_paid_orders_screen.dart:4:20 - Undefined name 'statusColor'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:5:22 - Named parameters must be enclosed in curly braces ('{' and '}'). Try surrounding the named parameters in curly braces. - named_parameter_outside_group
+  error - lib/views/pos_staff_paid_orders_screen.dart:5:22 - Using a colon as the separator before a default value is no longer supported. Try replacing the colon with an equal sign. - obsolete_colon_for_default_value
+  error - lib/views/pos_staff_paid_orders_screen.dart:5:24 - Undefined name 'SushiColors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:6:12 - Named parameters must be enclosed in curly braces ('{' and '}'). Try surrounding the named parameters in curly braces. - named_parameter_outside_group
+  error - lib/views/pos_staff_paid_orders_screen.dart:6:12 - Using a colon as the separator before a default value is no longer supported. Try replacing the colon with an equal sign. - obsolete_colon_for_default_value
+  error - lib/views/pos_staff_paid_orders_screen.dart:6:14 - The function 'Column' isn't defined. Try importing the library that defines 'Column', correcting the name to the name of an existing function, or defining a function named 'Column'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:7:29 - Undefined name 'CrossAxisAlignment'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:9:11 - The function 'Container' isn't defined. Try importing the library that defines 'Container', correcting the name to the name of an existing function, or defining a function named 'Container'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:10:28 - Undefined name 'EdgeInsets'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:10:43 - Undefined name 'SushiSpace'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:11:25 - The function 'BoxDecoration' isn't defined. Try importing the library that defines 'BoxDecoration', correcting the name to the name of an existing function, or defining a function named 'BoxDecoration'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:12:22 - Undefined name 'statusColor'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:13:35 - Undefined name 'BorderRadius'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:14:22 - Undefined name 'Radius'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:14:38 - Undefined name 'SushiRadius'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:17:20 - The function 'Row' isn't defined. Try importing the library that defines 'Row', correcting the name to the name of an existing function, or defining a function named 'Row'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:18:35 - Undefined name 'CrossAxisAlignment'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:20:17 - The function 'AppCardIconBadge' isn't defined. Try importing the library that defines 'AppCardIconBadge', correcting the name to the name of an existing function, or defining a function named 'AppCardIconBadge'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:21:25 - Undefined name 'order'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:22:25 - Undefined name 'Icons'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:23:25 - Undefined name 'order'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:24:29 - Undefined name 'Icons'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:25:29 - Undefined name 'Icons'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:26:27 - Undefined name 'statusColor'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:27:31 - Undefined name 'statusColor'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:31:23 - The name 'SizedBox' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib/views/pos_staff_paid_orders_screen.dart:31:39 - Undefined name 'SushiSpace'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:32:17 - The function 'Expanded' isn't defined. Try importing the library that defines 'Expanded', correcting the name to the name of an existing function, or defining a function named 'Expanded'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:33:26 - The function 'Column' isn't defined. Try importing the library that defines 'Column', correcting the name to the name of an existing function, or defining a function named 'Column'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:34:41 - Undefined name 'CrossAxisAlignment'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:37:34 - Undefined name 'SushiSpace'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:39:25 - The named parameter 'crossAxisAlignment' isn't defined. Try correcting the name to an existing named parameter's name, or defining a named parameter with the name 'crossAxisAlignment'. - undefined_named_parameter
+  error - lib/views/pos_staff_paid_orders_screen.dart:39:45 - Undefined name 'WrapCrossAlignment'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:41:27 - The function 'Text' isn't defined. Try importing the library that defines 'Text', correcting the name to the name of an existing function, or defining a function named 'Text'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:42:33 - Undefined name 'order'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:43:36 - Undefined name 'SushiTypo'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:46:41 - Undefined name 'order'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:48:49 - Undefined name 'order'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:50:45 - Undefined name 'order'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:51:36 - Undefined name 'statusColor'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:53:31 - Undefined name 'order'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:54:29 - The function 'Container' isn't defined. Try importing the library that defines 'Container', correcting the name to the name of an existing function, or defining a function named 'Container'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:55:46 - Undefined name 'EdgeInsets'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:59:43 - The function 'BoxDecoration' isn't defined. Try importing the library that defines 'BoxDecoration', correcting the name to the name of an existing function, or defining a function named 'BoxDecoration'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:60:46 - The name 'Color' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib/views/pos_staff_paid_orders_screen.dart:61:47 - Undefined name 'BorderRadius'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:62:41 - Undefined name 'Border'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:63:48 - The name 'Color' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib/views/pos_staff_paid_orders_screen.dart:67:44 - The name 'Text' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib/views/pos_staff_paid_orders_screen.dart:69:40 - The function 'TextStyle' isn't defined. Try importing the library that defines 'TextStyle', correcting the name to the name of an existing function, or defining a function named 'TextStyle'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:71:47 - Undefined name 'FontWeight'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:72:48 - The name 'Color' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib/views/pos_staff_paid_orders_screen.dart:78:29 - The name 'SizedBox' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib/views/pos_staff_paid_orders_screen.dart:79:23 - The function 'Text' isn't defined. Try importing the library that defines 'Text', correcting the name to the name of an existing function, or defining a function named 'Text'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:80:25 - Undefined name 'placeLabel'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:81:32 - Undefined name 'SushiTypo'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:82:34 - Undefined name 'SushiColors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:85:35 - Undefined name 'TextOverflow'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:90:21 - Undefined name 'order'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:90:38 - Undefined name 'pos'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:91:19 - The function 'Container' isn't defined. Try importing the library that defines 'Container', correcting the name to the name of an existing function, or defining a function named 'Container'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:92:36 - Undefined name 'EdgeInsets'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:96:33 - The function 'BoxDecoration' isn't defined. Try importing the library that defines 'BoxDecoration', correcting the name to the name of an existing function, or defining a function named 'BoxDecoration'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:97:30 - Undefined name 'SushiColors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:98:37 - Undefined name 'BorderRadius'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:99:31 - Undefined name 'Border'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:100:32 - Undefined name 'SushiColors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:104:28 - The function 'Text' isn't defined. Try importing the library that defines 'Text', correcting the name to the name of an existing function, or defining a function named 'Text'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:106:30 - Undefined name 'SushiTypo'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:108:37 - Undefined name 'FontWeight'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:109:32 - Undefined name 'SushiColors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:117:11 - The function 'Padding' isn't defined. Try importing the library that defines 'Padding', correcting the name to the name of an existing function, or defining a function named 'Padding'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:118:28 - Undefined name 'EdgeInsets'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:118:43 - Undefined name 'SushiSpace'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:119:20 - The function 'Column' isn't defined. Try importing the library that defines 'Column', correcting the name to the name of an existing function, or defining a function named 'Column'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:120:35 - Undefined name 'CrossAxisAlignment'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:123:21 - Undefined name 'order'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:123:51 - Undefined name 'order'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:124:19 - The function 'Column' isn't defined. Try importing the library that defines 'Column', correcting the name to the name of an existing function, or defining a function named 'Column'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:125:41 - Undefined name 'CrossAxisAlignment'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:127:29 - The name 'Text' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib/views/pos_staff_paid_orders_screen.dart:129:32 - The function 'TextStyle' isn't defined. Try importing the library that defines 'TextStyle', correcting the name to the name of an existing function, or defining a function named 'TextStyle'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:131:39 - Undefined name 'FontWeight'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:132:34 - Undefined name 'SushiColors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:135:29 - The name 'SizedBox' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib/views/pos_staff_paid_orders_screen.dart:136:23 - The function 'Text' isn't defined. Try importing the library that defines 'Text', correcting the name to the name of an existing function, or defining a function named 'Text'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:137:25 - Undefined name 'order'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:138:32 - Undefined name 'SushiTypo'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:140:35 - Undefined name 'TextOverflow'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:142:27 - Undefined name 'order'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:143:25 - The function 'Text' isn't defined. Try importing the library that defines 'Text', correcting the name to the name of an existing function, or defining a function named 'Text'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:144:27 - Undefined name 'order'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:145:34 - Undefined name 'SushiTypo'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:146:36 - Undefined name 'SushiColors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:149:29 - The name 'SizedBox' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib/views/pos_staff_paid_orders_screen.dart:149:46 - Undefined name 'SushiSpace'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:154:17 - The function 'Row' isn't defined. Try importing the library that defines 'Row', correcting the name to the name of an existing function, or defining a function named 'Row'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:155:38 - Undefined name 'MainAxisAlignment'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:157:21 - The function 'Text' isn't defined. Try importing the library that defines 'Text', correcting the name to the name of an existing function, or defining a function named 'Text'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:158:33 - Undefined name 'order'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:159:30 - Undefined name 'SushiTypo'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:160:37 - Undefined name 'FontWeight'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:163:21 - The function 'Container' isn't defined. Try importing the library that defines 'Container', correcting the name to the name of an existing function, or defining a function named 'Container'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:164:38 - Undefined name 'EdgeInsets'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:168:35 - The function 'BoxDecoration' isn't defined. Try importing the library that defines 'BoxDecoration', correcting the name to the name of an existing function, or defining a function named 'BoxDecoration'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:169:32 - Undefined name 'SushiColors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:170:39 - Undefined name 'BorderRadius'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:172:30 - The function 'Text' isn't defined. Try importing the library that defines 'Text', correcting the name to the name of an existing function, or defining a function named 'Text'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:173:25 - Undefined name 'order'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:176:32 - The function 'TextStyle' isn't defined. Try importing the library that defines 'TextStyle', correcting the name to the name of an existing function, or defining a function named 'TextStyle'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:178:39 - Undefined name 'FontWeight'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:179:34 - Undefined name 'SushiColors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:185:21 - Undefined name 'order'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:186:21 - Undefined name 'order'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:187:21 - Undefined name 'order'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:188:19 - The function 'Padding' isn't defined. Try importing the library that defines 'Padding', correcting the name to the name of an existing function, or defining a function named 'Padding'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:189:36 - Undefined name 'EdgeInsets'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:189:57 - Undefined name 'SushiSpace'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:190:28 - The function 'Text' isn't defined. Try importing the library that defines 'Text', correcting the name to the name of an existing function, or defining a function named 'Text'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:191:58 - Undefined name 'order'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:192:30 - Undefined name 'SushiTypo'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:193:32 - Undefined name 'SushiColors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:197:21 - Undefined name 'order'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:198:19 - The function 'Row' isn't defined. Try importing the library that defines 'Row', correcting the name to the name of an existing function, or defining a function named 'Row'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:199:40 - Undefined name 'MainAxisAlignment'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:201:23 - The function 'Text' isn't defined. Try importing the library that defines 'Text', correcting the name to the name of an existing function, or defining a function named 'Text'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:202:60 - Undefined name 'order'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:203:32 - Undefined name 'SushiTypo'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:204:34 - Undefined name 'SushiColors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:207:27 - Undefined name 'order'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:208:27 - Undefined name 'order'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:208:50 - Undefined name 'pos'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:209:25 - The function 'Container' isn't defined. Try importing the library that defines 'Container', correcting the name to the name of an existing function, or defining a function named 'Container'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:210:42 - Undefined name 'EdgeInsets'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:214:39 - The function 'BoxDecoration' isn't defined. Try importing the library that defines 'BoxDecoration', correcting the name to the name of an existing function, or defining a function named 'BoxDecoration'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:215:36 - Undefined name 'SushiColors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:216:43 - Undefined name 'BorderRadius'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:217:37 - Undefined name 'Border'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:218:38 - Undefined name 'SushiColors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:222:34 - The function 'Text' isn't defined. Try importing the library that defines 'Text', correcting the name to the name of an existing function, or defining a function named 'Text'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:224:36 - Undefined name 'SushiTypo'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:226:43 - Undefined name 'FontWeight'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:227:38 - Undefined name 'SushiColors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:233:23 - The name 'SizedBox' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib/views/pos_staff_paid_orders_screen.dart:233:40 - Undefined name 'SushiSpace'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:236:17 - The function 'Row' isn't defined. Try importing the library that defines 'Row', correcting the name to the name of an existing function, or defining a function named 'Row'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:238:21 - The function 'Icon' isn't defined. Try importing the library that defines 'Icon', correcting the name to the name of an existing function, or defining a function named 'Icon'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:239:23 - Undefined name 'Icons'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:241:30 - Undefined name 'SushiColors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:243:27 - The name 'SizedBox' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib/views/pos_staff_paid_orders_screen.dart:244:21 - The function 'Text' isn't defined. Try importing the library that defines 'Text', correcting the name to the name of an existing function, or defining a function named 'Text'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:245:23 - The function 'DateFormat' isn't defined. Try importing the library that defines 'DateFormat', correcting the name to the name of an existing function, or defining a function named 'DateFormat'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:245:61 - Undefined name 'order'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:246:30 - Undefined name 'SushiTypo'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:247:32 - Undefined name 'SushiColors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:257:11 - The function 'Padding' isn't defined. Try importing the library that defines 'Padding', correcting the name to the name of an existing function, or defining a function named 'Padding'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:258:28 - Undefined name 'EdgeInsets'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:258:43 - Undefined name 'SushiSpace'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:260:24 - Undefined name 'SushiSpace'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:261:27 - Undefined name 'SushiSpace'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:264:25 - Undefined name 'Icons'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:266:56 - Undefined name 'pos'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:266:61 - Undefined name 'order'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:269:25 - Undefined name 'Icons'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:271:46 - Undefined name 'order'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:279:6 - A function body must be provided. Try adding a function body. - missing_function_body
+  error - lib/views/pos_staff_paid_orders_screen.dart:280:23 - 'if' can't be used as an identifier because it's a keyword. Try renaming this to be an identifier that isn't a keyword. - expected_identifier_but_got_keyword
+  error - lib/views/pos_staff_paid_orders_screen.dart:280:27 - Undefined class 'isEmpty'. Try changing the name to the name of an existing class, or creating a class with the name 'isEmpty'. - undefined_class
+  error - lib/views/pos_staff_paid_orders_screen.dart:280:54 - Expected an identifier. - missing_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:281:44 - Undefined name 'constraints'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:284:23 - 'return' can't be used as an identifier because it's a keyword. Try renaming this to be an identifier that isn't a keyword. - expected_identifier_but_got_keyword
+  error - lib/views/pos_staff_paid_orders_screen.dart:284:23 - Expected to find ';'. - expected_token
+  error - lib/views/pos_staff_paid_orders_screen.dart:284:23 - The name 'return' is already defined. Try renaming one of the declarations. - duplicate_definition
+           - The first definition of this name at lib/views/pos_staff_paid_orders_screen.dart:1:5.
+  error - lib/views/pos_staff_paid_orders_screen.dart:284:23 - Variables must be declared using the keywords 'const', 'final', 'var' or a type name. Try adding the name of the type of the variable or the keyword 'var'. - missing_const_final_var_or_type
+  error - lib/views/pos_staff_paid_orders_screen.dart:285:32 - Named parameters must be enclosed in curly braces ('{' and '}'). Try surrounding the named parameters in curly braces. - named_parameter_outside_group
+  error - lib/views/pos_staff_paid_orders_screen.dart:285:32 - Using a colon as the separator before a default value is no longer supported. Try replacing the colon with an equal sign. - obsolete_colon_for_default_value
+  error - lib/views/pos_staff_paid_orders_screen.dart:285:34 - Undefined name 'gap'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:286:35 - Named parameters must be enclosed in curly braces ('{' and '}'). Try surrounding the named parameters in curly braces. - named_parameter_outside_group
+  error - lib/views/pos_staff_paid_orders_screen.dart:286:35 - Using a colon as the separator before a default value is no longer supported. Try replacing the colon with an equal sign. - obsolete_colon_for_default_value
+  error - lib/views/pos_staff_paid_orders_screen.dart:286:37 - Undefined name 'gap'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:287:34 - Named parameters must be enclosed in curly braces ('{' and '}'). Try surrounding the named parameters in curly braces. - named_parameter_outside_group
+  error - lib/views/pos_staff_paid_orders_screen.dart:287:34 - Using a colon as the separator before a default value is no longer supported. Try replacing the colon with an equal sign. - obsolete_colon_for_default_value
+  error - lib/views/pos_staff_paid_orders_screen.dart:287:36 - Undefined name 'WrapAlignment'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:288:33 - Named parameters must be enclosed in curly braces ('{' and '}'). Try surrounding the named parameters in curly braces. - named_parameter_outside_group
+  error - lib/views/pos_staff_paid_orders_screen.dart:288:33 - Using a colon as the separator before a default value is no longer supported. Try replacing the colon with an equal sign. - obsolete_colon_for_default_value
+  error - lib/views/pos_staff_paid_orders_screen.dart:288:35 - Undefined name 'finalFilteredOrders'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:289:34 - The function 'SizedBox' isn't defined. Try importing the library that defines 'SizedBox', correcting the name to the name of an existing function, or defining a function named 'SizedBox'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:290:36 - Undefined name 'maxChildWidth'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:290:56 - Undefined name 'minChildWidth'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:290:71 - Undefined name 'maxChildWidth'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:291:47 - Undefined name 'pos'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:294:24 - A function body must be provided. Try adding a function body. - missing_function_body
+  error - lib/views/pos_staff_paid_orders_screen.dart:295:21 - Expected a method, getter, setter or operator declaration. This appears to be incomplete code. Try removing it or completing it. - expected_executable
+  error - lib/views/pos_staff_paid_orders_screen.dart:295:22 - Expected a method, getter, setter or operator declaration. This appears to be incomplete code. Try removing it or completing it. - expected_executable
+  error - lib/views/pos_staff_paid_orders_screen.dart:296:19 - Expected a method, getter, setter or operator declaration. This appears to be incomplete code. Try removing it or completing it. - expected_executable
+  error - lib/views/pos_staff_paid_orders_screen.dart:296:20 - Expected a method, getter, setter or operator declaration. This appears to be incomplete code. Try removing it or completing it. - expected_executable
+  error - lib/views/pos_staff_paid_orders_screen.dart:297:11 - Expected a method, getter, setter or operator declaration. This appears to be incomplete code. Try removing it or completing it. - expected_executable
+  error - lib/views/pos_staff_paid_orders_screen.dart:297:12 - Expected a method, getter, setter or operator declaration. This appears to be incomplete code. Try removing it or completing it. - expected_executable
+  error - lib/views/pos_staff_paid_orders_screen.dart:298:9 - Expected a method, getter, setter or operator declaration. This appears to be incomplete code. Try removing it or completing it. - expected_executable
+  error - lib/views/pos_staff_paid_orders_screen.dart:298:10 - Expected a method, getter, setter or operator declaration. This appears to be incomplete code. Try removing it or completing it. - expected_executable
+  error - lib/views/pos_staff_paid_orders_screen.dart:299:7 - Expected a method, getter, setter or operator declaration. This appears to be incomplete code. Try removing it or completing it. - expected_executable
+  error - lib/views/pos_staff_paid_orders_screen.dart:299:8 - Expected a method, getter, setter or operator declaration. This appears to be incomplete code. Try removing it or completing it. - expected_executable
+  error - lib/views/pos_staff_paid_orders_screen.dart:300:5 - Expected a method, getter, setter or operator declaration. This appears to be incomplete code. Try removing it or completing it. - expected_executable
+  error - lib/views/pos_staff_paid_orders_screen.dart:300:6 - Unexpected text ';'. Try removing the text. - unexpected_token
+  error - lib/views/pos_staff_paid_orders_screen.dart:301:3 - Expected a method, getter, setter or operator declaration. This appears to be incomplete code. Try removing it or completing it. - expected_executable
+  error - lib/views/pos_staff_paid_orders_screen.dart:303:3 - Undefined class 'Widget'. Try changing the name to the name of an existing class, or creating a class with the name 'Widget'. - undefined_class
+  error - lib/views/pos_staff_paid_orders_screen.dart:303:19 - Undefined class 'PosController'. Try changing the name to the name of an existing class, or creating a class with the name 'PosController'. - undefined_class
+  error - lib/views/pos_staff_paid_orders_screen.dart:304:23 - Undefined name 'MediaQuery'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:304:37 - Undefined name 'context'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:307:12 - The function 'Column' isn't defined. Try importing the library that defines 'Column', correcting the name to the name of an existing function, or defining a function named 'Column'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:308:27 - Undefined name 'CrossAxisAlignment'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:311:9 - The function 'TextField' isn't defined. Try importing the library that defines 'TextField', correcting the name to the name of an existing function, or defining a function named 'TextField'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:312:23 - Undefined name '_searchController'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:314:13 - The function 'setState' isn't defined. Try importing the library that defines 'setState', correcting the name to the name of an existing function, or defining a function named 'setState'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:315:15 - Undefined name '_searchQuery'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:318:23 - The function 'InputDecoration' isn't defined. Try importing the library that defines 'InputDecoration', correcting the name to the name of an existing function, or defining a function named 'InputDecoration'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:320:31 - The name 'Icon' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib/views/pos_staff_paid_orders_screen.dart:320:36 - Undefined name 'Icons'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:321:21 - The function 'OutlineInputBorder' isn't defined. Try importing the library that defines 'OutlineInputBorder', correcting the name to the name of an existing function, or defining a function named 'OutlineInputBorder'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:322:29 - Undefined name 'BorderRadius'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:324:35 - Undefined name 'EdgeInsets'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:330:15 - The name 'SizedBox' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib/views/pos_staff_paid_orders_screen.dart:330:32 - Undefined name 'SushiSpace'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:340:15 - Undefined name 'Icons'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:345:15 - Undefined name 'Icons'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:350:15 - Undefined name 'Icons'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:355:15 - Undefined name 'Icons'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:360:15 - The name 'SizedBox' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib/views/pos_staff_paid_orders_screen.dart:360:32 - Undefined name 'SushiSpace'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:363:9 - The function 'Row' isn't defined. Try importing the library that defines 'Row', correcting the name to the name of an existing function, or defining a function named 'Row'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:365:19 - The name 'Text' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib/views/pos_staff_paid_orders_screen.dart:367:22 - The function 'TextStyle' isn't defined. Try importing the library that defines 'TextStyle', correcting the name to the name of an existing function, or defining a function named 'TextStyle'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:369:29 - Undefined name 'FontWeight'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:370:24 - Undefined name 'AppColors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:373:19 - The name 'SizedBox' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib/views/pos_staff_paid_orders_screen.dart:374:13 - The function 'InkWell' isn't defined. Try importing the library that defines 'InkWell', correcting the name to the name of an existing function, or defining a function named 'InkWell'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:376:40 - The function 'showDatePicker' isn't defined. Try importing the library that defines 'showDatePicker', correcting the name to the name of an existing function, or defining a function named 'showDatePicker'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:377:28 - Undefined name 'context'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:378:32 - Undefined name '_selectedDate'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:381:33 - The name 'Locale' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib/views/pos_staff_paid_orders_screen.dart:383:41 - Undefined name 'mounted'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:384:19 - The function 'setState' isn't defined. Try importing the library that defines 'setState', correcting the name to the name of an existing function, or defining a function named 'setState'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:385:21 - Undefined name '_selectedDate'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:390:22 - The function 'Container' isn't defined. Try importing the library that defines 'Container', correcting the name to the name of an existing function, or defining a function named 'Container'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:391:32 - Undefined name 'EdgeInsets'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:395:29 - The function 'BoxDecoration' isn't defined. Try importing the library that defines 'BoxDecoration', correcting the name to the name of an existing function, or defining a function named 'BoxDecoration'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:396:26 - Undefined name 'AppColors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:397:33 - Undefined name 'BorderRadius'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:399:24 - The function 'Text' isn't defined. Try importing the library that defines 'Text', correcting the name to the name of an existing function, or defining a function named 'Text'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:400:19 - The function 'DateFormat' isn't defined. Try importing the library that defines 'DateFormat', correcting the name to the name of an existing function, or defining a function named 'DateFormat'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:400:51 - Undefined name '_selectedDate'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:401:32 - The name 'TextStyle' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib/views/pos_staff_paid_orders_screen.dart:403:33 - Undefined name 'FontWeight'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:404:28 - Undefined name 'AppColors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:417:14 - Undefined name '_filteredOrders'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:421:12 - Undefined name '_filteredOrders'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:428:3 - Undefined class 'Widget'. Try changing the name to the name of an existing class, or creating a class with the name 'Widget'. - undefined_class
+  error - lib/views/pos_staff_paid_orders_screen.dart:428:47 - Undefined class 'IconData'. Try changing the name to the name of an existing class, or creating a class with the name 'IconData'. - undefined_class
+  error - lib/views/pos_staff_paid_orders_screen.dart:430:29 - Undefined name '_selectedFulfillmentType'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:431:34 - Undefined name '_selectedFulfillmentType'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:432:35 - Undefined name '_selectedFulfillmentType'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:433:34 - Undefined name '_selectedFulfillmentType'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:435:12 - The function 'FilterChip' isn't defined. Try importing the library that defines 'FilterChip', correcting the name to the name of an existing function, or defining a function named 'FilterChip'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:436:14 - The function 'Row' isn't defined. Try importing the library that defines 'Row', correcting the name to the name of an existing function, or defining a function named 'Row'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:437:23 - Undefined name 'MainAxisSize'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:439:11 - The function 'Icon' isn't defined. Try importing the library that defines 'Icon', correcting the name to the name of an existing function, or defining a function named 'Icon'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:442:33 - Undefined name 'Colors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:442:48 - Undefined name 'AppColors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:444:17 - The name 'SizedBox' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib/views/pos_staff_paid_orders_screen.dart:445:11 - The function 'Text' isn't defined. Try importing the library that defines 'Text', correcting the name to the name of an existing function, or defining a function named 'Text'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:447:20 - The function 'TextStyle' isn't defined. Try importing the library that defines 'TextStyle', correcting the name to the name of an existing function, or defining a function named 'TextStyle'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:449:27 - Undefined name 'FontWeight'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:450:35 - Undefined name 'Colors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:450:50 - Undefined name 'AppColors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:457:9 - The function 'setState' isn't defined. Try importing the library that defines 'setState', correcting the name to the name of an existing function, or defining a function named 'setState'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:459:13 - Undefined name '_selectedFulfillmentType'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:461:13 - Undefined name '_selectedFulfillmentType'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:463:13 - Undefined name '_selectedFulfillmentType'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:465:13 - Undefined name '_selectedFulfillmentType'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:470:22 - Undefined name 'AppColors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:471:23 - Undefined name 'Colors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:472:22 - Undefined name 'EdgeInsets'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:477:17 - Undefined name 'Get'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:477:26 - The name 'PosController' isn't a type, so it can't be used as a type argument. Try correcting the name to an existing type, or defining a type named 'PosController'. - non_type_as_type_argument
+  error - lib/views/pos_staff_paid_orders_screen.dart:485:5 - The function 'setState' isn't defined. Try importing the library that defines 'setState', correcting the name to the name of an existing function, or defining a function named 'setState'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:486:7 - Undefined name '_filteredOrders'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:487:44 - Undefined name '_selectedDate'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:491:7 - Undefined name '_filteredOrders'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:492:7 - Undefined name '_loading'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:502:3 - Undefined class 'Widget'. Try changing the name to the name of an existing class, or creating a class with the name 'Widget'. - undefined_class
+  error - lib/views/pos_staff_paid_orders_screen.dart:503:12 - The function 'Center' isn't defined. Try importing the library that defines 'Center', correcting the name to the name of an existing function, or defining a function named 'Center'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:504:14 - The function 'Column' isn't defined. Try importing the library that defines 'Column', correcting the name to the name of an existing function, or defining a function named 'Column'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:505:28 - Undefined name 'MainAxisAlignment'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:507:17 - The name 'Icon' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib/views/pos_staff_paid_orders_screen.dart:508:13 - Undefined name 'Icons'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:510:20 - Undefined name 'AppColors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:512:17 - The name 'SizedBox' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib/views/pos_staff_paid_orders_screen.dart:513:17 - The name 'Text' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib/views/pos_staff_paid_orders_screen.dart:515:20 - The function 'TextStyle' isn't defined. Try importing the library that defines 'TextStyle', correcting the name to the name of an existing function, or defining a function named 'TextStyle'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:517:27 - Undefined name 'FontWeight'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:518:22 - Undefined name 'AppColors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:521:17 - The name 'SizedBox' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib/views/pos_staff_paid_orders_screen.dart:522:11 - The function 'Text' isn't defined. Try importing the library that defines 'Text', correcting the name to the name of an existing function, or defining a function named 'Text'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:523:13 - Undefined name '_selectedDate'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:525:56 - The function 'DateFormat' isn't defined. Try importing the library that defines 'DateFormat', correcting the name to the name of an existing function, or defining a function named 'DateFormat'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:525:88 - Undefined name '_selectedDate'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:526:26 - The name 'TextStyle' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib/views/pos_staff_paid_orders_screen.dart:528:22 - Undefined name 'AppColors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:530:24 - Undefined name 'TextAlign'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:537:3 - Undefined class 'Widget'. Try changing the name to the name of an existing class, or creating a class with the name 'Widget'. - undefined_class
+  error - lib/views/pos_staff_paid_orders_screen.dart:537:21 - Undefined class 'PosController'. Try changing the name to the name of an existing class, or creating a class with the name 'PosController'. - undefined_class
+  error - lib/views/pos_staff_paid_orders_screen.dart:537:40 - Undefined class 'PosOrder'. Try changing the name to the name of an existing class, or creating a class with the name 'PosOrder'. - undefined_class
+  error - lib/views/pos_staff_paid_orders_screen.dart:554:16 - Undefined name 'EdgeInsets'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:555:7 - Expected an identifier. - missing_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:555:7 - Expected to find ')'. - expected_token
+  error - lib/views/pos_staff_paid_orders_screen.dart:828:7 - Expected to find ';'. - expected_token
+  error - lib/views/pos_staff_paid_orders_screen.dart:828:8 - Expected an identifier. - missing_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:828:8 - Expected to find ';'. - expected_token
+  error - lib/views/pos_staff_paid_orders_screen.dart:828:8 - Unexpected text ';'. Try removing the text. - unexpected_token
+  error - lib/views/pos_staff_paid_orders_screen.dart:829:5 - Expected an identifier. - missing_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:829:5 - Unexpected text ';'. Try removing the text. - unexpected_token
+  error - lib/views/pos_staff_paid_orders_screen.dart:832:3 - Undefined class 'Widget'. Try changing the name to the name of an existing class, or creating a class with the name 'Widget'. - undefined_class
+  error - lib/views/pos_staff_paid_orders_screen.dart:835:12 - The function 'Container' isn't defined. Try importing the library that defines 'Container', correcting the name to the name of an existing function, or defining a function named 'Container'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:836:22 - Undefined name 'EdgeInsets'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:837:19 - The function 'BoxDecoration' isn't defined. Try importing the library that defines 'BoxDecoration', correcting the name to the name of an existing function, or defining a function named 'BoxDecoration'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:839:23 - Undefined name 'BorderRadius'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:840:17 - Undefined name 'Border'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:842:14 - The function 'Text' isn't defined. Try importing the library that defines 'Text', correcting the name to the name of an existing function, or defining a function named 'Text'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:844:16 - Undefined name 'SushiTypo'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:846:23 - Undefined name 'FontWeight'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:853:3 - Undefined class 'Widget'. Try changing the name to the name of an existing class, or creating a class with the name 'Widget'. - undefined_class
+  error - lib/views/pos_staff_paid_orders_screen.dart:856:12 - The function 'Container' isn't defined. Try importing the library that defines 'Container', correcting the name to the name of an existing function, or defining a function named 'Container'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:857:22 - Undefined name 'EdgeInsets'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:858:19 - The function 'BoxDecoration' isn't defined. Try importing the library that defines 'BoxDecoration', correcting the name to the name of an existing function, or defining a function named 'BoxDecoration'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:860:23 - Undefined name 'BorderRadius'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:861:17 - Undefined name 'Border'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:863:14 - The function 'Text' isn't defined. Try importing the library that defines 'Text', correcting the name to the name of an existing function, or defining a function named 'Text'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:865:16 - Undefined name 'SushiTypo'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:867:23 - Undefined name 'FontWeight'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:874:3 - Undefined class 'Widget'. Try changing the name to the name of an existing class, or creating a class with the name 'Widget'. - undefined_class
+  error - lib/views/pos_staff_paid_orders_screen.dart:874:47 - Undefined class 'Color'. Try changing the name to the name of an existing class, or creating a class with the name 'Color'. - undefined_class
+  error - lib/views/pos_staff_paid_orders_screen.dart:875:12 - The function 'Container' isn't defined. Try importing the library that defines 'Container', correcting the name to the name of an existing function, or defining a function named 'Container'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:876:22 - Undefined name 'EdgeInsets'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:877:19 - The function 'BoxDecoration' isn't defined. Try importing the library that defines 'BoxDecoration', correcting the name to the name of an existing function, or defining a function named 'BoxDecoration'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:879:23 - Undefined name 'BorderRadius'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:880:17 - Undefined name 'Border'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:882:14 - The function 'Text' isn't defined. Try importing the library that defines 'Text', correcting the name to the name of an existing function, or defining a function named 'Text'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:884:16 - Undefined name 'SushiTypo'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:886:23 - Undefined name 'FontWeight'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:906:3 - Undefined class 'Color'. Try changing the name to the name of an existing class, or creating a class with the name 'Color'. - undefined_class
+  error - lib/views/pos_staff_paid_orders_screen.dart:909:16 - Undefined name 'SushiColors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:911:16 - Undefined name 'SushiColors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:913:16 - Undefined name 'SushiColors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:915:16 - Undefined name 'SushiColors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:932:3 - Undefined class 'Color'. Try changing the name to the name of an existing class, or creating a class with the name 'Color'. - undefined_class
+  error - lib/views/pos_staff_paid_orders_screen.dart:935:16 - Undefined name 'SushiColors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:937:16 - Undefined name 'SushiColors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:939:16 - Undefined name 'SushiColors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:941:16 - Undefined name 'SushiColors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:945:3 - Undefined class 'Color'. Try changing the name to the name of an existing class, or creating a class with the name 'Color'. - undefined_class
+  error - lib/views/pos_staff_paid_orders_screen.dart:948:16 - Undefined name 'Colors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:950:16 - Undefined name 'Colors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:952:16 - Undefined name 'Colors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:954:16 - Undefined name 'Colors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:956:16 - Undefined name 'Colors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:958:16 - Undefined name 'Colors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:960:16 - Undefined name 'Colors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:996:28 - Undefined class 'PosOrder'. Try changing the name to the name of an existing class, or creating a class with the name 'PosOrder'. - undefined_class
+  error - lib/views/pos_staff_paid_orders_screen.dart:999:26 - The function 'jsonDecode' isn't defined. Try importing the library that defines 'jsonDecode', correcting the name to the name of an existing function, or defining a function named 'jsonDecode'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1012:3 - Undefined class 'Widget'. Try changing the name to the name of an existing class, or creating a class with the name 'Widget'. - undefined_class
+  error - lib/views/pos_staff_paid_orders_screen.dart:1013:14 - Undefined class 'IconData'. Try changing the name to the name of an existing class, or creating a class with the name 'IconData'. - undefined_class
+  error - lib/views/pos_staff_paid_orders_screen.dart:1015:14 - Undefined class 'VoidCallback'. Try changing the name to the name of an existing class, or creating a class with the name 'VoidCallback'. - undefined_class
+  error - lib/views/pos_staff_paid_orders_screen.dart:1016:5 - Undefined class 'Color'. Try changing the name to the name of an existing class, or creating a class with the name 'Color'. - undefined_class
+  error - lib/views/pos_staff_paid_orders_screen.dart:1018:31 - Undefined name 'AppColors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1019:12 - The function 'InkWell' isn't defined. Try importing the library that defines 'InkWell', correcting the name to the name of an existing function, or defining a function named 'InkWell'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1021:21 - Undefined name 'BorderRadius'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1022:14 - The function 'Container' isn't defined. Try importing the library that defines 'Container', correcting the name to the name of an existing function, or defining a function named 'Container'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1023:24 - Undefined name 'EdgeInsets'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1024:21 - The function 'BoxDecoration' isn't defined. Try importing the library that defines 'BoxDecoration', correcting the name to the name of an existing function, or defining a function named 'BoxDecoration'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1026:25 - Undefined name 'BorderRadius'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1027:19 - Undefined name 'Border'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1029:16 - The function 'Row' isn't defined. Try importing the library that defines 'Row', correcting the name to the name of an existing function, or defining a function named 'Row'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1030:25 - Undefined name 'MainAxisSize'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1032:13 - The function 'Icon' isn't defined. Try importing the library that defines 'Icon', correcting the name to the name of an existing function, or defining a function named 'Icon'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1033:19 - The name 'SizedBox' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib/views/pos_staff_paid_orders_screen.dart:1034:13 - The function 'Text' isn't defined. Try importing the library that defines 'Text', correcting the name to the name of an existing function, or defining a function named 'Text'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1036:22 - The function 'TextStyle' isn't defined. Try importing the library that defines 'TextStyle', correcting the name to the name of an existing function, or defining a function named 'TextStyle'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1038:29 - Undefined name 'FontWeight'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1051:5 - Undefined class 'POSSnackType'. Try changing the name to the name of an existing class, or creating a class with the name 'POSSnackType'. - undefined_class
+  error - lib/views/pos_staff_paid_orders_screen.dart:1051:25 - Undefined name 'POSSnackType'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1053:10 - Undefined name 'mounted'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1054:5 - The function 'showPOSSnack' isn't defined. Try importing the library that defines 'showPOSSnack', correcting the name to the name of an existing function, or defining a function named 'showPOSSnack'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1054:18 - Undefined name 'context'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1057:30 - Undefined class 'PosOrder'. Try changing the name to the name of an existing class, or creating a class with the name 'PosOrder'. - undefined_class
+  error - lib/views/pos_staff_paid_orders_screen.dart:1059:27 - Undefined name 'DatabaseService'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1064:17 - Undefined name 'POSSnackType'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1068:13 - Undefined name 'Printing'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1070:13 - The function 'buildKitchenAndCustomerTicketsPdf' isn't defined. Try importing the library that defines 'buildKitchenAndCustomerTicketsPdf', correcting the name to the name of an existing function, or defining a function named 'buildKitchenAndCustomerTicketsPdf'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1078:15 - Undefined name 'POSSnackType'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1083:32 - Undefined class 'PosController'. Try changing the name to the name of an existing class, or creating a class with the name 'PosController'. - undefined_class
+  error - lib/views/pos_staff_paid_orders_screen.dart:1083:51 - Undefined class 'PosOrder'. Try changing the name to the name of an existing class, or creating a class with the name 'PosOrder'. - undefined_class
+  error - lib/views/pos_staff_paid_orders_screen.dart:1085:23 - Undefined name 'DatabaseService'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1089:21 - Undefined name 'DatabaseService'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1094:30 - Undefined name 'DatabaseService'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1102:10 - Undefined name 'mounted'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1105:13 - The function 'deduplicateOrderItems' isn't defined. Try importing the library that defines 'deduplicateOrderItems', correcting the name to the name of an existing function, or defining a function named 'deduplicateOrderItems'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1118:10 - Undefined name 'mounted'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1120:11 - The function 'showDialog' isn't defined. Try importing the library that defines 'showDialog', correcting the name to the name of an existing function, or defining a function named 'showDialog'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1121:16 - Undefined name 'context'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1122:21 - Undefined name 'Colors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1124:16 - The function 'Dialog' isn't defined. Try importing the library that defines 'Dialog', correcting the name to the name of an existing function, or defining a function named 'Dialog'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1125:28 - Undefined name 'Colors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1126:31 - Undefined name 'EdgeInsets'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1130:18 - The function 'ConstrainedBox' isn't defined. Try importing the library that defines 'ConstrainedBox', correcting the name to the name of an existing function, or defining a function named 'ConstrainedBox'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1131:32 - The name 'BoxConstraints' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib/views/pos_staff_paid_orders_screen.dart:1132:20 - The function 'Container' isn't defined. Try importing the library that defines 'Container', correcting the name to the name of an existing function, or defining a function named 'Container'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1133:27 - The function 'BoxDecoration' isn't defined. Try importing the library that defines 'BoxDecoration', correcting the name to the name of an existing function, or defining a function named 'BoxDecoration'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1134:24 - Undefined name 'Colors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1135:31 - Undefined name 'BorderRadius'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1136:25 - Undefined name 'Border'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1138:19 - The function 'BoxShadow' isn't defined. Try importing the library that defines 'BoxShadow', correcting the name to the name of an existing function, or defining a function named 'BoxShadow'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1138:19 - The values in a const list literal must be constants. Try removing the keyword 'const' from the list literal. - non_constant_list_element
+  error - lib/views/pos_staff_paid_orders_screen.dart:1139:28 - The function 'Color' isn't defined. Try importing the library that defines 'Color', correcting the name to the name of an existing function, or defining a function named 'Color'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1141:29 - The function 'Offset' isn't defined. Try importing the library that defines 'Offset', correcting the name to the name of an existing function, or defining a function named 'Offset'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1145:22 - The function 'Column' isn't defined. Try importing the library that defines 'Column', correcting the name to the name of an existing function, or defining a function named 'Column'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1148:19 - The function 'Container' isn't defined. Try importing the library that defines 'Container', correcting the name to the name of an existing function, or defining a function named 'Container'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1150:36 - Undefined name 'EdgeInsets'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1151:33 - The function 'BoxDecoration' isn't defined. Try importing the library that defines 'BoxDecoration', correcting the name to the name of an existing function, or defining a function named 'BoxDecoration'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1153:43 - Undefined name 'BorderRadius'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1154:30 - Undefined name 'Radius'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1156:31 - The function 'Border' isn't defined. Try importing the library that defines 'Border', correcting the name to the name of an existing function, or defining a function named 'Border'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1157:33 - The function 'BorderSide' isn't defined. Try importing the library that defines 'BorderSide', correcting the name to the name of an existing function, or defining a function named 'BorderSide'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1160:28 - The function 'Row' isn't defined. Try importing the library that defines 'Row', correcting the name to the name of an existing function, or defining a function named 'Row'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1161:43 - Undefined name 'CrossAxisAlignment'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1163:25 - The function 'Expanded' isn't defined. Try importing the library that defines 'Expanded', correcting the name to the name of an existing function, or defining a function named 'Expanded'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1164:34 - The function 'Column' isn't defined. Try importing the library that defines 'Column', correcting the name to the name of an existing function, or defining a function named 'Column'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1165:49 - Undefined name 'CrossAxisAlignment'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1167:31 - The function 'Text' isn't defined. Try importing the library that defines 'Text', correcting the name to the name of an existing function, or defining a function named 'Text'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1169:46 - The name 'TextStyle' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib/views/pos_staff_paid_orders_screen.dart:1171:47 - Undefined name 'FontWeight'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1172:42 - Undefined name 'AppColors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1175:37 - The name 'SizedBox' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib/views/pos_staff_paid_orders_screen.dart:1191:31 - The name 'SizedBox' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib/views/pos_staff_paid_orders_screen.dart:1192:25 - The function 'Container' isn't defined. Try importing the library that defines 'Container', correcting the name to the name of an existing function, or defining a function named 'Container'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1193:42 - Undefined name 'EdgeInsets'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1197:39 - The function 'BoxDecoration' isn't defined. Try importing the library that defines 'BoxDecoration', correcting the name to the name of an existing function, or defining a function named 'BoxDecoration'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1198:36 - Undefined name 'Colors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1199:43 - Undefined name 'BorderRadius'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1200:37 - Undefined name 'Border'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1201:38 - Undefined name 'AppColors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1204:34 - The function 'Column' isn't defined. Try importing the library that defines 'Column', correcting the name to the name of an existing function, or defining a function named 'Column'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1205:49 - Undefined name 'CrossAxisAlignment'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1207:37 - The name 'Text' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib/views/pos_staff_paid_orders_screen.dart:1209:40 - The function 'TextStyle' isn't defined. Try importing the library that defines 'TextStyle', correcting the name to the name of an existing function, or defining a function named 'TextStyle'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1211:47 - Undefined name 'FontWeight'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1212:42 - Undefined name 'AppColors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1215:31 - The function 'Text' isn't defined. Try importing the library that defines 'Text', correcting the name to the name of an existing function, or defining a function named 'Text'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1217:46 - The name 'TextStyle' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib/views/pos_staff_paid_orders_screen.dart:1219:47 - Undefined name 'FontWeight'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1220:42 - Undefined name 'AppColors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1231:19 - The function 'Expanded' isn't defined. Try importing the library that defines 'Expanded', correcting the name to the name of an existing function, or defining a function named 'Expanded'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1232:28 - The function 'SingleChildScrollView' isn't defined. Try importing the library that defines 'SingleChildScrollView', correcting the name to the name of an existing function, or defining a function named 'SingleChildScrollView'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1233:38 - Undefined name 'EdgeInsets'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1234:30 - The function 'Column' isn't defined. Try importing the library that defines 'Column', correcting the name to the name of an existing function, or defining a function named 'Column'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1235:45 - Undefined name 'CrossAxisAlignment'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1240:29 - The function 'Column' isn't defined. Try importing the library that defines 'Column', correcting the name to the name of an existing function, or defining a function named 'Column'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1241:51 - Undefined name 'CrossAxisAlignment'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1243:39 - The name 'Text' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib/views/pos_staff_paid_orders_screen.dart:1245:42 - The function 'TextStyle' isn't defined. Try importing the library that defines 'TextStyle', correcting the name to the name of an existing function, or defining a function named 'TextStyle'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1247:49 - Undefined name 'FontWeight'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1248:44 - Undefined name 'AppColors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1251:39 - The name 'SizedBox' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib/views/pos_staff_paid_orders_screen.dart:1253:35 - The function 'Text' isn't defined. Try importing the library that defines 'Text', correcting the name to the name of an existing function, or defining a function named 'Text'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1255:50 - The name 'TextStyle' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib/views/pos_staff_paid_orders_screen.dart:1257:51 - Undefined name 'FontWeight'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1258:46 - Undefined name 'AppColors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1262:35 - The function 'Text' isn't defined. Try importing the library that defines 'Text', correcting the name to the name of an existing function, or defining a function named 'Text'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1264:50 - The name 'TextStyle' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib/views/pos_staff_paid_orders_screen.dart:1266:46 - Undefined name 'AppColors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1269:39 - The name 'SizedBox' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib/views/pos_staff_paid_orders_screen.dart:1274:27 - The function 'Column' isn't defined. Try importing the library that defines 'Column', correcting the name to the name of an existing function, or defining a function named 'Column'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1275:49 - Undefined name 'CrossAxisAlignment'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1277:31 - The function 'Text' isn't defined. Try importing the library that defines 'Text', correcting the name to the name of an existing function, or defining a function named 'Text'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1279:46 - The name 'TextStyle' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib/views/pos_staff_paid_orders_screen.dart:1281:47 - Undefined name 'FontWeight'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1282:42 - Undefined name 'AppColors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1285:37 - The name 'SizedBox' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib/views/pos_staff_paid_orders_screen.dart:1286:31 - The function 'Text' isn't defined. Try importing the library that defines 'Text', correcting the name to the name of an existing function, or defining a function named 'Text'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1288:46 - The name 'TextStyle' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib/views/pos_staff_paid_orders_screen.dart:1290:47 - Undefined name 'FontWeight'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1291:42 - Undefined name 'AppColors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1294:37 - The name 'SizedBox' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib/views/pos_staff_paid_orders_screen.dart:1299:27 - The function 'Text' isn't defined. Try importing the library that defines 'Text', correcting the name to the name of an existing function, or defining a function named 'Text'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1301:42 - The name 'TextStyle' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib/views/pos_staff_paid_orders_screen.dart:1303:43 - Undefined name 'FontWeight'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1304:38 - Undefined name 'AppColors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1307:33 - The name 'SizedBox' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib/views/pos_staff_paid_orders_screen.dart:1311:29 - The function 'Container' isn't defined. Try importing the library that defines 'Container', correcting the name to the name of an existing function, or defining a function named 'Container'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1313:46 - Undefined name 'EdgeInsets'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1314:43 - The function 'BoxDecoration' isn't defined. Try importing the library that defines 'BoxDecoration', correcting the name to the name of an existing function, or defining a function named 'BoxDecoration'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1315:46 - The name 'Color' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib/views/pos_staff_paid_orders_screen.dart:1316:47 - Undefined name 'BorderRadius'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1317:41 - Undefined name 'Border'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1318:42 - Undefined name 'Colors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1321:38 - The function 'Row' isn't defined. Try importing the library that defines 'Row', correcting the name to the name of an existing function, or defining a function named 'Row'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1323:35 - The function 'Icon' isn't defined. Try importing the library that defines 'Icon', correcting the name to the name of an existing function, or defining a function named 'Icon'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1324:37 - Undefined name 'Icons'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1326:44 - Undefined name 'AppColors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1328:41 - The name 'SizedBox' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib/views/pos_staff_paid_orders_screen.dart:1329:41 - The name 'Text' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib/views/pos_staff_paid_orders_screen.dart:1331:44 - The function 'TextStyle' isn't defined. Try importing the library that defines 'TextStyle', correcting the name to the name of an existing function, or defining a function named 'TextStyle'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1333:46 - Undefined name 'AppColors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1344:38 - The function 'Container' isn't defined. Try importing the library that defines 'Container', correcting the name to the name of an existing function, or defining a function named 'Container'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1345:47 - Undefined name 'EdgeInsets'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1346:48 - Undefined name 'EdgeInsets'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1347:45 - The function 'BoxDecoration' isn't defined. Try importing the library that defines 'BoxDecoration', correcting the name to the name of an existing function, or defining a function named 'BoxDecoration'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1348:48 - The name 'Color' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib/views/pos_staff_paid_orders_screen.dart:1349:49 - Undefined name 'BorderRadius'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1350:43 - Undefined name 'Border'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1351:44 - Undefined name 'Colors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1354:40 - The function 'Column' isn't defined. Try importing the library that defines 'Column', correcting the name to the name of an existing function, or defining a function named 'Column'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1355:55 - Undefined name 'CrossAxisAlignment'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1357:37 - The function 'Row' isn't defined. Try importing the library that defines 'Row', correcting the name to the name of an existing function, or defining a function named 'Row'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1359:41 - The function 'Text' isn't defined. Try importing the library that defines 'Text', correcting the name to the name of an existing function, or defining a function named 'Text'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1361:56 - The name 'TextStyle' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib/views/pos_staff_paid_orders_screen.dart:1363:57 - Undefined name 'FontWeight'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1364:52 - Undefined name 'AppColors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1367:47 - The name 'SizedBox' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib/views/pos_staff_paid_orders_screen.dart:1368:41 - The function 'Expanded' isn't defined. Try importing the library that defines 'Expanded', correcting the name to the name of an existing function, or defining a function named 'Expanded'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1369:50 - The function 'Text' isn't defined. Try importing the library that defines 'Text', correcting the name to the name of an existing function, or defining a function named 'Text'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1371:58 - The name 'TextStyle' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib/views/pos_staff_paid_orders_screen.dart:1373:54 - Undefined name 'AppColors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1376:55 - Undefined name 'TextOverflow'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1379:41 - The function 'Text' isn't defined. Try importing the library that defines 'Text', correcting the name to the name of an existing function, or defining a function named 'Text'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1381:56 - The name 'TextStyle' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib/views/pos_staff_paid_orders_screen.dart:1383:57 - Undefined name 'FontWeight'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1384:52 - Undefined name 'AppColors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1391:45 - The name 'SizedBox' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib/views/pos_staff_paid_orders_screen.dart:1392:39 - The function 'Container' isn't defined. Try importing the library that defines 'Container', correcting the name to the name of an existing function, or defining a function named 'Container'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1393:56 - Undefined name 'EdgeInsets'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1397:53 - The function 'BoxDecoration' isn't defined. Try importing the library that defines 'BoxDecoration', correcting the name to the name of an existing function, or defining a function named 'BoxDecoration'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1398:50 - Undefined name 'AppColors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1401:47 - Undefined name 'BorderRadius'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1403:48 - The function 'Text' isn't defined. Try importing the library that defines 'Text', correcting the name to the name of an existing function, or defining a function named 'Text'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1405:50 - The function 'TextStyle' isn't defined. Try importing the library that defines 'TextStyle', correcting the name to the name of an existing function, or defining a function named 'TextStyle'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1407:52 - Undefined name 'AppColors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1417:33 - The name 'SizedBox' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib/views/pos_staff_paid_orders_screen.dart:1420:33 - The name 'Text' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib/views/pos_staff_paid_orders_screen.dart:1422:36 - The function 'TextStyle' isn't defined. Try importing the library that defines 'TextStyle', correcting the name to the name of an existing function, or defining a function named 'TextStyle'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1424:43 - Undefined name 'FontWeight'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1425:38 - Undefined name 'AppColors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1428:33 - The name 'SizedBox' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib/views/pos_staff_paid_orders_screen.dart:1429:27 - The function 'Row' isn't defined. Try importing the library that defines 'Row', correcting the name to the name of an existing function, or defining a function named 'Row'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1431:37 - The name 'Text' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib/views/pos_staff_paid_orders_screen.dart:1433:40 - The function 'TextStyle' isn't defined. Try importing the library that defines 'TextStyle', correcting the name to the name of an existing function, or defining a function named 'TextStyle'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1435:47 - Undefined name 'FontWeight'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1436:42 - Undefined name 'AppColors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1439:37 - The name 'SizedBox' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib/views/pos_staff_paid_orders_screen.dart:1440:31 - The function 'Container' isn't defined. Try importing the library that defines 'Container', correcting the name to the name of an existing function, or defining a function named 'Container'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1441:48 - Undefined name 'EdgeInsets'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1445:45 - The function 'BoxDecoration' isn't defined. Try importing the library that defines 'BoxDecoration', correcting the name to the name of an existing function, or defining a function named 'BoxDecoration'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1446:42 - Undefined name 'AppColors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1447:49 - Undefined name 'BorderRadius'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1449:46 - The name 'Text' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib/views/pos_staff_paid_orders_screen.dart:1451:42 - The function 'TextStyle' isn't defined. Try importing the library that defines 'TextStyle', correcting the name to the name of an existing function, or defining a function named 'TextStyle'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1453:49 - Undefined name 'FontWeight'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1454:44 - Undefined name 'AppColors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1461:35 - The name 'SizedBox' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib/views/pos_staff_paid_orders_screen.dart:1462:29 - The function 'Row' isn't defined. Try importing the library that defines 'Row', correcting the name to the name of an existing function, or defining a function named 'Row'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1464:39 - The name 'Text' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib/views/pos_staff_paid_orders_screen.dart:1466:42 - The function 'TextStyle' isn't defined. Try importing the library that defines 'TextStyle', correcting the name to the name of an existing function, or defining a function named 'TextStyle'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1468:49 - Undefined name 'FontWeight'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1469:44 - Undefined name 'AppColors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1472:39 - The name 'SizedBox' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib/views/pos_staff_paid_orders_screen.dart:1473:33 - The function 'Text' isn't defined. Try importing the library that defines 'Text', correcting the name to the name of an existing function, or defining a function named 'Text'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1475:48 - The name 'TextStyle' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib/views/pos_staff_paid_orders_screen.dart:1477:44 - Undefined name 'AppColors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1483:33 - The name 'SizedBox' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib/views/pos_staff_paid_orders_screen.dart:1486:27 - The function 'Row' isn't defined. Try importing the library that defines 'Row', correcting the name to the name of an existing function, or defining a function named 'Row'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1488:37 - The name 'Icon' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib/views/pos_staff_paid_orders_screen.dart:1489:33 - Undefined name 'Icons'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1491:40 - Undefined name 'AppColors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1493:37 - The name 'SizedBox' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib/views/pos_staff_paid_orders_screen.dart:1494:31 - The function 'Text' isn't defined. Try importing the library that defines 'Text', correcting the name to the name of an existing function, or defining a function named 'Text'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1495:45 - The function 'DateFormat' isn't defined. Try importing the library that defines 'DateFormat', correcting the name to the name of an existing function, or defining a function named 'DateFormat'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1496:46 - The name 'TextStyle' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib/views/pos_staff_paid_orders_screen.dart:1498:42 - Undefined name 'AppColors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1509:19 - The function 'Container' isn't defined. Try importing the library that defines 'Container', correcting the name to the name of an existing function, or defining a function named 'Container'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1510:36 - Undefined name 'EdgeInsets'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1511:28 - The function 'Row' isn't defined. Try importing the library that defines 'Row', correcting the name to the name of an existing function, or defining a function named 'Row'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1512:42 - Undefined name 'MainAxisAlignment'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1516:27 - The function 'Text' isn't defined. Try importing the library that defines 'Text', correcting the name to the name of an existing function, or defining a function named 'Text'. - undefined_function
+  error - lib/views/pos_staff_paid_orders_screen.dart:1518:42 - The name 'TextStyle' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib/views/pos_staff_paid_orders_screen.dart:1520:38 - Undefined name 'AppColors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1523:31 - The name 'Spacer' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib/views/pos_staff_paid_orders_screen.dart:1524:25 - Undefined name 'ElevatedButton'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1525:44 - Undefined name 'Navigator'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1526:39 - The name 'Icon' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib/views/pos_staff_paid_orders_screen.dart:1526:44 - Undefined name 'Icons'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1527:40 - The name 'Text' isn't a class. Try correcting the name to match an existing class. - creation_with_non_type
+  error - lib/views/pos_staff_paid_orders_screen.dart:1528:34 - Undefined name 'ElevatedButton'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1529:46 - Undefined name 'AppColors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1530:46 - Undefined name 'AppColors'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1531:44 - Undefined name 'EdgeInsets'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/views/pos_staff_paid_orders_screen.dart:1552:1 - Expected a method, getter, setter or operator declaration. This appears to be incomplete code. Try removing it or completing it. - expected_executable
+warning - lib/services/daily_report_service.dart:1:8 - Unused import: 'dart:convert'. Try removing the import directive. - unused_import
+warning - lib/services/daily_report_service.dart:94:22 - The operand can't be 'null', so the condition is always 'true'. Remove the condition. - unnecessary_null_comparison
+warning - lib/services/daily_report_service.dart:107:56 - Dead code. Try removing the code, or fixing the code before it so that it can be reached. - dead_code
+warning - lib/services/daily_report_service.dart:107:59 - The left operand can't be null, so the right operand is never executed. Try removing the operator and the right operand. - dead_null_aware_expression
+warning - lib/services/daily_report_service.dart:117:43 - The left operand can't be null, so the right operand is never executed. Try removing the operator and the right operand. - dead_null_aware_expression
+warning - lib/services/daily_report_service.dart:129:56 - Dead code. Try removing the code, or fixing the code before it so that it can be reached. - dead_code
+warning - lib/services/daily_report_service.dart:129:59 - The left operand can't be null, so the right operand is never executed. Try removing the operator and the right operand. - dead_null_aware_expression
+warning - lib/services/daily_report_service.dart:138:43 - The left operand can't be null, so the right operand is never executed. Try removing the operator and the right operand. - dead_null_aware_expression
+warning - lib/services/daily_report_service.dart:151:25 - The operand can't be 'null', so the condition is always 'true'. Remove the condition. - unnecessary_null_comparison
+warning - lib/services/daily_report_service.dart:152:38 - The '!' will have no effect because the receiver can't be null. Try removing the '!' operator. - unnecessary_non_null_assertion
+warning - lib/services/daily_report_service.dart:170:24 - The operand can't be 'null', so the condition is always 'true'. Remove the condition. - unnecessary_null_comparison
+warning - lib/services/daily_report_service.dart:198:24 - The operand can't be 'null', so the condition is always 'true'. Remove the condition. - unnecessary_null_comparison
+warning - lib/utils/pos_ticket_printer.dart:136:9 - The value of the local variable 'payment' isn't used. Try removing the variable or using it. - unused_local_variable
+warning - lib/utils/pos_ticket_printer.dart:139:9 - The value of the local variable 'statusText' isn't used. Try removing the variable or using it. - unused_local_variable
+warning - lib/utils/pos_ticket_printer.dart:242:9 - The value of the local variable 'statusText' isn't used. Try removing the variable or using it. - unused_local_variable
+warning - lib/views/admin_pin_login_screen.dart:9:16 - The value of the field 'keyText' isn't used. Try removing the field, or using it. - unused_field
+warning - lib/views/cash_register_status_screen.dart:430:49 - A value for optional parameter 'accentColor' isn't ever given. Try removing the unused parameter. - unused_element_parameter
+warning - lib/views/cashier_financial_dashboard.dart:15:8 - Unused import: '../theme/sushi_design.dart'. Try removing the import directive. - unused_import
+warning - lib/views/cashier_financial_dashboard.dart:49:8 - The value of the field '_isLoadingReport' isn't used. Try removing the field, or using it. - unused_field
+warning - lib/views/cashier_financial_dashboard.dart:55:10 - The value of the field '_posRevenue' isn't used. Try removing the field, or using it. - unused_field
+warning - lib/views/cashier_financial_dashboard.dart:56:10 - The value of the field '_webApiRevenue' isn't used. Try removing the field, or using it. - unused_field
+warning - lib/views/cashier_financial_dashboard.dart:58:7 - The value of the field '_posOrdersCount' isn't used. Try removing the field, or using it. - unused_field
+warning - lib/views/cashier_financial_dashboard.dart:59:7 - The value of the field '_webApiOrdersCount' isn't used. Try removing the field, or using it. - unused_field
+warning - lib/views/cashier_financial_dashboard.dart:487:10 - The declaration '_bottomBtn' isn't referenced. Try removing the declaration of '_bottomBtn'. - unused_element
+warning - lib/views/daily_reports_screen.dart:48:20 - The operand can't be 'null', so the condition is always 'true'. Remove the condition. - unnecessary_null_comparison
+warning - lib/views/daily_reports_screen.dart:105:20 - The operand can't be 'null', so the condition is always 'true'. Remove the condition. - unnecessary_null_comparison
+warning - lib/views/financial_admin_dashboard.dart:91:10 - The declaration '_simpleMeta' isn't referenced. Try removing the declaration of '_simpleMeta'. - unused_element
+warning - lib/views/global_orders_screen.dart:1:8 - Unused import: 'dart:async'. Try removing the import directive. - unused_import
+warning - lib/views/global_orders_screen.dart:7:8 - Unused import: '../controllers/auth_controller.dart'. Try removing the import directive. - unused_import
+warning - lib/views/login_screen.dart:25:7 - The value of the field '_currentPendingCount' isn't used. Try removing the field, or using it. - unused_field
+warning - lib/views/login_screen.dart:135:8 - The declaration '_showSuperAdminDialog' isn't referenced. Try removing the declaration of '_showSuperAdminDialog'. - unused_element
+warning - lib/views/login_screen.dart:136:8 - The declaration '_showCashierLoginDialog' isn't referenced. Try removing the declaration of '_showCashierLoginDialog'. - unused_element
+warning - lib/views/pos_staff_orders_screen.dart:12:8 - Unused import: '../models/restaurant.dart'. Try removing the import directive. - unused_import
+warning - lib/views/pos_staff_orders_screen.dart:13:8 - Unused import: '../models/user.dart'. Try removing the import directive. - unused_import
+warning - lib/views/pos_staff_orders_screen.dart:3169:7 - The declaration '_PaymentOptionCard' isn't referenced. Try removing the declaration of '_PaymentOptionCard'. - unused_element
+warning - lib/views/pos_staff_orders_screen.dart:3175:10 - A value for optional parameter 'amount' isn't ever given. Try removing the unused parameter. - unused_element_parameter
+warning - lib/views/pos_staff_paid_orders_screen.dart:303:10 - The declaration '_filters' isn't referenced. Try removing the declaration of '_filters'. - unused_element
+warning - lib/views/pos_staff_paid_orders_screen.dart:538:11 - The value of the local variable 'statusColor' isn't used. Try removing the variable or using it. - unused_local_variable
+warning - lib/views/pos_staff_paid_orders_screen.dart:544:11 - The value of the local variable 'placeLabel' isn't used. Try removing the variable or using it. - unused_local_variable
+warning - lib/views/pos_staff_paid_orders_screen.dart:828:8 - Dead code. Try removing the code, or fixing the code before it so that it can be reached. - dead_code
+warning - lib/widgets/multi_method_payment_dialog.dart:2:8 - Unused import: 'package:get/get.dart'. Try removing the import directive. - unused_import
+warning - lib/widgets/multi_method_payment_dialog.dart:3:8 - Unused import: 'package:intl/intl.dart'. Try removing the import directive. - unused_import
+warning - lib/widgets/multi_method_payment_dialog.dart:11:8 - Unused import: '../utils/payment_method_utils.dart'. Try removing the import directive. - unused_import
+warning - lib/widgets/multi_method_payment_dialog.dart:39:14 - The value of the field '_useBackupSystem' isn't used. Try removing the field, or using it. - unused_field
+warning - lib/widgets/touch_keyboard_host.dart:5:8 - Unused import: '../theme/app_colors.dart'. Try removing the import directive. - unused_import
+warning - lib/widgets/touch_keyboard_host.dart:6:8 - Unused import: '../theme/sushi_design.dart'. Try removing the import directive. - unused_import
+   info - lib/controllers/cash_register_controller.dart:64:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/controllers/cash_register_controller.dart:152:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/controllers/cash_register_controller.dart:166:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/controllers/cash_register_controller.dart:201:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/controllers/cash_register_controller.dart:242:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/controllers/category_controller.dart:24:5 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/controllers/delivery_controller.dart:28:5 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/controllers/delivery_controller.dart:40:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/controllers/delivery_controller.dart:46:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/controllers/delivery_controller.dart:48:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/controllers/import_controller.dart:33:5 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/controllers/product_controller.dart:21:5 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/controllers/restaurant_controller.dart:95:5 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/controllers/settings_controller.dart:17:5 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/controllers/sync_controller.dart:76:5 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/controllers/sync_controller.dart:94:5 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/controllers/sync_controller.dart:101:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/controllers/sync_controller.dart:115:9 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/controllers/sync_controller.dart:122:11 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/controllers/sync_controller.dart:124:11 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/controllers/sync_controller.dart:132:9 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/controllers/sync_controller.dart:137:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/controllers/sync_controller.dart:139:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/controllers/sync_controller.dart:148:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/controllers/sync_controller.dart:158:11 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/controllers/sync_controller.dart:163:9 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/controllers/sync_controller.dart:166:9 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/controllers/sync_controller.dart:167:9 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/controllers/sync_controller.dart:171:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/controllers/sync_controller.dart:178:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/controllers/sync_controller.dart:181:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/controllers/sync_controller.dart:183:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/controllers/sync_controller.dart:186:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/controllers/sync_controller.dart:188:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/controllers/sync_controller.dart:191:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/controllers/sync_controller.dart:193:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/controllers/sync_controller.dart:195:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/controllers/sync_controller.dart:197:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/controllers/sync_controller.dart:591:9 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/controllers/sync_controller.dart:595:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/controllers/sync_controller.dart:610:9 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/controllers/sync_controller.dart:612:9 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/controllers/sync_controller.dart:615:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/controllers/table_controller.dart:26:5 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/controllers/user_controller.dart:26:5 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/controllers/user_controller.dart:32:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/controllers/user_controller.dart:40:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/controllers/user_controller.dart:42:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/helper/dependencies.dart:30:5 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/helper/dependencies.dart:32:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/helper/dependencies.dart:37:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/helper/dependencies.dart:39:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/helper/dependencies.dart:41:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/helper/dependencies.dart:46:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/helper/dependencies.dart:51:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/helper/dependencies.dart:56:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/helper/dependencies.dart:59:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/helper/dependencies.dart:61:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/helper/dependencies.dart:63:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/helper/dependencies.dart:65:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/helper/dependencies.dart:68:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/helper/dependencies.dart:70:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/helper/dependencies.dart:72:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/helper/dependencies.dart:74:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/helper/dependencies.dart:76:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/helper/dependencies.dart:78:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/helper/dependencies.dart:80:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/helper/dependencies.dart:82:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/helper/dependencies.dart:84:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/helper/dependencies.dart:86:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/helper/dependencies.dart:88:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/helper/dependencies.dart:90:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/helper/dependencies.dart:92:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/helper/dependencies.dart:94:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/helper/dependencies.dart:96:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/helper/dependencies.dart:98:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/helper/dependencies.dart:100:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/helper/dependencies.dart:102:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/helper/dependencies.dart:104:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/helper/dependencies.dart:106:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/helper/dependencies.dart:108:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/helper/dependencies.dart:110:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/helper/dependencies.dart:112:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/helper/dependencies.dart:114:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/helper/dependencies.dart:116:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/helper/dependencies.dart:121:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/helper/dependencies.dart:123:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/helper/dependencies.dart:128:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/helper/dependencies.dart:130:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/helper/dependencies.dart:142:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/helper/dependencies.dart:144:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/helper/dependencies.dart:146:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/helper/dependencies.dart:149:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/helper/dependencies.dart:151:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/helper/dependencies.dart:154:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/helper/dependencies.dart:156:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/helper/dependencies.dart:158:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/helper/dependencies.dart:160:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/helper/dependencies.dart:161:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/tools/check_local_api_orders.dart:11:3 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/tools/check_local_api_orders.dart:23:5 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/tools/check_local_api_orders.dart:42:5 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/tools/check_local_api_orders.dart:43:5 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/tools/check_local_api_orders.dart:44:5 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/tools/check_local_api_orders.dart:45:5 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/tools/check_local_api_orders.dart:48:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/tools/check_local_api_orders.dart:49:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/tools/check_local_api_orders.dart:50:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/tools/check_local_api_orders.dart:51:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/tools/check_local_api_orders.dart:52:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/tools/check_local_api_orders.dart:56:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/tools/check_local_api_orders.dart:60:9 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/tools/check_local_api_orders.dart:61:9 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/tools/check_local_api_orders.dart:62:9 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/tools/check_local_api_orders.dart:63:9 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/tools/check_local_api_orders.dart:64:9 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/tools/check_local_api_orders.dart:65:9 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/tools/check_local_api_orders.dart:66:9 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/tools/check_local_api_orders.dart:67:9 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/tools/check_local_api_orders.dart:68:9 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/tools/check_local_api_orders.dart:69:9 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/tools/check_local_api_orders.dart:70:9 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/tools/check_local_api_orders.dart:71:9 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/tools/check_local_api_orders.dart:73:11 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/tools/check_local_api_orders.dart:75:9 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/tools/check_local_api_orders.dart:80:5 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/tools/check_local_api_orders.dart:84:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/tools/check_local_api_orders.dart:89:5 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/tools/check_local_api_orders.dart:90:5 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/utils/pos_ticket_printer.dart:393:19 - The local variable '_buildRestaurantHeader' starts with an underscore. Try renaming the variable to not start with an underscore. - no_leading_underscores_for_local_identifiers
+   info - lib/views/admin_delivery_accounting_screen.dart:302:40 - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check. Guard a 'State.context' use with a 'mounted' check on the State, and other BuildContext use with a 'mounted' check on the BuildContext. - use_build_context_synchronously
+   info - lib/views/admin_delivery_accounting_screen.dart:303:35 - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check. Guard a 'State.context' use with a 'mounted' check on the State, and other BuildContext use with a 'mounted' check on the BuildContext. - use_build_context_synchronously
+   info - lib/views/admin_pin_login_screen.dart:383:33 - Unnecessary use of multiple underscores. Try using '_'. - unnecessary_underscores
+   info - lib/views/cashier_financial_dashboard.dart:49:8 - The private field _isLoadingReport could be 'final'. Try making the field 'final'. - prefer_final_fields
+   info - lib/views/cashier_financial_dashboard.dart:236:49 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - lib/views/cashier_financial_dashboard.dart:237:49 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - lib/views/cashier_financial_dashboard.dart:238:53 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - lib/views/cashier_financial_dashboard.dart:242:58 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - lib/views/cashier_financial_dashboard.dart:243:58 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - lib/views/cashier_financial_dashboard.dart:244:62 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - lib/views/daily_reports_screen.dart:90:9 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/views/daily_reports_screen.dart:135:13 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/views/daily_reports_screen.dart:162:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/views/global_orders_screen.dart:447:14 - Unnecessary use of 'toList' in a spread. Try removing the invocation of 'toList'. - unnecessary_to_list_in_spreads
+   info - lib/views/pos_screen.dart:1221:18 - Unnecessary use of 'toList' in a spread. Try removing the invocation of 'toList'. - unnecessary_to_list_in_spreads
+   info - lib/views/pos_staff_orders_screen.dart:2755:44 - Unnecessary use of 'toList' in a spread. Try removing the invocation of 'toList'. - unnecessary_to_list_in_spreads
+   info - lib/views/pos_staff_paid_orders_screen.dart:1:5 - An uninitialized variable should have an explicit type annotation. Try adding a type annotation. - prefer_typing_uninitialized_variables
+   info - lib/views/pos_staff_paid_orders_screen.dart:1:5 - Missing type annotation. Try adding a type annotation. - strict_top_level_inference
+   info - lib/views/pos_staff_paid_orders_screen.dart:1:12 - Missing type annotation. Try adding a type annotation. - strict_top_level_inference
+   info - lib/views/pos_staff_paid_orders_screen.dart:1:12 - The variable name 'AppSurfaceCard' isn't a lowerCamelCase identifier. Try changing the name to follow the lowerCamelCase style. - non_constant_identifier_names
+   info - lib/views/pos_staff_paid_orders_screen.dart:2:7 - Missing type annotation. Try adding a type annotation. - strict_top_level_inference
+   info - lib/views/pos_staff_paid_orders_screen.dart:3:7 - Missing type annotation. Try adding a type annotation. - strict_top_level_inference
+   info - lib/views/pos_staff_paid_orders_screen.dart:4:7 - Missing type annotation. Try adding a type annotation. - strict_top_level_inference
+   info - lib/views/pos_staff_paid_orders_screen.dart:5:7 - Missing type annotation. Try adding a type annotation. - strict_top_level_inference
+   info - lib/views/pos_staff_paid_orders_screen.dart:6:7 - Missing type annotation. Try adding a type annotation. - strict_top_level_inference
+   info - lib/views/pos_staff_paid_orders_screen.dart:72:42 - Unnecessary 'const' keyword. Try removing the keyword. - unnecessary_const
+   info - lib/views/pos_staff_paid_orders_screen.dart:280:23 - Missing type annotation. Try adding a type annotation. - strict_top_level_inference
+   info - lib/views/pos_staff_paid_orders_screen.dart:284:23 - An uninitialized variable should have an explicit type annotation. Try adding a type annotation. - prefer_typing_uninitialized_variables
+   info - lib/views/pos_staff_paid_orders_screen.dart:284:23 - Missing type annotation. Try adding a type annotation. - strict_top_level_inference
+   info - lib/views/pos_staff_paid_orders_screen.dart:284:30 - Missing type annotation. Try adding a type annotation. - strict_top_level_inference
+   info - lib/views/pos_staff_paid_orders_screen.dart:284:30 - The variable name 'Wrap' isn't a lowerCamelCase identifier. Try changing the name to follow the lowerCamelCase style. - non_constant_identifier_names
+   info - lib/views/pos_staff_paid_orders_screen.dart:285:25 - Missing type annotation. Try adding a type annotation. - strict_top_level_inference
+   info - lib/views/pos_staff_paid_orders_screen.dart:286:25 - Missing type annotation. Try adding a type annotation. - strict_top_level_inference
+   info - lib/views/pos_staff_paid_orders_screen.dart:287:25 - Missing type annotation. Try adding a type annotation. - strict_top_level_inference
+   info - lib/views/pos_staff_paid_orders_screen.dart:288:25 - Missing type annotation. Try adding a type annotation. - strict_top_level_inference
+   info - lib/views/pos_staff_paid_orders_screen.dart:829:6 - Unnecessary empty statement. Try removing the empty statement or restructuring the code. - empty_statements
+   info - lib/views/pos_tables_screen.dart:261:5 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/views/pos_tables_screen.dart:272:7 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/views/pos_tables_screen.dart:285:9 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/views/pos_tables_screen.dart:297:9 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/views/pos_tables_screen.dart:303:11 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/views/pos_tables_screen.dart:306:11 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/views/pos_tables_screen.dart:308:11 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/views/pos_tables_screen.dart:858:7 - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check. Guard a 'State.context' use with a 'mounted' check on the State, and other BuildContext use with a 'mounted' check on the BuildContext. - use_build_context_synchronously
+   info - lib/views/pos_tables_screen.dart:946:7 - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check. Guard a 'State.context' use with a 'mounted' check on the State, and other BuildContext use with a 'mounted' check on the BuildContext. - use_build_context_synchronously
+   info - lib/views/pos_tables_screen.dart:1156:9 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/views/pos_tables_screen.dart:1213:33 - Unnecessary use of 'toList' in a spread. Try removing the invocation of 'toList'. - unnecessary_to_list_in_spreads
+   info - lib/views/splash_screen.dart:131:9 - Don't invoke 'print' in production code. Try using a logging framework. - avoid_print
+   info - lib/widgets/item_options_dialog.dart:124:17 - Unnecessary use of string interpolation. Try replacing the string literal with the variable name. - unnecessary_string_interpolations
+   info - lib/widgets/item_options_dialog.dart:227:28 - Unnecessary use of 'toList' in a spread. Try removing the invocation of 'toList'. - unnecessary_to_list_in_spreads
+   info - lib/widgets/multi_method_payment_dialog.dart:379:18 - Unnecessary use of 'toList' in a spread. Try removing the invocation of 'toList'. - unnecessary_to_list_in_spreads
+   info - lib/widgets/unified_payment_dialog.dart:385:36 - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check. Guard a 'State.context' use with a 'mounted' check on the State, and other BuildContext use with a 'mounted' check on the BuildContext. - use_build_context_synchronously
+
+850 issues found.

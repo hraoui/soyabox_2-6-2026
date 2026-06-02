@@ -1,0 +1,1479 @@
+import 'dart:async';
+import 'dart:math' as math;
+
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:printing/printing.dart';
+
+import '../controllers/pos_controller.dart';
+import '../controllers/delivery_controller.dart';
+import '../controllers/sync_controller.dart';
+import '../models/pos_order.dart';
+import '../models/pos_order_item.dart';
+import '../models/order_delivery.dart';
+import '../models/delivery.dart';
+import '../services/app_settings_service.dart';
+import '../services/database_service.dart';
+import '../theme/app_theme.dart';
+import '../utils/pos_ticket_printer.dart';
+import '../widgets/app_back_button.dart';
+
+class PosStaffOrdersScreen extends StatefulWidget {
+  const PosStaffOrdersScreen({super.key});
+
+  @override
+  State<PosStaffOrdersScreen> createState() => _PosStaffOrdersScreenState();
+}
+
+class _PosStaffOrdersScreenState extends State<PosStaffOrdersScreen> {
+  @override
+  void initState() {
+    super.initState();
+    final pos = Get.find<PosController>();
+    pos.loadOrdersToday();
+
+    Future.microtask(() async {
+      if (Get.isRegistered<SyncController>()) {
+        final sync = Get.find<SyncController>();
+        final last = sync.lastSyncAt;
+        final shouldSyncNow =
+            last == null || DateTime.now().difference(last).inSeconds >= 8;
+        if (shouldSyncNow) {
+          unawaited(sync.syncNow());
+        }
+      }
+      if (mounted) {
+        await pos.loadOrdersToday();
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final pos = Get.find<PosController>();
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Mes Commandes'),
+        backgroundColor: AppColors.blancPur,
+        foregroundColor: AppColors.charbon,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        leading: AppBackButton(
+          alwaysVisible: true,
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).maybePop();
+              return;
+            }
+            Get.offAllNamed('/pos-menu');
+          },
+        ),
+        actions: [
+          // Bouton pour reset le remote state (debug)
+          IconButton(
+            icon: const Icon(Icons.delete_outline),
+            tooltip: 'Reset API remote state (debug)',
+            onPressed: () {
+              if (Get.isRegistered<SyncController>()) {
+                Get.find<SyncController>().clearApiOrderRemoteState();
+              }
+            },
+          ),
+          // Bouton d'actualisation
+          GetBuilder<PosController>(
+            builder: (_) {
+              return IconButton(
+                icon: pos.isRefreshing
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            AppColors.charbon,
+                          ),
+                        ),
+                      )
+                    : const Icon(Icons.refresh),
+                tooltip: 'Actualiser',
+                onPressed: pos.isRefreshing ? null : () => pos.refreshOrders(),
+              );
+            },
+          ),
+          TextButton(
+            onPressed: () => Get.offAllNamed('/pos-menu'),
+            style: TextButton.styleFrom(foregroundColor: AppColors.charbon),
+            child: const Text('Retour'),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+        ],
+      ),
+      body: Stack(
+        children: [
+          Positioned.fill(child: _buildBackground()),
+          Positioned.fill(
+            child: GetBuilder<PosController>(
+              builder: (_) {
+                return Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _filters(pos),
+                      const SizedBox(height: 10),
+                      _overviewBar(pos.ordersToday),
+                      const SizedBox(height: 10),
+                      Expanded(
+                        child: pos.ordersToday.isEmpty
+                            ? _emptyState()
+                            : ListView.builder(
+                                itemCount: pos.ordersToday.length,
+                                itemBuilder: (context, index) {
+                                  final order = pos.ordersToday[index];
+                                  return TweenAnimationBuilder<double>(
+                                    tween: Tween(begin: 0, end: 1),
+                                    duration: Duration(
+                                      milliseconds: 220 + ((index % 8) * 50),
+                                    ),
+                                    curve: Curves.easeOutCubic,
+                                    builder: (context, value, child) {
+                                      return Transform.translate(
+                                        offset: Offset(0, (1 - value) * 10),
+                                        child: Opacity(
+                                          opacity: value,
+                                          child: child,
+                                        ),
+                                      );
+                                    },
+                                    child: _orderCard(pos, order),
+                                  );
+                                },
+                              ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _filters(PosController pos) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(14),
+        color: AppColors.blancPur.withAlpha(220),
+        border: Border.all(color: AppColors.grisLeger.withAlpha(180)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x10000000),
+            blurRadius: 8,
+            offset: Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Statuts',
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: 13,
+              color: AppColors.charbon,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            children: [
+              _filterChip(pos, 'all', 'Toutes'),
+              _filterChip(pos, 'pending', 'En attente'),
+              _filterChip(pos, 'confirmed', 'Confirmée'),
+              _filterChip(pos, 'preparing', 'Préparation'),
+              _filterChip(pos, 'ready', 'Prête'),
+              _filterChip(pos, 'delivered', 'Livrée'),
+              _filterChip(pos, 'cancelled', 'Annulée'),
+            ],
+          ),
+          const SizedBox(height: 10),
+          const Text(
+            'Canaux',
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: 13,
+              color: AppColors.charbon,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            children: [
+              _channelChip(pos, 'all', 'Tous'),
+              _channelChip(pos, 'pos', 'POS / Salle'),
+              _channelChip(pos, 'remote', 'Mobile & Web'),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _filterChip(PosController pos, String value, String label) {
+    final selected = pos.ordersFilter == value;
+    return FilterChip(
+      selected: selected,
+      label: Text(label),
+      selectedColor: AppColors.deepTeal.withAlpha(26),
+      backgroundColor: AppColors.blancPur,
+      checkmarkColor: AppColors.deepTeal,
+      side: BorderSide(
+        color: selected ? AppColors.deepTeal : AppColors.grisLeger,
+      ),
+      onSelected: (_) => pos.setOrdersFilter(value),
+    );
+  }
+
+  Widget _channelChip(PosController pos, String value, String label) {
+    final selected = pos.ordersChannelFilter == value;
+    return FilterChip(
+      selected: selected,
+      label: Text(label),
+      selectedColor: AppColors.deepTeal.withAlpha(24),
+      backgroundColor: AppColors.blancPur,
+      checkmarkColor: AppColors.deepTeal,
+      side: BorderSide(
+        color: selected ? AppColors.deepTeal : AppColors.grisLeger,
+      ),
+      onSelected: (_) => pos.setOrdersChannelFilter(value),
+    );
+  }
+
+  Widget _orderCard(PosController pos, PosOrder order) {
+    final statusColor = _statusColor(order.status);
+    final placeLabel = order.fulfillmentType == 'on_site'
+        ? (order.tableNumber == null || order.tableNumber!.trim().isEmpty
+              ? 'Table non définie'
+              : 'Table ${order.tableNumber!}')
+        : (order.deliveryAddress == null ||
+                  order.deliveryAddress!.trim().isEmpty
+              ? 'Adresse non définie'
+              : order.deliveryAddress!);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(14),
+        color: AppColors.blancPur.withAlpha(228),
+        border: Border.all(color: statusColor.withAlpha(90)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x12000000),
+            blurRadius: 10,
+            offset: Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 6,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        Text(
+                          'Commande #${order.id}',
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.charbon,
+                          ),
+                        ),
+                        _statusBadge(
+                          _labelForStatus(order.status),
+                          color: statusColor,
+                        ),
+                        _statusBadge(
+                          _labelForChannel(order.channel),
+                          color: _isMobileApi(order) ? Colors.indigo : null,
+                        ),
+                        _statusBadge(
+                          _labelForFulfillment(order.fulfillmentType),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 6,
+                      children: [
+                        _metaInfo(
+                          Icons.person_outline,
+                          order.customerName ?? 'Client non renseigné',
+                        ),
+                        _metaInfo(
+                          Icons.call_outlined,
+                          order.customerPhone ?? '-',
+                        ),
+                        _metaInfo(
+                          order.fulfillmentType == 'on_site'
+                              ? Icons.table_bar_outlined
+                              : Icons.location_on_outlined,
+                          placeLabel,
+                        ),
+                        _metaInfo(
+                          Icons.schedule_outlined,
+                          _formatOrderTime(order.createdAt),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    _money(order.totalPrice),
+                    style: const TextStyle(
+                      fontSize: 19,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.deepTeal,
+                    ),
+                  ),
+                  Text(
+                    order.paymentStatus == 'paid' ? 'Payée' : 'Non payée',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: order.paymentStatus == 'paid'
+                          ? Colors.green.shade700
+                          : AppColors.grisModerne,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Divider(color: AppColors.grisLeger.withAlpha(150), height: 1),
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 6,
+            runSpacing: 4,
+            children: [
+              OutlinedButton.icon(
+                onPressed: () async => _showOrderDetails(pos, order),
+                icon: const Icon(Icons.receipt_long, size: 16),
+                label: const Text('Détails'),
+              ),
+              OutlinedButton.icon(
+                onPressed: () => _previewOrder(order),
+                icon: const Icon(Icons.print_outlined, size: 16),
+                label: const Text('Imprimer'),
+              ),
+              if (order.status == 'pending')
+                OutlinedButton.icon(
+                  onPressed: () async {
+                    final ok = await pos.updateOrderStatus(order, 'confirmed');
+                    if (!mounted) return;
+                    if (ok) {
+                      Get.snackbar(
+                        'Commande confirmée',
+                        'Statut mis à confirmée',
+                        snackPosition: SnackPosition.BOTTOM,
+                      );
+
+                      // Si c'est une livraison, proposer d'assigner un livreur
+                      if (order.fulfillmentType == 'delivery') {
+                        // Attendre un peu que la commande soit bien confirmée
+                        await Future.delayed(const Duration(milliseconds: 500));
+                        if (mounted) {
+                          _showAssignLivreurDialog(pos, order);
+                        }
+                      }
+                    } else {
+                      Get.snackbar(
+                        'Erreur backend',
+                        pos.error ??
+                            'Commande locale mise à jour, notification backend échouée.',
+                        snackPosition: SnackPosition.BOTTOM,
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.play_arrow, size: 16),
+                  label: const Text('Confirmer'),
+                ),
+              // Bouton Assigner livreur pour TOUTES les commandes delivery (sauf pending/cancelled)
+              if (order.fulfillmentType == 'delivery' &&
+                  order.status != 'pending' &&
+                  order.status != 'cancelled')
+                OutlinedButton.icon(
+                  onPressed: () => _showAssignLivreurDialog(pos, order),
+                  icon: const Icon(Icons.local_shipping_outlined, size: 16),
+                  label: const Text('Assigner livreur'),
+                ),
+              OutlinedButton.icon(
+                onPressed: () async {
+                  final ok = await pos.updateOrderStatus(order, 'preparing');
+                  if (!mounted) return;
+                  if (ok) {
+                    Get.snackbar(
+                      'Préparation',
+                      'Statut mis en préparation',
+                      snackPosition: SnackPosition.BOTTOM,
+                    );
+                  } else {
+                    Get.snackbar(
+                      'Erreur backend',
+                      pos.error ??
+                          'Commande locale mise à jour, notification backend échouée.',
+                      snackPosition: SnackPosition.BOTTOM,
+                    );
+                  }
+                },
+                icon: const Icon(Icons.soup_kitchen_outlined, size: 16),
+                label: const Text('Préparation'),
+              ),
+              if (order.status == 'preparing')
+                OutlinedButton.icon(
+                  onPressed: () async {
+                    final ok = await pos.updateOrderStatus(order, 'ready');
+                    if (!mounted) return;
+                    if (ok) {
+                      Get.snackbar(
+                        'Commande prête',
+                        'Statut mis à prête',
+                        snackPosition: SnackPosition.BOTTOM,
+                      );
+                    } else {
+                      Get.snackbar(
+                        'Erreur backend',
+                        pos.error ??
+                            'Commande locale mise à jour, notification backend échouée.',
+                        snackPosition: SnackPosition.BOTTOM,
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.check_circle_outline, size: 16),
+                  label: const Text('Prête'),
+                ),
+              if (order.status == 'ready')
+                OutlinedButton.icon(
+                  onPressed: () async {
+                    final ok = await pos.updateOrderStatus(order, 'delivered');
+                    if (!mounted) return;
+                    if (ok) {
+                      Get.snackbar(
+                        'Commande livrée',
+                        'Statut mis à livrée',
+                        snackPosition: SnackPosition.BOTTOM,
+                      );
+                    } else {
+                      Get.snackbar(
+                        'Erreur backend',
+                        pos.error ??
+                            'Commande locale mise à jour, notification backend échouée.',
+                        snackPosition: SnackPosition.BOTTOM,
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.local_shipping_outlined, size: 16),
+                  label: const Text('Livrée'),
+                ),
+              if (pos.canEditOrders && order.status == 'pending')
+                OutlinedButton(
+                  onPressed: () async => _showEditOrderDialog(pos, order),
+                  child: const Text('Éditer'),
+                ),
+              if (pos.canEditOrders && order.status == 'pending')
+                OutlinedButton(
+                  onPressed: () async {
+                    await pos.loadOrderForEdit(order);
+                    if (pos.error != null) {
+                      Get.snackbar(
+                        'Erreur',
+                        pos.error!,
+                        snackPosition: SnackPosition.BOTTOM,
+                        animationDuration: const Duration(milliseconds: 260),
+                      );
+                      return;
+                    }
+                    if (mounted) Get.toNamed('/pos-order');
+                  },
+                  child: const Text('Modifier'),
+                ),
+              if (order.paymentStatus != 'paid' && order.status != 'delivered')
+                OutlinedButton.icon(
+                  onPressed: () async {
+                    final ok = await pos.markOrderPaid(order);
+                    if (!mounted) return;
+                    if (!ok) {
+                      Get.snackbar(
+                        'Erreur backend',
+                        pos.error ??
+                            'Commande locale mise à jour, notification backend échouée.',
+                        snackPosition: SnackPosition.BOTTOM,
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.payments_outlined, size: 16),
+                  label: const Text('Marquer livrée'),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _previewOrder(PosOrder order) async {
+    try {
+      final items = await DatabaseService.getPosOrderItems(order.id);
+      if (items.isEmpty) {
+        Get.snackbar(
+          'Impression',
+          'Aucun article sur cette commande',
+          snackPosition: SnackPosition.BOTTOM,
+        );
+        return;
+      }
+      await Printing.layoutPdf(
+        onLayout: (format) =>
+            buildKitchenAndCustomerTicketsPdf(order, items, format: format),
+        usePrinterSettings: false,
+        dynamicLayout: false,
+      );
+    } catch (e) {
+      Get.snackbar(
+        'Impression',
+        'Impossible d\'imprimer: $e',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    }
+  }
+
+  Widget _statusBadge(String text, {Color? color}) {
+    final badgeColor = color ?? AppColors.deepTeal;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(999),
+        color: badgeColor.withAlpha(30),
+        border: Border.all(color: badgeColor.withAlpha(80)),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: badgeColor,
+        ),
+      ),
+    );
+  }
+
+  Widget _overviewBar(List<PosOrder> orders) {
+    final total = orders.length;
+    final pending = orders.where((o) => o.status == 'pending').length;
+    final confirmed = orders.where((o) => o.status == 'confirmed').length;
+    final preparing = orders.where((o) => o.status == 'preparing').length;
+    final ready = orders.where((o) => o.status == 'ready').length;
+    final mobile = orders.where(_isMobileApi).length;
+    final amount = orders.fold<double>(
+      0.0,
+      (sum, order) => sum + order.totalPrice,
+    );
+
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        _overviewCard(
+          icon: Icons.receipt_long_outlined,
+          title: 'Total',
+          value: '$total',
+          color: AppColors.deepTeal,
+        ),
+        _overviewCard(
+          icon: Icons.hourglass_bottom_outlined,
+          title: 'En attente',
+          value: '$pending',
+          color: Colors.orange.shade700,
+        ),
+        _overviewCard(
+          icon: Icons.verified_outlined,
+          title: 'Confirmées',
+          value: '$confirmed',
+          color: Colors.deepPurple.shade400,
+        ),
+        _overviewCard(
+          icon: Icons.soup_kitchen_outlined,
+          title: 'Préparation',
+          value: '$preparing',
+          color: Colors.blue.shade700,
+        ),
+        _overviewCard(
+          icon: Icons.check_circle_outline,
+          title: 'Prêtes',
+          value: '$ready',
+          color: Colors.green.shade700,
+        ),
+        _overviewCard(
+          icon: Icons.phone_iphone_outlined,
+          title: 'Mobile API',
+          value: '$mobile',
+          color: Colors.indigo,
+        ),
+        _overviewCard(
+          icon: Icons.payments_outlined,
+          title: 'Montant',
+          value: _money(amount),
+          color: AppColors.terraCotta,
+        ),
+      ],
+    );
+  }
+
+  Widget _overviewCard({
+    required IconData icon,
+    required String title,
+    required String value,
+    required Color color,
+  }) {
+    return Container(
+      constraints: const BoxConstraints(minWidth: 122),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+      decoration: BoxDecoration(
+        color: AppColors.blancPur.withAlpha(230),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withAlpha(90)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 18, color: color),
+          const SizedBox(width: 8),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(title, style: AppTypography.caption),
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: color,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _emptyState() {
+    return Center(
+      child: Container(
+        width: 360,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: AppColors.blancPur.withAlpha(225),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.grisLeger),
+        ),
+        child: const Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.inbox_outlined, size: 46, color: AppColors.grisModerne),
+            SizedBox(height: 10),
+            Text('Aucune commande', style: AppTypography.bodyLarge),
+            SizedBox(height: 4),
+            Text(
+              'Les nouvelles commandes apparaîtront ici.',
+              style: AppTypography.caption,
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _metaInfo(IconData icon, String value) {
+    final text = value.trim().isEmpty ? '-' : value.trim();
+    return Container(
+      constraints: const BoxConstraints(maxWidth: 290),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      decoration: BoxDecoration(
+        color: AppColors.cloudDancer.withAlpha(160),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: AppColors.grisModerne),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              text,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 12, color: AppColors.charbon),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _labelForStatus(String value) {
+    switch (value.trim().toLowerCase()) {
+      case 'pending':
+        return 'En attente';
+      case 'confirmed':
+        return 'Confirmée';
+      case 'preparing':
+        return 'Préparation';
+      case 'ready':
+        return 'Prête';
+      case 'delivered':
+      case 'paid':
+        return 'Livrée';
+      case 'cancelled':
+        return 'Annulée';
+      default:
+        return value;
+    }
+  }
+
+  Color _statusColor(String value) {
+    switch (value.trim().toLowerCase()) {
+      case 'pending':
+        return Colors.orange.shade700;
+      case 'confirmed':
+        return Colors.deepPurple.shade400;
+      case 'preparing':
+        return Colors.blue.shade700;
+      case 'ready':
+        return Colors.green.shade700;
+      case 'delivered':
+      case 'paid':
+        return Colors.teal.shade700;
+      case 'cancelled':
+        return Colors.red.shade700;
+      default:
+        return AppColors.deepTeal;
+    }
+  }
+
+  String _formatOrderTime(DateTime value) {
+    final h = value.hour.toString().padLeft(2, '0');
+    final m = value.minute.toString().padLeft(2, '0');
+    return '$h:$m';
+  }
+
+  String _money(double amount) {
+    return AppSettingsService.instance.formatAmount(amount);
+  }
+
+  bool _isMobileApi(PosOrder order) {
+    return order.channel.trim().toLowerCase() == 'api';
+  }
+
+  Future<void> _showEditOrderDialog(PosController pos, PosOrder order) async {
+    String selectedType = order.fulfillmentType;
+    final tableController = TextEditingController(
+      text: order.tableNumber ?? '',
+    );
+    final nameController = TextEditingController(
+      text: order.customerName ?? '',
+    );
+    final phoneController = TextEditingController(
+      text: order.customerPhone ?? '',
+    );
+    final addressController = TextEditingController(
+      text: order.deliveryAddress ?? '',
+    );
+
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setLocalState) {
+            return AlertDialog(
+              title: Text('Edit order #${order.id}'),
+              content: SingleChildScrollView(
+                child: SizedBox(
+                  width: 520,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      DropdownButtonFormField<String>(
+                        initialValue: selectedType,
+                        decoration: const InputDecoration(labelText: 'Type'),
+                        items: const [
+                          DropdownMenuItem(
+                            value: 'on_site',
+                            child: Text('Sur place'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'pickup',
+                            child: Text('A emporter'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'delivery',
+                            child: Text('Livraison'),
+                          ),
+                        ],
+                        onChanged: (value) {
+                          if (value == null) return;
+                          setLocalState(() => selectedType = value);
+                        },
+                      ),
+                      if (selectedType == 'on_site')
+                        TextField(
+                          controller: tableController,
+                          decoration: const InputDecoration(labelText: 'Table'),
+                        ),
+                      if (selectedType == 'pickup' ||
+                          selectedType == 'delivery')
+                        TextField(
+                          controller: nameController,
+                          decoration: const InputDecoration(
+                            labelText: 'Nom client',
+                          ),
+                        ),
+                      if (selectedType == 'pickup' ||
+                          selectedType == 'delivery')
+                        TextField(
+                          controller: phoneController,
+                          decoration: const InputDecoration(
+                            labelText: 'Telephone',
+                          ),
+                        ),
+                      if (selectedType == 'delivery')
+                        TextField(
+                          controller: addressController,
+                          decoration: const InputDecoration(
+                            labelText: 'Adresse livraison',
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Annuler'),
+                ),
+                TextButton(
+                  onPressed: () async {
+                    final ok = await pos.editOrderDetails(
+                      order,
+                      fulfillmentType: selectedType,
+                      tableNumber: tableController.text,
+                      customerName: nameController.text,
+                      customerPhone: phoneController.text,
+                      deliveryAddress: addressController.text,
+                    );
+                    if (!mounted) return;
+                    if (!ok) {
+                      Get.snackbar(
+                        'Erreur',
+                        pos.error ?? 'Modification impossible',
+                        snackPosition: SnackPosition.BOTTOM,
+                        animationDuration: const Duration(milliseconds: 260),
+                      );
+                      return;
+                    }
+                    Navigator.of(this.context).pop();
+                    Get.snackbar(
+                      'Succes',
+                      'Commande mise a jour',
+                      snackPosition: SnackPosition.BOTTOM,
+                      animationDuration: const Duration(milliseconds: 260),
+                    );
+                  },
+                  child: const Text('Enregistrer'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _showOrderDetails(PosController pos, PosOrder order) async {
+    final items = await DatabaseService.getPosOrderItems(order.id);
+    if (!mounted) return;
+    final statusColor = _statusColor(order.status);
+    final locationLabel = order.fulfillmentType == 'on_site'
+        ? 'Table'
+        : 'Adresse';
+    final locationValue = order.fulfillmentType == 'on_site'
+        ? (order.tableNumber?.trim().isEmpty ?? true
+              ? '-'
+              : order.tableNumber!.trim())
+        : (order.deliveryAddress?.trim().isEmpty ?? true
+              ? '-'
+              : order.deliveryAddress!.trim());
+
+    await showDialog(
+      context: context,
+      barrierColor: Colors.black54,
+      builder: (dialogContext) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 18,
+            vertical: 24,
+          ),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 760, maxHeight: 700),
+            child: Container(
+              decoration: BoxDecoration(
+                color: AppColors.blancPur,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: statusColor.withAlpha(85)),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x22000000),
+                    blurRadius: 18,
+                    offset: Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: Column(
+                children: [
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.fromLTRB(18, 14, 18, 14),
+                    decoration: BoxDecoration(
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(20),
+                      ),
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          statusColor.withAlpha(34),
+                          AppColors.cloudDancer,
+                          AppColors.livingCoral.withAlpha(26),
+                        ],
+                      ),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Commande #${order.id}',
+                                style: const TextStyle(
+                                  fontSize: 19,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.charbon,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Wrap(
+                                spacing: 6,
+                                runSpacing: 6,
+                                children: [
+                                  _statusBadge(
+                                    _labelForStatus(order.status),
+                                    color: statusColor,
+                                  ),
+                                  _statusBadge(
+                                    _labelForChannel(order.channel),
+                                    color: _isMobileApi(order)
+                                        ? Colors.indigo
+                                        : AppColors.deepTeal,
+                                  ),
+                                  _statusBadge(
+                                    _labelForFulfillment(order.fulfillmentType),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.blancPur.withAlpha(220),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: AppColors.deepTeal.withAlpha(72),
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              const Text(
+                                'Total',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.grisModerne,
+                                ),
+                              ),
+                              Text(
+                                _money(order.totalPrice),
+                                style: const TextStyle(
+                                  fontSize: 21,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.deepTeal,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(18, 14, 18, 12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Wrap(
+                            spacing: 10,
+                            runSpacing: 10,
+                            children: [
+                              _detailInfoCard(
+                                icon: Icons.person_outline,
+                                label: 'Client',
+                                value: order.customerName ?? '-',
+                              ),
+                              _detailInfoCard(
+                                icon: Icons.call_outlined,
+                                label: 'Téléphone',
+                                value: order.customerPhone ?? '-',
+                              ),
+                              _detailInfoCard(
+                                icon: order.fulfillmentType == 'on_site'
+                                    ? Icons.table_bar_outlined
+                                    : Icons.location_on_outlined,
+                                label: locationLabel,
+                                value: locationValue,
+                              ),
+                              _detailInfoCard(
+                                icon: Icons.schedule_outlined,
+                                label: 'Heure',
+                                value: _formatOrderTime(order.createdAt),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 14),
+                          Text(
+                            'Articles (${items.length})',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.charbon,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          if (items.isEmpty)
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: AppColors.cloudDancer.withAlpha(180),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Text(
+                                'Aucun article trouvé pour cette commande.',
+                                style: AppTypography.bodySmall,
+                              ),
+                            )
+                          else
+                            Column(
+                              children: [
+                                for (final it in items)
+                                  _dialogOrderItemCard(it),
+                              ],
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
+                    decoration: BoxDecoration(
+                      color: AppColors.cloudDancer.withAlpha(150),
+                      borderRadius: const BorderRadius.vertical(
+                        bottom: Radius.circular(20),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        FilledButton.icon(
+                          onPressed: () => Navigator.pop(dialogContext),
+                          icon: const Icon(Icons.close, size: 17),
+                          label: const Text('Fermer'),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: AppColors.deepTeal,
+                            foregroundColor: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _dialogOrderItemCard(PosOrderItem item) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+      decoration: BoxDecoration(
+        color: AppColors.blancPur.withAlpha(235),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.grisLeger.withAlpha(170)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              item.productName,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: AppColors.charbon,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            '${item.quantity} x ${_money(item.unitPrice)}',
+            style: const TextStyle(fontSize: 12, color: AppColors.grisModerne),
+          ),
+          const SizedBox(width: 10),
+          Text(
+            _money(item.quantity * item.unitPrice),
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: AppColors.deepTeal,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _detailInfoCard({
+    required IconData icon,
+    required String label,
+    required String value,
+  }) {
+    final text = value.trim().isEmpty ? '-' : value.trim();
+    return Container(
+      constraints: const BoxConstraints(minWidth: 220, maxWidth: 340),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+      decoration: BoxDecoration(
+        color: AppColors.cloudDancer.withAlpha(170),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.grisLeger.withAlpha(180)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: AppColors.deepTeal),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: AppTypography.caption),
+                const SizedBox(height: 2),
+                Text(
+                  text,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.charbon,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _labelForFulfillment(String value) {
+    switch (value) {
+      case 'delivery':
+        return 'Livraison';
+      case 'pickup':
+        return 'À emporter';
+      case 'on_site':
+      default:
+        return 'Sur place';
+    }
+  }
+
+  String _labelForChannel(String value) {
+    switch (value.trim().toLowerCase()) {
+      case 'api':
+        return 'Mobile API';
+      case 'web':
+        return 'Web';
+      case 'kiosk':
+        return 'Kiosk';
+      case 'pos':
+      default:
+        return 'POS';
+    }
+  }
+
+  Widget _buildBackground() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppColors.deepTeal.withAlpha(20),
+            AppColors.offWhite,
+            AppColors.livingCoral.withAlpha(24),
+          ],
+        ),
+      ),
+      child: CustomPaint(
+        painter: _OrdersBackgroundPainter(
+          color: AppColors.deepTeal.withAlpha(24),
+        ),
+      ),
+    );
+  }
+}
+
+class _OrdersBackgroundPainter extends CustomPainter {
+  _OrdersBackgroundPainter({required this.color});
+
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 0.7
+      ..style = PaintingStyle.stroke;
+
+    for (double y = 36; y <= size.height; y += 94) {
+      final path = Path()..moveTo(0, y);
+      for (double x = 0; x <= size.width; x += 20) {
+        final wave = math.sin((x / 78) + (y / 108)) * 4.8;
+        path.lineTo(x, y + wave);
+      }
+      canvas.drawPath(path, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _OrdersBackgroundPainter oldDelegate) {
+    return oldDelegate.color != color;
+  }
+}
+
+extension _PosStaffOrdersScreenExt on State<PosStaffOrdersScreen> {
+  /// Show dialog to assign a livreur to a delivery order
+  void _showAssignLivreurDialog(PosController pos, PosOrder order) {
+    final restaurantId = pos.restaurantId ?? 1;
+    final deliveries = await DatabaseService.getDeliveriesByRestaurant(restaurantId);
+    
+    itemCount: deliveries.length,
+      Get.snackbar(
+        'Aucun livreur',
+        'Ajoutez d'abord des livreurs dans la section Livreurs',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return;
+    }
+    int? selectedLivreurId;
+    String? selectedLivreurName;
+    String? selectedLivreurPhone;
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Assigner un livreur'),
+          content: SizedBox(
+            width: 400,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Commande #${order.id}'),
+                if (order.fulfillmentType == 'delivery' &&
+                    order.deliveryAddress != null &&
+                    order.deliveryAddress!.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.grisPale,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.location_on_outlined,
+                          size: 18,
+                          color: AppColors.burntOrange,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            order.deliveryAddress!,
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 16),
+                const Text('Sélectionnez un livreur :'),
+                const SizedBox(height: 8),
+                SizedBox(
+                  height: 300,
+                  child: ListView.builder(
+                    // deliveries already loaded above
+                    itemCount: deliveries.length,
+                      return const Center(
+                        child: Text('Aucun livreur disponible'),
+                      );
+                    }
+                    return ListView.builder(
+                      itemCount: deliveries.length,
+                      itemBuilder: (context, index) {
+                        final livreur = deliveries[index];
+                        final isSelected = selectedLivreurId == livreur.id;
+                        return ListTile(
+                          dense: true,
+                          selected: isSelected,
+                          leading: CircleAvatar(
+                            backgroundColor: livreur.isActive
+                                ? AppColors.burntOrange
+                                : AppColors.grisLeger,
+                            child: Icon(
+                              Icons.person,
+                              color: livreur.isActive
+                                  ? Colors.white
+                                  : AppColors.grisModerne,
+                            ),
+                          ),
+                          title: Text(
+                            livreur.name,
+                            style: TextStyle(
+                              color: livreur.isActive
+                                  ? null
+                                  : AppColors.grisModerne,
+                              decoration: livreur.isActive
+                                  ? null
+                                  : TextDecoration.lineThrough,
+                            ),
+                          ),
+                          subtitle: Text(livreur.phone),
+                          onTap: () {
+                            setDialogState(() {
+                              selectedLivreurId = livreur.id;
+                              selectedLivreurName = livreur.name;
+                              selectedLivreurPhone = livreur.phone;
+                            });
+                          },
+                        );
+                      },
+                    );
+                  }),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Annuler'),
+            ),
+            ElevatedButton(
+              onPressed: selectedLivreurId == null
+                  ? null
+                  : () async {
+                      final result = await pos.assignLivreurToOrder(
+                        order: order,
+                        livreurId: selectedLivreurId!,
+                        livreurName: selectedLivreurName,
+                        livreurPhone: selectedLivreurPhone,
+                      );
+                      if (dialogContext.mounted) {
+                        Navigator.pop(dialogContext);
+                      }
+                      if (mounted) {
+                        if (result != null) {
+                          Get.snackbar(
+                            'Livreur assigné',
+                            '$selectedLivreurName a été assigné à la commande #${order.id}',
+                            snackPosition: SnackPosition.BOTTOM,
+                          );
+                        } else {
+                          Get.snackbar(
+                            'Erreur',
+                            pos.error ?? 'Échec de l\'assignation',
+                            snackPosition: SnackPosition.BOTTOM,
+                          );
+                        }
+                      }
+                    },
+              child: const Text('Assigner'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

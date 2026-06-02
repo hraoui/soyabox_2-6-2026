@@ -1,0 +1,566 @@
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import '../controllers/auth_controller.dart';
+import '../models/order_delivery.dart';
+import '../models/delivery.dart';
+import '../models/pos_order.dart';
+import '../services/app_settings_service.dart';
+import '../services/database_service.dart';
+import '../theme/app_theme.dart';
+import '../theme/sushi_design.dart';
+import '../widgets/admin_shell.dart';
+
+class AdminDeliveryAccountingScreen extends StatefulWidget {
+  const AdminDeliveryAccountingScreen({super.key});
+
+  @override
+  State<AdminDeliveryAccountingScreen> createState() =>
+      _AdminDeliveryAccountingScreenState();
+}
+
+class _AdminDeliveryAccountingScreenState
+    extends State<AdminDeliveryAccountingScreen> {
+  DateTime _selectedDate = DateTime.now();
+  bool _loading = false;
+  List<_DeliverySummary> _summaries = [];
+  double _totalDeliveries = 0;
+  double _totalRevenue = 0;
+  int? _restaurantId;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    setState(() {
+      _loading = true;
+    });
+
+    try {
+      final auth = Get.find<AuthController>();
+      _restaurantId = auth.currentUser?.restaurantId;
+
+      final start = DateTime(
+        _selectedDate.year,
+        _selectedDate.month,
+        _selectedDate.day,
+      );
+      final end = start.add(const Duration(days: 1));
+
+      // Charger les livraisons du restaurant
+      final deliveries = await DatabaseService.getAllOrderDeliveries();
+
+      // Filtrer par date et restaurant
+      final filteredDeliveries = deliveries.where((d) {
+        if (d.assignedAt == null) return false;
+        if (d.assignedAt!.isBefore(start) || d.assignedAt!.isAfter(end)) {
+          return false;
+        }
+        return true;
+      }).toList();
+
+      // Charger les livreurs
+      final deliveryPersons = await DatabaseService.getAllDeliveries();
+      final deliveryById = <int, Delivery>{
+        for (final d in deliveryPersons) d.id: d,
+      };
+
+      // Charger les commandes associées
+      final orderIds = filteredDeliveries.map((d) => d.orderId).toSet();
+      final orders = await DatabaseService.getPosOrders();
+      final ordersById = <int, PosOrder>{
+        for (final o in orders.where((o) => orderIds.contains(o.id))) o.id: o,
+      };
+
+      // Grouper par livreur
+      final Map<int, _DeliverySummary> byLivreur = {};
+      double totalDeliveries = 0;
+      double totalRevenue = 0;
+
+      for (final delivery in filteredDeliveries) {
+        final livreurId = delivery.livreurId;
+        if (livreurId == null) continue;
+
+        final order = ordersById[delivery.orderId];
+        final revenue = order?.totalPrice ?? 0.0;
+
+        if (!byLivreur.containsKey(livreurId)) {
+          final livreur = deliveryById[livreurId];
+          byLivreur[livreurId] = _DeliverySummary(
+            livreurId: livreurId,
+            livreurName: livreur?.name ?? 'Inconnu',
+            livreurPhone: livreur?.phone ?? '',
+            deliveriesCount: 0,
+            revenue: 0.0,
+            completedCount: 0,
+            pendingCount: 0,
+          );
+        }
+
+        byLivreur[livreurId]!.deliveriesCount++;
+        byLivreur[livreurId]!.revenue += revenue;
+
+        if (delivery.status == 'delivered') {
+          byLivreur[livreurId]!.completedCount++;
+        } else {
+          byLivreur[livreurId]!.pendingCount++;
+        }
+
+        totalDeliveries++;
+        totalRevenue += revenue;
+      }
+
+      setState(() {
+        _summaries = byLivreur.values.toList();
+        _totalDeliveries = totalDeliveries;
+        _totalRevenue = totalRevenue;
+        _loading = false;
+      });
+    } catch (e) {
+      print('💥 Error loading delivery accounting: $e');
+      setState(() {
+        _loading = false;
+      });
+    }
+  }
+
+  Future<void> _selectDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2100),
+    );
+    if (picked != null) {
+      setState(() {
+        _selectedDate = picked;
+      });
+      _loadData();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AdminShell(
+      title: 'Comptabilité Livreurs',
+      activeRoute: '/admin-accounting',
+      child: Column(
+        children: [
+          // Header avec date et total
+          Container(
+            padding: const EdgeInsets.all(SushiSpace.lg),
+            decoration: BoxDecoration(
+              color: AppColors.blancPur,
+              border: Border(
+                bottom: BorderSide(color: AppColors.grisLeger, width: 1),
+              ),
+            ),
+            child: Row(
+              children: [
+                OutlinedButton.icon(
+                  onPressed: _selectDate,
+                  icon: const Icon(Icons.calendar_today, size: 16),
+                  label: Text(
+                    '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
+                    style: AppTypography.body,
+                  ),
+                ),
+                const SizedBox(width: SushiSpace.lg),
+                Expanded(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      _summaryCard(
+                        label: 'Livraisons',
+                        value: _totalDeliveries.toString(),
+                        icon: Icons.local_shipping_outlined,
+                      ),
+                      const SizedBox(width: SushiSpace.md),
+                      _summaryCard(
+                        label: 'Chiffre d\'affaires',
+                        value: '${_totalRevenue.toStringAsFixed(2)} €',
+                        icon: Icons.euro_symbol,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Liste des livreurs
+          Expanded(
+            child: _loading
+                ? const Center(child: CircularProgressIndicator())
+                : _summaries.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.local_shipping_outlined,
+                          size: 64,
+                          color: AppColors.grisModerne,
+                        ),
+                        const SizedBox(height: SushiSpace.md),
+                        Text(
+                          'Aucune livraison ce jour',
+                          style: AppTypography.h3,
+                        ),
+                      ],
+                    ),
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.all(SushiSpace.lg),
+                    itemCount: _summaries.length,
+                    itemBuilder: (context, index) {
+                      final summary = _summaries[index];
+                      return _deliveryCard(summary);
+                    },
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _summaryCard({
+    required String label,
+    required String value,
+    required IconData icon,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: SushiSpace.lg,
+        vertical: SushiSpace.md,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.grisPale,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: AppColors.deepTeal, size: 20),
+          const SizedBox(width: SushiSpace.sm),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                label,
+                style: AppTypography.bodyLarge.copyWith(
+                  color: AppColors.grisModerne,
+                ),
+              ),
+              Text(value, style: AppTypography.h2),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _deliveryCard(_DeliverySummary summary) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: SushiSpace.md),
+      decoration: BoxDecoration(
+        color: AppColors.blancPur,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.grisLeger),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _showDeliveryDetails(summary),
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.all(SushiSpace.md),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    CircleAvatar(
+                      backgroundColor: AppColors.burntOrange,
+                      child: Text(
+                        summary.livreurName.isNotEmpty
+                            ? summary.livreurName[0].toUpperCase()
+                            : '?',
+                        style: AppTypography.h2.copyWith(color: Colors.white),
+                      ),
+                    ),
+                    const SizedBox(width: SushiSpace.md),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(summary.livreurName, style: AppTypography.h3),
+                          if (summary.livreurPhone.isNotEmpty) ...[
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.phone_outlined,
+                                  size: 14,
+                                  color: AppColors.grisModerne,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  summary.livreurPhone,
+                                  style: AppTypography.bodySm.copyWith(
+                                    color: AppColors.grisModerne,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          '${summary.revenue.toStringAsFixed(2)} €',
+                          style: AppTypography.h2.copyWith(
+                            color: AppColors.deepTeal,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.burntOrange.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            '${summary.deliveriesCount} livraison${summary.deliveriesCount > 1 ? 's' : ''}',
+                            style: AppTypography.labelSm.copyWith(
+                              color: AppColors.burntOrange,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: SushiSpace.md),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _statItem(
+                        label: 'Complétées',
+                        value: summary.completedCount.toString(),
+                        color: Colors.green,
+                      ),
+                    ),
+                    Expanded(
+                      child: _statItem(
+                        label: 'En cours',
+                        value: summary.pendingCount.toString(),
+                        color: AppColors.burntOrange,
+                      ),
+                    ),
+                    Expanded(
+                      child: _statItem(
+                        label: 'Panier moyen',
+                        value: summary.deliveriesCount > 0
+                            ? '${(summary.revenue / summary.deliveriesCount).toStringAsFixed(2)} €'
+                            : '0 €',
+                        color: AppColors.deepTeal,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _statItem({
+    required String label,
+    required String value,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(SushiSpace.sm),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        children: [
+          Text(value, style: AppTypography.h3.copyWith(color: color)),
+          const SizedBox(height: 2),
+          Text(label, style: AppTypography.labelSm.copyWith(color: color)),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showDeliveryDetails(_DeliverySummary summary) async {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.6,
+        minChildSize: 0.4,
+        maxChildSize: 0.9,
+        expand: false,
+        builder: (context, scrollController) => Container(
+          padding: const EdgeInsets.all(SushiSpace.lg),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.grisLeger,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: SushiSpace.lg),
+              Text(summary.livreurName, style: AppTypography.h1),
+              if (summary.livreurPhone.isNotEmpty) ...[
+                const SizedBox(height: SushiSpace.sm),
+                Row(
+                  children: [
+                    Icon(Icons.phone_outlined, color: AppColors.grisModerne),
+                    const SizedBox(width: SushiSpace.sm),
+                    Text(summary.livreurPhone, style: AppTypography.body),
+                  ],
+                ),
+              ],
+              const SizedBox(height: SushiSpace.lg),
+              Divider(color: AppColors.grisLeger),
+              const SizedBox(height: SushiSpace.md),
+              Expanded(
+                child: ListView(
+                  controller: scrollController,
+                  children: [
+                    _detailStatCard(
+                      label: 'Total livraisons',
+                      value: summary.deliveriesCount.toString(),
+                      icon: Icons.local_shipping,
+                    ),
+                    _detailStatCard(
+                      label: 'Chiffre d\'affaires',
+                      value: '${summary.revenue.toStringAsFixed(2)} €',
+                      icon: Icons.euro_symbol,
+                      valueColor: AppColors.deepTeal,
+                    ),
+                    _detailStatCard(
+                      label: 'Livraisons complétées',
+                      value: summary.completedCount.toString(),
+                      icon: Icons.check_circle,
+                      valueColor: Colors.green,
+                    ),
+                    _detailStatCard(
+                      label: 'Livraisons en cours',
+                      value: summary.pendingCount.toString(),
+                      icon: Icons.pending,
+                      valueColor: AppColors.burntOrange,
+                    ),
+                    _detailStatCard(
+                      label: 'Panier moyen',
+                      value: summary.deliveriesCount > 0
+                          ? '${(summary.revenue / summary.deliveriesCount).toStringAsFixed(2)} €'
+                          : '0 €',
+                      icon: Icons.shopping_cart,
+                      valueColor: AppColors.deepTeal,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _detailStatCard({
+    required String label,
+    required String value,
+    required IconData icon,
+    Color? valueColor,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: SushiSpace.md),
+      padding: const EdgeInsets.all(SushiSpace.md),
+      decoration: BoxDecoration(
+        color: AppColors.grisPale,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(SushiSpace.md),
+            decoration: BoxDecoration(
+              color: (valueColor ?? AppColors.charbon).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: valueColor ?? AppColors.charbon, size: 24),
+          ),
+          const SizedBox(width: SushiSpace.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: AppTypography.body.copyWith(
+                    color: AppColors.grisModerne,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  value,
+                  style: AppTypography.h2.copyWith(
+                    color: valueColor ?? AppColors.charbon,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DeliverySummary {
+  _DeliverySummary({
+    required this.livreurId,
+    required this.livreurName,
+    required this.livreurPhone,
+    required this.deliveriesCount,
+    required this.revenue,
+    required this.completedCount,
+    required this.pendingCount,
+  });
+
+  final int livreurId;
+  final String livreurName;
+  final String livreurPhone;
+  int deliveriesCount;
+  double revenue;
+  int completedCount;
+  int pendingCount;
+}

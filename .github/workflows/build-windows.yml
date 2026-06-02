@@ -1,0 +1,173 @@
+name: Build Windows Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.38.9"
+
+      - name: Extract version from pubspec and validate tag
+        id: version
+        shell: pwsh
+        run: |
+          $pubspecPath = "${{ github.workspace }}\pubspec.yaml"
+          $versionLine = Get-Content $pubspecPath |
+            Where-Object { $_ -match '^version:\s*' } |
+            Select-Object -First 1
+
+          if (-not $versionLine) {
+            throw "Impossible de trouver la ligne version: dans pubspec.yaml"
+          }
+
+          $pubspecVersion = ($versionLine -replace '^version:\s*', '').Trim()
+          $fullVersion = $pubspecVersion
+          $buildName = $pubspecVersion.Split('+')[0]
+          $buildNumber = if ($pubspecVersion.Contains('+')) {
+            $pubspecVersion.Split('+')[1]
+          } else {
+            '1'
+          }
+          $expectedTag = "v$fullVersion"
+          $currentTag = "${{ github.ref_name }}"
+
+          if ($currentTag -ne $expectedTag) {
+            throw "Le tag GitHub ($currentTag) ne correspond pas a la version pubspec ($expectedTag)."
+          }
+
+          "full_version=$fullVersion" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "pubspec_version=$pubspecVersion" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "build_name=$buildName" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "build_number=$buildNumber" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "asset_name=soyabox_setup_$fullVersion.exe" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "checksum_name=soyabox_setup_$fullVersion.sha256" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+      - name: Enable Windows desktop
+        run: flutter config --enable-windows-desktop
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build Windows release
+        run: flutter build windows --release --build-name=${{ steps.version.outputs.build_name }} --build-number=${{ steps.version.outputs.build_number }}
+
+      - name: Show build structure
+        shell: pwsh
+        run: Get-ChildItem -Recurse build/windows
+
+      - name: Create ZIP
+        shell: pwsh
+        run: |
+          $source = "${{ github.workspace }}\build\windows\x64\runner\Release"
+          $zip = "${{ github.workspace }}\windows-build.zip"
+          if (Test-Path $source) {
+            Compress-Archive -Path "$source\*" -DestinationPath $zip -Force
+            Write-Host "ZIP SUCCESS"
+          } else {
+            Write-Host "Build folder not found"
+            exit 1
+          }
+
+      - name: Upload Windows build ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-build
+          path: windows-build.zip
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: choco install innosetup -y --ignore-checksums || Write-Host "Inno Setup already installed"
+
+      - name: Create Inno Setup script
+        shell: pwsh
+        run: |
+          $repo = "${{ github.workspace }}"
+          New-Item -ItemType Directory -Force -Path "$repo\installer" | Out-Null
+
+          $version = "${{ steps.version.outputs.full_version }}"
+          $assetName = "${{ steps.version.outputs.asset_name }}"
+          $outputBase = [System.IO.Path]::GetFileNameWithoutExtension($assetName)
+          $setupFile = "$repo\installer\setup.iss"
+
+          '[Setup]' | Out-File $setupFile -Encoding UTF8
+          'AppId={{3F2504E0-4F89-11D3-9A0C-0305E82C3301}' | Out-File $setupFile -Append
+          'AppName=SOYABOX POS' | Out-File $setupFile -Append
+          "AppVersion=$version" | Out-File $setupFile -Append
+          'DefaultDirName={pf}\SOYABOX_POS' | Out-File $setupFile -Append
+          'DefaultGroupName=SOYABOX POS' | Out-File $setupFile -Append
+          "OutputDir=$repo\output" | Out-File $setupFile -Append
+          "OutputBaseFilename=$outputBase" | Out-File $setupFile -Append
+          'Compression=lzma' | Out-File $setupFile -Append
+          'SolidCompression=yes' | Out-File $setupFile -Append
+          'WizardStyle=modern' | Out-File $setupFile -Append
+          '' | Out-File $setupFile -Append
+          '[Files]' | Out-File $setupFile -Append
+          "Source: `"$repo\build\windows\x64\runner\Release\*`"; DestDir: `{app}`; Flags: recursesubdirs" | Out-File $setupFile -Append
+          '' | Out-File $setupFile -Append
+          '[Icons]' | Out-File $setupFile -Append
+          'Name: "{group}\SOYABOX POS"; Filename: "{app}\caisse_1.exe"' | Out-File $setupFile -Append
+          'Name: "{commondesktop}\SOYABOX POS"; Filename: "{app}\caisse_1.exe"' | Out-File $setupFile -Append
+
+      - name: Build installer
+        shell: pwsh
+        run: |
+          $repo = "${{ github.workspace }}"
+          Start-Process -FilePath 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe' -ArgumentList "$repo\installer\setup.iss" -Wait
+
+      - name: Check installer
+        shell: pwsh
+        run: |
+          $installer = "${{ github.workspace }}\output\${{ steps.version.outputs.asset_name }}"
+          if (Test-Path $installer) {
+            Write-Host "Installer exists!"
+            Get-ChildItem "${{ github.workspace }}\output"
+          } else {
+            Write-Host "Installer not found!"
+            exit 1
+          }
+
+      - name: Generate SHA256 checksum
+        shell: pwsh
+        run: |
+          $outputDir = "${{ github.workspace }}\output"
+          $installerName = "${{ steps.version.outputs.asset_name }}"
+          $checksumName = "${{ steps.version.outputs.checksum_name }}"
+          $installerPath = Join-Path $outputDir $installerName
+          $checksumPath = Join-Path $outputDir $checksumName
+          $hash = (Get-FileHash -Path $installerPath -Algorithm SHA256).Hash.ToLower()
+          "$hash *$installerName" | Out-File $checksumPath -Encoding ascii
+          Get-Content $checksumPath
+
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          path: |
+            output/${{ steps.version.outputs.asset_name }}
+            output/${{ steps.version.outputs.checksum_name }}
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: SOYABOX POS v${{ steps.version.outputs.full_version }}
+          tag_name: ${{ github.ref_name }}
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+          files: |
+            output/${{ steps.version.outputs.asset_name }}
+            output/${{ steps.version.outputs.checksum_name }}

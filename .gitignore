@@ -1,0 +1,38 @@
+# Flutter / Dart
+.dart_tool/
+.packages
+.buildlog/
+.flutter-plugins
+.flutter-plugins-dependencies
+.flutter-plugins-cache
+.pub-cache/
+.pub/
+.idea/
+*.iml
+*.lock
+*.log
+
+# Build
+build/
+ios/Pods/
+ios/Flutter/Flutter.podspec
+ios/Flutter/Generated.xcconfig
+ios/Flutter/ephemeral/
+macos/Flutter/ephemeral/
+*.app.dSYM
+*.dill
+
+# Android
+android/.gradle/
+android/app/build/
+android/.idea/
+android/local.properties
+
+# VSCode
+.vscode/
+
+# Misc
+.DS_Store
+
+# Embedded repos
+empty-repo/

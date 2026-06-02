@@ -1,0 +1,1524 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Documentation - Application soya_POS</title>
+    <style>
+        :root {
+            --primary-color: #E8003D;
+            --primary-dim: rgba(232, 0, 61, 0.15);
+            --secondary-color: #FF6B35;
+            --accent-color: #FF3366;
+            --bg-color: #0A0A0A;
+            --bg-elevated: #1C1C1E;
+            --card-bg: rgba(28, 28, 30, 0.6);
+            --text-color: #FAFAFA;
+            --text-muted: #8E8E93;
+            --border-color: rgba(255, 255, 255, 0.08);
+            --success-color: #00B67A;
+            --warning-color: #FFD60A;
+            --danger-color: #FF3B30;
+            --glass-blur: 12px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 16px;
+        }
+
+        header {
+            background: linear-gradient(135deg, rgba(232, 0, 61, 0.2) 0%, rgba(28, 28, 30, 0.8) 100%);
+            backdrop-filter: blur(var(--glass-blur));
+            -webkit-backdrop-filter: blur(var(--glass-blur));
+            color: var(--text-color);
+            padding: 24px 16px;
+            text-align: center;
+            margin-bottom: 24px;
+            border: 1px solid var(--border-color);
+            border-top: none;
+            border-left: none;
+            border-right: none;
+        }
+
+        header h1 {
+            font-size: 1.75em;
+            margin-bottom: 8px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+
+        header p {
+            font-size: 0.95em;
+            color: var(--text-muted);
+        }
+
+        .nav-tabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 20px;
+            justify-content: center;
+        }
+
+        .nav-tab {
+            padding: 10px 18px;
+            background: var(--card-bg);
+            backdrop-filter: blur(var(--glass-blur));
+            -webkit-backdrop-filter: blur(var(--glass-blur));
+            border: 1px solid var(--border-color);
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85em;
+            transition: all 0.2s ease;
+            color: var(--text-color);
+        }
+
+        .nav-tab:hover {
+            background: var(--primary-dim);
+            border-color: var(--primary-color);
+        }
+
+        .nav-tab.active {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        .section {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: blur(var(--glass-blur));
+            -webkit-backdrop-filter: blur(var(--glass-blur));
+            padding: 20px;
+            margin-bottom: 16px;
+            border: 1px solid var(--border-color);
+        }
+
+        .card h2 {
+            color: var(--text-color);
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--primary-color);
+            font-size: 1.4em;
+            font-weight: 800;
+            letter-spacing: -0.3px;
+        }
+
+        .card h3 {
+            color: var(--accent-color);
+            margin: 20px 0 12px 0;
+            font-size: 1.1em;
+            font-weight: 700;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .feature-item {
+            background: var(--bg-elevated);
+            padding: 16px;
+            border-left: 3px solid var(--primary-color);
+            transition: all 0.2s ease;
+            border: 1px solid var(--border-color);
+        }
+
+        .feature-item:hover {
+            background: var(--primary-dim);
+        }
+
+        .feature-item h4 {
+            color: var(--text-color);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.95em;
+            font-weight: 700;
+        }
+
+        .feature-item .icon {
+            font-size: 1.2em;
+        }
+
+        .feature-item p {
+            color: var(--text-muted);
+            font-size: 0.85em;
+            line-height: 1.5;
+        }
+
+        .controller-card {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-color);
+            padding: 20px;
+            margin-bottom: 16px;
+            transition: all 0.2s ease;
+        }
+
+        .controller-card:hover {
+            background: var(--primary-dim);
+        }
+
+        .controller-card h3 {
+            color: var(--text-color);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 1.1em;
+        }
+
+        .controller-card .controller-name {
+            background: var(--primary-color);
+            color: white;
+            padding: 4px 12px;
+            font-size: 0.8em;
+            font-weight: 700;
+        }
+
+        .method-list {
+            list-style: none;
+            margin-top: 12px;
+        }
+
+        .method-list li {
+            padding: 10px 12px;
+            background: var(--bg-elevated);
+            margin-bottom: 8px;
+            border-left: 2px solid var(--accent-color);
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+            border: 1px solid var(--border-color);
+        }
+
+        .method-list li strong {
+            color: var(--primary-color);
+        }
+
+        .method-list li .description {
+            display: block;
+            margin-top: 4px;
+            color: var(--text-muted);
+            font-family: 'Segoe UI', sans-serif;
+            font-size: 0.8em;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            font-size: 0.7em;
+            font-weight: 700;
+            margin-left: 8px;
+        }
+
+        .badge.public {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .badge.private {
+            background: var(--text-muted);
+            color: white;
+        }
+
+        .badge.async {
+            background: var(--warning-color);
+            color: var(--bg-color);
+        }
+
+        .structure-tree {
+            background: var(--bg-elevated);
+            color: #d4d4d4;
+            padding: 16px;
+            font-family: 'Courier New', monospace;
+            overflow-x: auto;
+            margin: 16px 0;
+            border: 1px solid var(--border-color);
+            font-size: 0.85em;
+        }
+
+        .structure-tree .folder {
+            color: #dcb67a;
+        }
+
+        .structure-tree .file {
+            color: #569cd6;
+        }
+
+        .structure-tree .dart {
+            color: #4ec9b0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-color);
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.9em;
+        }
+
+        th {
+            background: var(--primary-dim);
+            color: var(--text-color);
+            font-weight: 700;
+            border: 1px solid var(--border-color);
+        }
+
+        td {
+            color: var(--text-muted);
+        }
+
+        tr:hover {
+            background: var(--primary-dim);
+        }
+
+        .tech-stack {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 16px;
+        }
+
+        .tech-item {
+            background: var(--primary-color);
+            color: white;
+            padding: 8px 16px;
+            font-weight: 700;
+            font-size: 0.85em;
+            border: 1px solid var(--border-color);
+        }
+
+        .user-roles {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .role-card {
+            background: var(--bg-elevated);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border: 1px solid var(--border-color);
+        }
+
+        .role-card.admin {
+            background: linear-gradient(135deg, rgba(240, 147, 251, 0.2) 0%, rgba(245, 87, 108, 0.2) 100%);
+            backdrop-filter: blur(var(--glass-blur));
+            -webkit-backdrop-filter: blur(var(--glass-blur));
+        }
+
+        .role-card.staff {
+            background: linear-gradient(135deg, rgba(79, 172, 254, 0.2) 0%, rgba(0, 242, 254, 0.2) 100%);
+            backdrop-filter: blur(var(--glass-blur));
+            -webkit-backdrop-filter: blur(var(--glass-blur));
+        }
+
+        .role-card.delivery {
+            background: linear-gradient(135deg, rgba(67, 233, 123, 0.2) 0%, rgba(56, 249, 215, 0.2) 100%);
+            backdrop-filter: blur(var(--glass-blur));
+            -webkit-backdrop-filter: blur(var(--glass-blur));
+        }
+
+        .role-card h4 {
+            font-size: 1.1em;
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+
+        .role-card ul {
+            list-style: none;
+            text-align: left;
+            margin-top: 12px;
+        }
+
+        .role-card ul li {
+            padding: 4px 0;
+            opacity: 0.9;
+            font-size: 0.85em;
+        }
+
+        .role-card ul li::before {
+            content: "✓ ";
+            margin-right: 6px;
+            color: var(--success-color);
+        }
+
+        .toc {
+            background: var(--card-bg);
+            backdrop-filter: blur(var(--glass-blur));
+            -webkit-backdrop-filter: blur(var(--glass-blur));
+            padding: 20px;
+            margin-bottom: 16px;
+            border: 1px solid var(--border-color);
+        }
+
+        .toc h3 {
+            color: var(--text-color);
+            margin-bottom: 12px;
+            font-size: 1.1em;
+        }
+
+        .toc ul {
+            list-style: none;
+        }
+
+        .toc ul li {
+            padding: 6px 0;
+        }
+
+        .toc ul li a {
+            color: var(--accent-color);
+            text-decoration: none;
+            transition: color 0.2s ease;
+            font-size: 0.9em;
+        }
+
+        .toc ul li a:hover {
+            color: var(--primary-color);
+        }
+
+        .pos-flow {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: center;
+            margin: 20px 0;
+        }
+
+        .flow-step {
+            background: var(--bg-elevated);
+            border: 2px solid var(--primary-color);
+            width: 100px;
+            height: 100px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 10px;
+            position: relative;
+        }
+
+        .flow-step::after {
+            content: "→";
+            position: absolute;
+            right: -18px;
+            font-size: 1.5em;
+            color: var(--primary-color);
+        }
+
+        .flow-step:last-child::after {
+            display: none;
+        }
+
+        .flow-step .step-number {
+            background: var(--primary-color);
+            color: white;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 6px;
+            font-weight: bold;
+            font-size: 0.8em;
+        }
+
+        .flow-step span {
+            font-size: 0.75em;
+            color: var(--text-muted);
+        }
+
+        footer {
+            text-align: center;
+            padding: 20px;
+            color: var(--text-muted);
+            margin-top: 40px;
+            font-size: 0.85em;
+            border-top: 1px solid var(--border-color);
+        }
+
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 1.4em;
+            }
+
+            .nav-tabs {
+                flex-direction: column;
+            }
+
+            .nav-tab {
+                width: 100%;
+                text-align: center;
+            }
+
+            .flow-step::after {
+                display: none;
+            }
+
+            .container {
+                padding: 12px;
+            }
+
+            .card {
+                padding: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>🏪 Système soyabox_POS - Point de Vente</h1>
+        <p>Documentation complète de l'application de gestion de caisse et commandes</p>
+    </header>
+
+    <div class="container">
+        <!-- Navigation Tabs -->
+        <div class="nav-tabs">
+            <div class="nav-tab active" onclick="showSection('overview')">Vue d'ensemble</div>
+            <div class="nav-tab" onclick="showSection('features')">Fonctionnalités</div>
+            <div class="nav-tab" onclick="showSection('structure')">Structure</div>
+            <div class="nav-tab" onclick="showSection('controllers')">Controllers</div>
+            <div class="nav-tab" onclick="showSection('users')">Utilisateurs</div>
+            <div class="nav-tab" onclick="showSection('tech')">Technologies</div>
+        </div>
+
+        <!-- Overview Section -->
+        <div id="overview" class="section active">
+            <div class="card">
+                <h2>📋 Vue d'ensemble</h2>
+                <p>
+                    L'application <strong>POS (Point de Vente)</strong> est un système complet de gestion de restaurant 
+                    développé en <strong>Flutter</strong>. Elle permet la gestion des commandes, des tables, des utilisateurs, 
+                    des produits et des livraisons avec une interface moderne en glassmorphism.
+                </p>
+
+                <h3>🎯 Objectifs principaux</h3>
+                <div class="feature-grid">
+                    <div class="feature-item">
+                        <h4><span class="icon">💳</span> Encaissement rapide</h4>
+                        <p>Interface POS sécurisée pour traiter les commandes clients rapidement et efficacement.</p>
+                    </div>
+                    <div class="feature-item">
+                        <h4><span class="icon">👥</span> Gestion multi-utilisateurs</h4>
+                        <p>Système de rôles (admin, staff, livreur) avec authentification par mot de passe et PIN.</p>
+                    </div>
+                    <div class="feature-item">
+                        <h4><span class="icon">🍽️</span> Gestion des tables</h4>
+                        <p>Plan de salle interactif pour suivre l'occupation des tables en temps réel.</p>
+                    </div>
+                    <div class="feature-item">
+                        <h4><span class="icon">📦</span> Catalogue produits</h4>
+                        <p>Gestion complète des produits et catégories avec synchronisation backend.</p>
+                    </div>
+                    <div class="feature-item">
+                        <h4><span class="icon">🚚</span> Livraisons</h4>
+                        <p>Suivi des livraisons et gestion des livreurs avec codes PIN dédiés.</p>
+                    </div>
+                    <div class="feature-item">
+                        <h4><span class="icon">🔄</span> Synchronisation</h4>
+                        <p>Sync automatique avec le backend API toutes les 15 secondes pour les commandes.</p>
+                    </div>
+                </div>
+
+                <h3>📊 Flux de travail POS</h3>
+                <div class="pos-flow">
+                    <div class="flow-step">
+                        <div class="step-number">1</div>
+                        <span>Déverrouillage PIN</span>
+                    </div>
+                    <div class="flow-step">
+                        <div class="step-number">2</div>
+                        <span>Choix Table</span>
+                    </div>
+                    <div class="flow-step">
+                        <div class="step-number">3</div>
+                        <span>Ajout Produits</span>
+                    </div>
+                    <div class="flow-step">
+                        <div class="step-number">4</div>
+                        <span>Validation</span>
+                    </div>
+                    <div class="flow-step">
+                        <div class="step-number">5</div>
+                        <span>Paiement</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Features Section -->
+        <div id="features" class="section">
+            <div class="card">
+                <h2>✨ Fonctionnalités détaillées</h2>
+                
+                <h3>🔐 Authentification & Sécurité</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Fonctionnalité</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Login email/téléphone</td>
+                            <td>Connexion avec identifiant (email ou téléphone) et mot de passe</td>
+                        </tr>
+                        <tr>
+                            <td>Déverrouillage PIN</td>
+                            <td>Code PIN 4-6 chiffres pour accès rapide au POS</td>
+                        </tr>
+                        <tr>
+                            <td>Session persistante</td>
+                            <td>Token JWT stocké localement pour maintenir la session</td>
+                        </tr>
+                        <tr>
+                            <td>Rôles utilisateurs</td>
+                            <td>Superadmin, Admin, Staff, Livreur avec permissions différenciées</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>🛒 Gestion des commandes</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Type</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Sur place</td>
+                            <td>Commandes pour consommation sur place avec numéro de table</td>
+                        </tr>
+                        <tr>
+                            <td>À emporter</td>
+                            <td>Commandes pickup avec nom et téléphone client</td>
+                        </tr>
+                        <tr>
+                            <td>Livraison</td>
+                            <td>Commandes avec adresse de livraison complète</td>
+                        </tr>
+                        <tr>
+                            <td>Multi-canaux</td>
+                            <td>Commandes POS, API, Web, Mobile, Kiosk</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>📋 Gestion des tables</h3>
+                <ul class="method-list">
+                    <li>
+                        <strong>Plan interactif</strong>
+                        <span class="description">Grille de tables avec positionnement personnalisé (grid-column/row)</span>
+                    </li>
+                    <li>
+                        <strong>Statuts en temps réel</strong>
+                        <span class="description">Libre, Occupée, Réservée, En attente de paiement</span>
+                    </li>
+                    <li>
+                        <strong>CRUD complet</strong>
+                        <span class="description">Création, modification, suppression des tables</span>
+                    </li>
+                </ul>
+
+                <h3>📦 Catalogue produits</h3>
+                <ul class="method-list">
+                    <li>
+                        <strong>Catégories</strong>
+                        <span class="description">Organisation des produits par catégories (entrées, plats, desserts, boissons...)</span>
+                    </li>
+                    <li>
+                        <strong>Disponibilité</strong>
+                        <span class="description">Marquer les produits comme disponibles ou indisponibles</span>
+                    </li>
+                    <li>
+                        <strong>Offres spéciales</strong>
+                        <span class="description">Produits en promotion mis en avant</span>
+                    </li>
+                    <li>
+                        <strong>Recherche</strong>
+                        <span class="description">Filtrage rapide par nom de produit</span>
+                    </li>
+                </ul>
+
+                <h3>🚚 Gestion des livraisons</h3>
+                <ul class="method-list">
+                    <li>
+                        <strong>Comptes livreurs</strong>
+                        <span class="description">Création de comptes dédiés avec PIN unique</span>
+                    </li>
+                    <li>
+                        <strong>Suivi des commandes</strong>
+                        <span class="description">Visualisation des commandes en livraison</span>
+                    </li>
+                    <li>
+                        <strong>Activation/Désactivation</strong>
+                        <span class="description">Contrôle de l'état actif des livreurs</span>
+                    </li>
+                </ul>
+
+                <h3>🔄 Synchronisation</h3>
+                <ul class="method-list">
+                    <li>
+                        <strong>Auto-sync (15s)</strong>
+                        <span class="description">Synchronisation automatique périodique avec le backend</span>
+                    </li>
+                    <li>
+                        <strong>Sync manuelle</strong>
+                        <span class="description">Bouton de synchronisation pour les admins</span>
+                    </li>
+                    <li>
+                        <strong>File d'attente</strong>
+                        <span class="description">Queue locale pour les opérations hors ligne</span>
+                    </li>
+                    <li>
+                        <strong>Notifications</strong>
+                        <span class="description">Alerte sonore pour les nouvelles commandes API</span>
+                    </li>
+                </ul>
+
+                <h3>⚙️ Paramètres</h3>
+                <ul class="method-list">
+                    <li>
+                        <strong>Devise</strong>
+                        <span class="description">Configuration du code et symbole de devise (EUR, €, USD, $...)</span>
+                    </li>
+                    <li>
+                        <strong>Logos</strong>
+                        <span class="description">Upload des logos pour l'application et les tickets</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Structure Section -->
+        <div id="structure" class="section">
+            <div class="card">
+                <h2>📁 Structure du projet</h2>
+                
+                <div class="structure-tree">
+<pre>
+lib/
+├── <span class="folder">api/</span>
+│   └── api_client.dart              <span class="dart">// Client HTTP pour appels API</span>
+├── <span class="folder">bindings/</span>
+│   └── catalog_binding.dart         <span class="dart">// Injection de dépendances</span>
+├── <span class="folder">config/</span>
+│   └── [configuration files]
+├── <span class="folder">controllers/</span>
+│   ├── auth_controller.dart         <span class="dart">// Authentification</span>
+│   ├── category_controller.dart     <span class="dart">// Catégories produits</span>
+│   ├── delivery_controller.dart     <span class="dart">// Livreurs</span>
+│   ├── import_controller.dart       <span class="dart">// Import données backend</span>
+│   ├── pos_controller.dart          <span class="dart">// Point de vente</span>
+│   ├── product_controller.dart      <span class="dart">// Produits</span>
+│   ├── restaurant_controller.dart   <span class="dart">// Restaurants</span>
+│   ├── settings_controller.dart     <span class="dart">// Paramètres</span>
+│   ├── sync_controller.dart         <span class="dart">// Synchronisation</span>
+│   ├── table_controller.dart        <span class="dart">// Tables</span>
+│   └── user_controller.dart         <span class="dart">// Utilisateurs</span>
+├── <span class="folder">data/</span>
+│   ├── app_constants.dart           <span class="dart">// Constantes globales</span>
+│   └── glass_theme.dart             <span class="dart">// Thème glassmorphism</span>
+├── <span class="folder">helper/</span>
+│   └── dependencies.dart            <span class="dart">// Configuration DI</span>
+├── <span class="folder">models/</span>
+│   ├── user.dart                    <span class="dart">// Modèle utilisateur</span>
+│   ├── product_model.dart           <span class="dart">// Modèle produit</span>
+│   ├── category_model.dart          <span class="dart">// Modèle catégorie</span>
+│   ├── pos_order.dart               <span class="dart">// Modèle commande</span>
+│   ├── pos_order_item.dart          <span class="dart">// Modèle ligne de commande</span>
+│   ├── pos_table.dart               <span class="dart">// Modèle table</span>
+│   ├── delivery.dart                <span class="dart">// Modèle livreur</span>
+│   ├── restaurant.dart              <span class="dart">// Modèle restaurant</span>
+│   └── app_settings.dart            <span class="dart">// Modèle paramètres</span>
+├── <span class="folder">repos/</span>
+│   └── [Repositories pattern]
+├── <span class="folder">seeders/</span>
+│   └── database_seeder.dart         <span class="dart">// Données initiales</span>
+├── <span class="folder">services/</span>
+│   ├── database_service.dart        <span class="dart">// CRUD Isar DB</span>
+│   ├── api_import_service.dart      <span class="dart">// Import API</span>
+│   ├── api_order_pull_service.dart  <span class="dart">// Récupération commandes</span>
+│   ├── sync_queue_service.dart      <span class="dart">// Queue de sync</span>
+│   ├── auth_session_service.dart    <span class="dart">// Gestion session</span>
+│   └── [autres services]</span>
+├── <span class="folder">theme/</span>
+│   ├── app_theme.dart               <span class="dart">// Thème global</span>
+│   └── pos_scoped_theme.dart        <span class="dart">// Thème POS</span>
+├── <span class="folder">utils/</span>
+│   └── [utilitaires]</span>
+├── <span class="folder">views/</span>
+│   ├── splash_screen.dart           <span class="dart">// Écran de chargement</span>
+│   ├── login_screen.dart            <span class="dart">// Connexion</span>
+│   ├── registration_screen.dart     <span class="dart">// Inscription</span>
+│   ├── pos_screen.dart              <span class="dart">// Interface POS</span>
+│   ├── pos_lock_screen.dart         <span class="dart">// Verrouillage POS</span>
+│   ├── pos_choice_screen.dart       <span class="dart">// Choix type commande</span>
+│   ├── pos_table_plan_screen.dart   <span class="dart">// Plan des tables</span>
+│   ├── pos_staff_menu_screen.dart   <span class="dart">// Menu staff</span>
+│   ├── pos_staff_orders_screen.dart <span class="dart">// Commandes staff</span>
+│   ├── product_catalog_screen.dart  <span class="dart">// Catalogue</span>
+│   ├── user_management_screen.dart  <span class="dart">// Gestion utilisateurs</span>
+│   ├── table_management_screen.dart <span class="dart">// Gestion tables</span>
+│   ├── delivery_management_screen.dart <span class="dart">// Gestion livraisons</span>
+│   ├── admin_dashboard_screen.dart  <span class="dart">// Dashboard admin</span>
+│   ├── staff_dashboard_screen.dart  <span class="dart">// Dashboard staff</span>
+│   ├── settings_screen.dart         <span class="dart">// Paramètres</span>
+│   └── import_data_screen.dart      <span class="dart">// Import données</span>
+├── <span class="folder">widgets/</span>
+│   ├── app_card_kit.dart            <span class="dart">// Composants cartes</span>
+│   └── app_back_button.dart         <span class="dart">// Bouton retour</span>
+└── main.dart                        <span class="dart">// Point d'entrée</span>
+</pre>
+                </div>
+
+                <h3>🗄️ Base de données (Isar)</h3>
+                <p>
+                    L'application utilise <strong>Isar</strong>, une base de données NoSQL locale ultra-rapide 
+                    pour Flutter, permettant le stockage offline et la synchronisation avec le backend.
+                </p>
+            </div>
+        </div>
+
+        <!-- Controllers Section -->
+        <div id="controllers" class="section">
+            <div class="card">
+                <h2>🎮 Controllers - Actions détaillées</h2>
+                <p style="margin-bottom: 30px;">
+                    Les controllers utilisent le pattern <strong>GetX</strong> pour la gestion d'état 
+                    et l'injection de dépendances.
+                </p>
+
+                <!-- Auth Controller -->
+                <div class="controller-card">
+                    <h3>
+                        🔐 AuthController
+                        <span class="controller-name">auth_controller.dart</span>
+                    </h3>
+                    <p>Gère l'authentification, les sessions et la sécurité des utilisateurs.</p>
+                    <ul class="method-list">
+                        <li>
+                            <strong>registerUser()</strong> <span class="badge async">async</span>
+                            <span class="description">Inscrit un nouvel utilisateur avec email, téléphone, mot de passe, rôle et PIN</span>
+                        </li>
+                        <li>
+                            <strong>loginUser(identifier, password)</strong> <span class="badge async">async</span>
+                            <span class="description">Connecte un utilisateur (online puis fallback local)</span>
+                        </li>
+                        <li>
+                            <strong>logout()</strong> <span class="badge async">async</span>
+                            <span class="description">Déconnecte l'utilisateur et clear la session</span>
+                        </li>
+                        <li>
+                            <strong>changePassword(oldPassword, newPassword)</strong> <span class="badge async">async</span>
+                            <span class="description">Change le mot de passe de l'utilisateur connecté</span>
+                        </li>
+                        <li>
+                            <strong>updateUserProfile()</strong> <span class="badge async">async</span>
+                            <span class="description">Met à jour le profil (nom, téléphone, email, PIN)</span>
+                        </li>
+                        <li>
+                            <strong>isValidPin(pin)</strong>
+                            <span class="description">Valide le format du code PIN (4-6 chiffres)</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- POS Controller -->
+                <div class="controller-card">
+                    <h3>
+                        💳 PosController
+                        <span class="controller-name">pos_controller.dart</span>
+                    </h3>
+                    <p>Gère l'interface de point de vente, le panier et les commandes.</p>
+                    <ul class="method-list">
+                        <li>
+                            <strong>unlockWithPin(pin)</strong> <span class="badge async">async</span>
+                            <span class="description">Déverrouille le POS avec le code PIN du staff</span>
+                        </li>
+                        <li>
+                            <strong>lock()</strong>
+                            <span class="description">Verrouille le POS et clear l'état</span>
+                        </li>
+                        <li>
+                            <strong>setFulfillmentType(type)</strong>
+                            <span class="description">Définit le type: on_site, pickup, delivery</span>
+                        </li>
+                        <li>
+                            <strong>setTableNumber(number)</strong>
+                            <span class="description">Définit le numéro de table pour sur place</span>
+                        </li>
+                        <li>
+                            <strong>setCustomerInfo()</strong>
+                            <span class="description">Définit nom, téléphone et adresse du client</span>
+                        </li>
+                        <li>
+                            <strong>addToCart(product)</strong>
+                            <span class="description">Ajoute un produit au panier</span>
+                        </li>
+                        <li>
+                            <strong>removeFromCart(product)</strong>
+                            <span class="description">Retire un produit du panier</span>
+                        </li>
+                        <li>
+                            <strong>setCartItemQuantity(product, quantity)</strong>
+                            <span class="description">Modifie la quantité d'un produit</span>
+                        </li>
+                        <li>
+                            <strong>createOrder()</strong> <span class="badge async">async</span>
+                            <span class="description">Crée une nouvelle commande avec le panier actuel</span>
+                        </li>
+                        <li>
+                            <strong>loadOrdersToday()</strong> <span class="badge async">async</span>
+                            <span class="description">Charge les commandes du jour avec filtrage par rôle</span>
+                        </li>
+                        <li>
+                            <strong>setSearchTerm(term)</strong>
+                            <span class="description">Définit le terme de recherche pour les produits</span>
+                        </li>
+                        <li>
+                            <strong>filterProductsBySearch(products)</strong>
+                            <span class="description">Filtre les produits par terme de recherche</span>
+                        </li>
+                        <li>
+                            <strong>ensureTables()</strong> <span class="badge async">async</span>
+                            <span class="description">Charge les tables depuis la base de données</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Product Controller -->
+                <div class="controller-card">
+                    <h3>
+                        📦 ProductController
+                        <span class="controller-name">product_controller.dart</span>
+                    </h3>
+                    <p>Gère le catalogue des produits et leurs opérations CRUD.</p>
+                    <ul class="method-list">
+                        <li>
+                            <strong>fetchAllProducts()</strong> <span class="badge async">async</span>
+                            <span class="description">Récupère tous les produits depuis la base</span>
+                        </li>
+                        <li>
+                            <strong>createProduct()</strong> <span class="badge async">async</span>
+                            <span class="description">Crée un nouveau produit avec nom, prix, catégorie, image</span>
+                        </li>
+                        <li>
+                            <strong>updateProduct()</strong> <span class="badge async">async</span>
+                            <span class="description">Met à jour les informations d'un produit</span>
+                        </li>
+                        <li>
+                            <strong>deleteProduct(productId)</strong> <span class="badge async">async</span>
+                            <span class="description">Supprime un produit de la base</span>
+                        </li>
+                        <li>
+                            <strong>getProductsByCategory(categoryId)</strong>
+                            <span class="description">Retourne les produits d'une catégorie (disponibles uniquement)</span>
+                        </li>
+                        <li>
+                            <strong>getAvailableProducts()</strong>
+                            <span class="description">Retourne tous les produits disponibles</span>
+                        </li>
+                        <li>
+                            <strong>getProductsOnOffer()</strong>
+                            <span class="description">Retourne les produits en promotion</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Category Controller -->
+                <div class="controller-card">
+                    <h3>
+                        🏷️ CategoryController
+                        <span class="controller-name">category_controller.dart</span>
+                    </h3>
+                    <p>Gère les catégories de produits.</p>
+                    <ul class="method-list">
+                        <li>
+                            <strong>fetchAllCategories()</strong> <span class="badge async">async</span>
+                            <span class="description">Récupère toutes les catégories</span>
+                        </li>
+                        <li>
+                            <strong>createCategory(name, image)</strong> <span class="badge async">async</span>
+                            <span class="description">Crée une nouvelle catégorie</span>
+                        </li>
+                        <li>
+                            <strong>updateCategory()</strong> <span class="badge async">async</span>
+                            <span class="description">Met à jour une catégorie existante</span>
+                        </li>
+                        <li>
+                            <strong>deleteCategory(categoryId)</strong> <span class="badge async">async</span>
+                            <span class="description">Supprime logiquement une catégorie (soft delete)</span>
+                        </li>
+                        <li>
+                            <strong>selectCategory(category)</strong>
+                            <span class="description">Sélectionne une catégorie active</span>
+                        </li>
+                        <li>
+                            <strong>getActiveCategories()</strong>
+                            <span class="description">Retourne les catégories non supprimées</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- User Controller -->
+                <div class="controller-card">
+                    <h3>
+                        👥 UserController
+                        <span class="controller-name">user_controller.dart</span>
+                    </h3>
+                    <p>Gère les utilisateurs et leurs permissions.</p>
+                    <ul class="method-list">
+                        <li>
+                            <strong>fetchAllUsers(restaurantId)</strong> <span class="badge async">async</span>
+                            <span class="description">Récupère les utilisateurs filtrés par restaurant</span>
+                        </li>
+                        <li>
+                            <strong>createUser()</strong> <span class="badge async">async</span>
+                            <span class="description">Crée un utilisateur via API (avec PIN auto-généré)</span>
+                        </li>
+                        <li>
+                            <strong>updateUser()</strong> <span class="badge async">async</span>
+                            <span class="description">Met à jour les informations d'un utilisateur</span>
+                        </li>
+                        <li>
+                            <strong>toggleUserActivation(userId)</strong> <span class="badge async">async</span>
+                            <span class="description">Active/désactive un compte utilisateur</span>
+                        </li>
+                        <li>
+                            <strong>deleteUser(userId)</strong> <span class="badge async">async</span>
+                            <span class="description">Supprime un utilisateur</span>
+                        </li>
+                        <li>
+                            <strong>syncStaffFromBackend()</strong> <span class="badge async">async</span>
+                            <span class="description">Synchronise le personnel depuis le backend</span>
+                        </li>
+                        <li>
+                            <strong>getUsersByRole(role)</strong>
+                            <span class="description">Filtre les utilisateurs par rôle</span>
+                        </li>
+                        <li>
+                            <strong>getActiveUsers() / getInactiveUsers()</strong>
+                            <span class="description">Filtre par statut d'activation</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Restaurant Controller -->
+                <div class="controller-card">
+                    <h3>
+                        🏪 RestaurantController
+                        <span class="controller-name">restaurant_controller.dart</span>
+                    </h3>
+                    <p>Gère les restaurants et leurs configurations.</p>
+                    <ul class="method-list">
+                        <li>
+                            <strong>fetchAllRestaurants()</strong> <span class="badge async">async</span>
+                            <span class="description">Récupère les restaurants (filtré par admin connecté)</span>
+                        </li>
+                        <li>
+                            <strong>createRestaurant()</strong> <span class="badge async">async</span>
+                            <span class="description">Crée un nouveau restaurant</span>
+                        </li>
+                        <li>
+                            <strong>updateRestaurant()</strong> <span class="badge async">async</span>
+                            <span class="description">Met à jour les informations d'un restaurant</span>
+                        </li>
+                        <li>
+                            <strong>toggleRestaurantActivation()</strong> <span class="badge async">async</span>
+                            <span class="description">Active/désactive un restaurant</span>
+                        </li>
+                        <li>
+                            <strong>deleteRestaurant()</strong> <span class="badge async">async</span>
+                            <span class="description">Supprime un restaurant</span>
+                        </li>
+                        <li>
+                            <strong>setSelectedRestaurantId(id)</strong>
+                            <span class="description">Sélectionne un restaurant actif</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Table Controller -->
+                <div class="controller-card">
+                    <h3>
+                        🪑 TableController
+                        <span class="controller-name">table_controller.dart</span>
+                    </h3>
+                    <p>Gère les tables du restaurant et leur positionnement.</p>
+                    <ul class="method-list">
+                        <li>
+                            <strong>loadTables(restaurantId)</strong> <span class="badge async">async</span>
+                            <span class="description">Charge les tables depuis la base</span>
+                        </li>
+                        <li>
+                            <strong>importTables(restaurantId)</strong> <span class="badge async">async</span>
+                            <span class="description">Importe les tables depuis le backend API</span>
+                        </li>
+                        <li>
+                            <strong>createTable()</strong> <span class="badge async">async</span>
+                            <span class="description">Crée une table avec position grid (column/row start/end)</span>
+                        </li>
+                        <li>
+                            <strong>updateTable()</strong> <span class="badge async">async</span>
+                            <span class="description">Met à jour une table existante</span>
+                        </li>
+                        <li>
+                            <strong>deleteTable(table)</strong> <span class="badge async">async</span>
+                            <span class="description">Supprime une table</span>
+                        </li>
+                        <li>
+                            <strong>changeStatus(table, status)</strong> <span class="badge async">async</span>
+                            <span class="description">Change le statut d'une table (libre, occupée, etc.)</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Delivery Controller -->
+                <div class="controller-card">
+                    <h3>
+                        🚚 DeliveryController
+                        <span class="controller-name">delivery_controller.dart</span>
+                    </h3>
+                    <p>Gère les livreurs et les commandes en livraison.</p>
+                    <ul class="method-list">
+                        <li>
+                            <strong>fetchDeliveriesByRestaurant(restaurantId)</strong> <span class="badge async">async</span>
+                            <span class="description">Récupère les livreurs d'un restaurant (API + local)</span>
+                        </li>
+                        <li>
+                            <strong>createDelivery()</strong> <span class="badge async">async</span>
+                            <span class="description">Crée un livreur avec validation téléphone (10 chiffres)</span>
+                        </li>
+                        <li>
+                            <strong>updateDelivery()</strong> <span class="badge async">async</span>
+                            <span class="description">Met à jour les informations d'un livreur</span>
+                        </li>
+                        <li>
+                            <strong>toggleDeliveryActivation(deliveryId)</strong> <span class="badge async">async</span>
+                            <span class="description">Active/désactive un livreur</span>
+                        </li>
+                        <li>
+                            <strong>deleteDelivery(deliveryId)</strong> <span class="badge async">async</span>
+                            <span class="description">Supprime un livreur</span>
+                        </li>
+                        <li>
+                            <strong>syncLocalDeliveriesToBackend()</strong> <span class="badge async">async</span>
+                            <span class="description">Synchronise les livreurs locaux vers le backend</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Import Controller -->
+                <div class="controller-card">
+                    <h3>
+                        📥 ImportController
+                        <span class="controller-name">import_controller.dart</span>
+                    </h3>
+                    <p>Gère l'import des données depuis le backend API.</p>
+                    <ul class="method-list">
+                        <li>
+                            <strong>importAllData()</strong> <span class="badge async">async</span>
+                            <span class="description">Importe toutes les données (restaurants, tables, catégories, produits, utilisateurs, livreurs)</span>
+                        </li>
+                        <li>
+                            <strong>importCategories()</strong> <span class="badge async">async</span>
+                            <span class="description">Importe les catégories depuis le backend</span>
+                        </li>
+                        <li>
+                            <strong>importProducts()</strong> <span class="badge async">async</span>
+                            <span class="description">Importe les produits et queue les commandes non synchronisées</span>
+                        </li>
+                        <li>
+                            <strong>importRestaurants()</strong> <span class="badge async">async</span>
+                            <span class="description">Importe les restaurants filtrés par admin</span>
+                        </li>
+                        <li>
+                            <strong>importTables(restaurantId)</strong> <span class="badge async">async</span>
+                            <span class="description">Importe les tables d'un restaurant</span>
+                        </li>
+                        <li>
+                            <strong>importUsers()</strong> <span class="badge async">async</span>
+                            <span class="description">Importe les utilisateurs d'un restaurant</span>
+                        </li>
+                        <li>
+                            <strong>importDeliveries()</strong> <span class="badge async">async</span>
+                            <span class="description">Importe les livreurs d'un restaurant</span>
+                        </li>
+                        <li>
+                            <strong>updateBaseUrl(newBaseUrl)</strong>
+                            <span class="description">Met à jour l'URL de base de l'API</span>
+                        </li>
+                        <li>
+                            <strong>updateApiToken(token)</strong>
+                            <span class="description">Met à jour le token d'authentification API</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Sync Controller -->
+                <div class="controller-card">
+                    <h3>
+                        🔄 SyncController
+                        <span class="controller-name">sync_controller.dart</span>
+                    </h3>
+                    <p>Gère la synchronisation automatique avec le backend.</p>
+                    <ul class="method-list">
+                        <li>
+                            <strong>syncNow()</strong> <span class="badge async">async</span>
+                            <span class="description">Force une synchronisation immédiate</span>
+                        </li>
+                        <li>
+                            <strong>manualSync()</strong> <span class="badge async">async</span>
+                            <span class="description">Synchronisation manuelle (admin seulement)</span>
+                        </li>
+                        <li>
+                            <strong>clearApiOrderRemoteState()</strong> <span class="badge async">async</span>
+                            <span class="description">Clear le state API pour recréer les commandes</span>
+                        </li>
+                        <li>
+                            <strong>_tick()</strong> <span class="badge async">async</span> <span class="badge private">private</span>
+                            <span class="description">Exécuté toutes les 15 secondes pour auto-sync</span>
+                        </li>
+                        <li>
+                            <strong>_syncInternal()</strong> <span class="badge async">async</span> <span class="badge private">private</span>
+                            <span class="description">Logique interne de synchronisation (queue flush + pull API)</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Settings Controller -->
+                <div class="controller-card">
+                    <h3>
+                        ⚙️ SettingsController
+                        <span class="controller-name">settings_controller.dart</span>
+                    </h3>
+                    <p>Gère les paramètres de l'application.</p>
+                    <ul class="method-list">
+                        <li>
+                            <strong>load()</strong> <span class="badge async">async</span>
+                            <span class="description">Charge les paramètres depuis le stockage local</span>
+                        </li>
+                        <li>
+                            <strong>updateCurrency(code, symbol)</strong> <span class="badge async">async</span>
+                            <span class="description">Met à jour la devise (ex: EUR, €)</span>
+                        </li>
+                        <li>
+                            <strong>updateAppLogo(path)</strong> <span class="badge async">async</span>
+                            <span class="description">Met à jour le logo de l'application</span>
+                        </li>
+                        <li>
+                            <strong>updateTicketLogo(path)</strong> <span class="badge async">async</span>
+                            <span class="description">Met à jour le logo des tickets</span>
+                        </li>
+                        <li>
+                            <strong>uploadAppLogo(file)</strong> <span class="badge async">async</span>
+                            <span class="description">Upload un nouveau logo depuis FilePicker</span>
+                        </li>
+                        <li>
+                            <strong>uploadTicketLogo(file)</strong> <span class="badge async">async</span>
+                            <span class="description">Upload un nouveau logo de ticket</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Users Section -->
+        <div id="users" class="section">
+            <div class="card">
+                <h2>👥 Rôles Utilisateurs</h2>
+
+                <div class="user-roles">
+                    <div class="role-card">
+                        <h4>👑 Superadmin</h4>
+                        <ul>
+                            <li>Accès à tous les restaurants</li>
+                            <li>Création des admins</li>
+                            <li>Configuration globale</li>
+                            <li>Sync manuelle</li>
+                        </ul>
+                    </div>
+                    <div class="role-card admin">
+                        <h4>🔧 Admin</h4>
+                        <ul>
+                            <li>Gestion d'un restaurant</li>
+                            <li>Création du personnel</li>
+                            <li>Import des données</li>
+                            <li>Sync manuelle</li>
+                            <li>Modification commandes</li>
+                        </ul>
+                    </div>
+                    <div class="role-card staff">
+                        <h4>👨‍🍳 Staff</h4>
+                        <ul>
+                            <li>Accès au POS</li>
+                            <li>Création commandes</li>
+                            <li>Voir ses commandes</li>
+                            <li>Commandes API visibles</li>
+                        </ul>
+                    </div>
+                    <div class="role-card delivery">
+                        <h4>🚚 Livreur</h4>
+                        <ul>
+                            <li>Compte dédié</li>
+                            <li>PIN unique</li>
+                            <li>Suivi livraisons</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <h3 style="margin-top: 40px;">🔑 Méthodes d'authentification</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Méthode</th>
+                            <th>Description</th>
+                            <th>Rôles concernés</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Email + Mot de passe</td>
+                            <td>Connexion classique avec hash bcrypt</td>
+                            <td>Tous</td>
+                        </tr>
+                        <tr>
+                            <td>Téléphone + Mot de passe</td>
+                            <td>Alternative avec numéro de téléphone</td>
+                            <td>Tous</td>
+                        </tr>
+                        <tr>
+                            <td>Code PIN (4-6 chiffres)</td>
+                            <td>Déverrouillage rapide du POS</td>
+                            <td>Staff, Admin, Livreur</td>
+                        </tr>
+                        <tr>
+                            <td>API Login Sanctum</td>
+                            <td>Token JWT pour synchronisation</td>
+                            <td>Tous (online)</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3 style="margin-top: 40px;">🆕 Comptes de Trial (Seeders)</h3>
+                <p style="color: var(--text-muted); margin-bottom: 16px;">
+                    Lors du premier lancement, la base de données est initialisée avec des comptes de test via le <code>DatabaseSeeder</code>.
+                </p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Rôle</th>
+                            <th>Email</th>
+                            <th>Mot de passe</th>
+                            <th>Téléphone</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Superadmin</strong></td>
+                            <td><code>superadmin@example.com</code></td>
+                            <td><code>password123</code></td>
+                            <td><code>+1234567890</code></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Admin</strong></td>
+                            <td><code>admin@example.com</code></td>
+                            <td><code>password123</code></td>
+                            <td><code>+1987654321</code></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div style="margin-top: 16px; padding: 12px; background: var(--primary-dim); border: 1px solid var(--border-color);">
+                    <strong style="color: var(--primary-color);">📁 Fichiers de seed :</strong>
+                    <ul style="margin-top: 8px; margin-left: 20px; color: var(--text-muted);">
+                        <li><code>lib/seeders/database_seeder.dart</code> - Point d'entrée principal</li>
+                        <li><code>lib/seeders/user_seeder.dart</code> - Crée les utilisateurs admin/superadmin</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Technologies Section -->
+        <div id="tech" class="section">
+            <div class="card">
+                <h2>🛠️ Stack Technique</h2>
+                
+                <div class="tech-stack">
+                    <div class="tech-item">Flutter 3.x</div>
+                    <div class="tech-item">Dart 3.10+</div>
+                    <div class="tech-item">GetX (State Management)</div>
+                    <div class="tech-item">Isar (Database)</div>
+                    <div class="tech-item">HTTP Client</div>
+                    <div class="tech-item">PDF Generation</div>
+                    <div class="tech-item">Google Fonts</div>
+                    <div class="tech-item">Audio Players</div>
+                    <div class="tech-item">File Picker</div>
+                    <div class="tech-item">Crypto (hashing)</div>
+                </div>
+
+                <h3 style="margin-top: 30px;">📦 Packages principaux</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Package</th>
+                            <th>Version</th>
+                            <th>Usage</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>get</td>
+                            <td>^4.7.3</td>
+                            <td>State management, routing, DI</td>
+                        </tr>
+                        <tr>
+                            <td>isar</td>
+                            <td>^3.1.0+1</td>
+                            <td>Base de données locale</td>
+                        </tr>
+                        <tr>
+                            <td>isar_flutter_libs</td>
+                            <td>^3.1.0+1</td>
+                            <td>Libs Isar pour Flutter</td>
+                        </tr>
+                        <tr>
+                            <td>path_provider</td>
+                            <td>^2.1.3</td>
+                            <td>Accès aux chemins de fichiers</td>
+                        </tr>
+                        <tr>
+                            <td>http</td>
+                            <td>^1.2.2</td>
+                            <td>Requêtes HTTP API</td>
+                        </tr>
+                        <tr>
+                            <td>file_picker</td>
+                            <td>^8.1.2</td>
+                            <td>Sélection de fichiers</td>
+                        </tr>
+                        <tr>
+                            <td>crypto</td>
+                            <td>^3.0.3</td>
+                            <td>Hachage mots de passe</td>
+                        </tr>
+                        <tr>
+                            <td>printing + pdf</td>
+                            <td>^5.12.0 + ^3.10.8</td>
+                            <td>Génération et impression PDF</td>
+                        </tr>
+                        <tr>
+                            <td>google_fonts</td>
+                            <td>^6.2.1</td>
+                            <td>Polices personnalisées</td>
+                        </tr>
+                        <tr>
+                            <td>audioplayers</td>
+                            <td>^5.2.1</td>
+                            <td>Sons de notification</td>
+                        </tr>
+                        <tr>
+                            <td>cached_network_image</td>
+                            <td>^3.4.1</td>
+                            <td>Cache images réseau</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3 style="margin-top: 30px;">🏗️ Architecture</h3>
+                <div class="feature-grid">
+                    <div class="feature-item">
+                        <h4><span class="icon">📐</span> MVVM Pattern</h4>
+                        <p>Modèle-Vue-VueModèle avec GetX pour la réactivité</p>
+                    </div>
+                    <div class="feature-item">
+                        <h4><span class="icon">💉</span> Dependency Injection</span></h4>
+                        <p>Injection via GetX (Get.put, Get.lazyPut, Get.find)</p>
+                    </div>
+                    <div class="feature-item">
+                        <h4><span class="icon">🔌</span> Repository Pattern</h4>
+                        <p>Couche repos pour abstraction des données</p>
+                    </div>
+                    <div class="feature-item">
+                        <h4><span class="icon">🔄</span> Offline-First</h4>
+                        <p>Base locale Isar avec sync vers backend</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>Documentation générée pour l'application POS - © 2024</p>
+            <p>Version 1.0.0</p>
+        </footer>
+    </div>
+
+    <script>
+        function showSection(sectionId) {
+            // Hide all sections
+            document.querySelectorAll('.section').forEach(section => {
+                section.classList.remove('active');
+            });
+            
+            // Remove active class from all tabs
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected section
+            document.getElementById(sectionId).classList.add('active');
+            
+            // Add active class to clicked tab
+            event.target.classList.add('active');
+            
+            // Scroll to top of container
+            document.querySelector('.container').scrollIntoView({ behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html>

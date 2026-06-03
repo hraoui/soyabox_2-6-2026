@@ -1472,7 +1472,9 @@ class _PosScreenState extends State<PosScreen> {
             icon: Icons.print_outlined,
             label: 'Imprimer le ticket',
             onPressed: () async {
-              final currentOrderId = _lastOrderId ?? pos.editingOrderId;
+              final currentOrderId =
+                  pos.editingOrderId ??
+                  (pos.cart.isEmpty ? _lastOrderId : null);
               try {
                 await _saveAndPrintKitchenTicket(pos, currentOrderId);
               } catch (e, st) {

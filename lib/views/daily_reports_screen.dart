@@ -42,11 +42,12 @@ class _DailyReportsScreenState extends State<DailyReportsScreen> {
   Future<void> _loadAllReports() async {
     setState(() => _loading = true);
     try {
-      final allReports = await DatabaseService.db.cashRegisterStates.where().findAll();
+      final allReports = await DatabaseService.db.cashRegisterStates
+          .where()
+          .findAll();
       final validReports = <CashRegisterState>[];
       for (final report in allReports) {
-        if (report != null &&
-            report.closingReport != null &&
+        if (report.closingReport != null &&
             report.closingReport!.isNotEmpty &&
             report.date.isNotEmpty) {
           validReports.add(report);
@@ -60,8 +61,11 @@ class _DailyReportsScreenState extends State<DailyReportsScreen> {
       });
       _reports = validReports;
     } catch (e) {
-      Get.snackbar('Erreur', 'Impossible de charger les rapports: $e',
-          snackPosition: SnackPosition.BOTTOM);
+      Get.snackbar(
+        'Erreur',
+        'Impossible de charger les rapports: $e',
+        snackPosition: SnackPosition.BOTTOM,
+      );
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -78,8 +82,11 @@ class _DailyReportsScreenState extends State<DailyReportsScreen> {
         final staffId = authController.currentUser?.id ?? 0;
         final staffName = authController.currentUser?.name ?? 'Admin';
         final todayReportMap = await DailyReportService.generateDailyReport(
-          date: today, staffId: staffId, staffName: staffName,
-          openedAt: null, closedAt: null,
+          date: today,
+          staffId: staffId,
+          staffName: staffName,
+          openedAt: null,
+          closedAt: null,
         );
         final todayReport = CashRegisterState()
           ..date = todayStr
@@ -93,17 +100,28 @@ class _DailyReportsScreenState extends State<DailyReportsScreen> {
   }
 
   Future<void> _loadReportsByDateRange() async {
-    if (_startDate == null || _endDate == null) { _loadAllReports(); return; }
+    if (_startDate == null || _endDate == null) {
+      _loadAllReports();
+      return;
+    }
     setState(() => _loading = true);
     try {
-      final allReports = await DatabaseService.db.cashRegisterStates.where().findAll();
-      final startOfDay = DateTime(_startDate!.year, _startDate!.month, _startDate!.day);
-      final endOfDay = DateTime(_endDate!.year, _endDate!.month, _endDate!.day)
-          .add(const Duration(days: 1));
+      final allReports = await DatabaseService.db.cashRegisterStates
+          .where()
+          .findAll();
+      final startOfDay = DateTime(
+        _startDate!.year,
+        _startDate!.month,
+        _startDate!.day,
+      );
+      final endOfDay = DateTime(
+        _endDate!.year,
+        _endDate!.month,
+        _endDate!.day,
+      ).add(const Duration(days: 1));
       final validReports = <CashRegisterState>[];
       for (final report in allReports) {
-        if (report != null &&
-            report.closingReport != null &&
+        if (report.closingReport != null &&
             report.closingReport!.isNotEmpty &&
             report.date.isNotEmpty) {
           final reportDate = DateTime.tryParse(report.date) ?? DateTime(2020);
@@ -123,8 +141,11 @@ class _DailyReportsScreenState extends State<DailyReportsScreen> {
             final staffId = authController.currentUser?.id ?? 0;
             final staffName = authController.currentUser?.name ?? 'Admin';
             final todayReportMap = await DailyReportService.generateDailyReport(
-              date: today, staffId: staffId, staffName: staffName,
-              openedAt: null, closedAt: null,
+              date: today,
+              staffId: staffId,
+              staffName: staffName,
+              openedAt: null,
+              closedAt: null,
             );
             final todayReport = CashRegisterState()
               ..date = todayStr
@@ -143,8 +164,11 @@ class _DailyReportsScreenState extends State<DailyReportsScreen> {
       });
       _reports = validReports;
     } catch (e) {
-      Get.snackbar('Erreur', 'Impossible de charger les rapports: $e',
-          snackPosition: SnackPosition.BOTTOM);
+      Get.snackbar(
+        'Erreur',
+        'Impossible de charger les rapports: $e',
+        snackPosition: SnackPosition.BOTTOM,
+      );
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -154,7 +178,8 @@ class _DailyReportsScreenState extends State<DailyReportsScreen> {
     if (closingReport == null || closingReport.isEmpty) return null;
     try {
       final rawData = jsonDecode(closingReport);
-      if (rawData is Map<String, dynamic> && rawData.containsKey('totalSales')) {
+      if (rawData is Map<String, dynamic> &&
+          rawData.containsKey('totalSales')) {
         return _convertOldReportToNewFormat(rawData);
       }
       return rawData as Map<String, dynamic>;
@@ -164,10 +189,13 @@ class _DailyReportsScreenState extends State<DailyReportsScreen> {
     }
   }
 
-  Map<String, dynamic> _convertOldReportToNewFormat(Map<String, dynamic> oldReport) {
+  Map<String, dynamic> _convertOldReportToNewFormat(
+    Map<String, dynamic> oldReport,
+  ) {
     final totalSales = oldReport['totalSales'] as num? ?? 0.0;
     final totalOrders = oldReport['totalOrders'] as int? ?? 0;
-    final paymentMethods = oldReport['paymentMethods'] as Map<String, dynamic>? ?? {};
+    final paymentMethods =
+        oldReport['paymentMethods'] as Map<String, dynamic>? ?? {};
     final newSummary = {
       'total_revenue': totalSales.toDouble(),
       'total_orders': totalOrders,
@@ -178,7 +206,12 @@ class _DailyReportsScreenState extends State<DailyReportsScreen> {
         'other': paymentMethods['other'] ?? (paymentMethods['unknown'] ?? 0.0),
       },
       'order_types': {'onsite': 0, 'pickup': 0, 'delivery': 0},
-      'channels': {'pos': totalSales.toDouble(), 'api': 0.0, 'web': 0.0, 'kiosk': 0.0},
+      'channels': {
+        'pos': totalSales.toDouble(),
+        'api': 0.0,
+        'web': 0.0,
+        'kiosk': 0.0,
+      },
       'staff_breakdown': [],
       'delivery_breakdown': [],
     };
@@ -192,12 +225,16 @@ class _DailyReportsScreenState extends State<DailyReportsScreen> {
   Future<void> _selectStartDate() async {
     final picked = await showDatePicker(
       context: context,
-      initialDate: _startDate ?? DateTime.now().subtract(const Duration(days: 30)),
+      initialDate:
+          _startDate ?? DateTime.now().subtract(const Duration(days: 30)),
       firstDate: DateTime(2020),
       lastDate: DateTime.now(),
     );
     if (picked != null) {
-      setState(() { _startDate = picked; _showAllReports = false; });
+      setState(() {
+        _startDate = picked;
+        _showAllReports = false;
+      });
       _loadReportsByDateRange();
     }
   }
@@ -210,14 +247,88 @@ class _DailyReportsScreenState extends State<DailyReportsScreen> {
       lastDate: DateTime.now(),
     );
     if (picked != null) {
-      setState(() { _endDate = picked; _showAllReports = false; });
+      setState(() {
+        _endDate = picked;
+        _showAllReports = false;
+      });
       _loadReportsByDateRange();
     }
   }
 
   void _clearDateFilter() {
-    setState(() { _startDate = null; _endDate = null; _showAllReports = true; });
+    setState(() {
+      _startDate = null;
+      _endDate = null;
+      _showAllReports = true;
+    });
     _loadAllReports();
+  }
+
+  DateTime _selectedReportDate() {
+    if (_startDate != null) {
+      return _startDate!;
+    }
+    if (_endDate != null) {
+      return _endDate!;
+    }
+    return DateTime.now();
+  }
+
+  String _formatDateKey(DateTime date) {
+    return '${date.year}-${date.month.toString().padLeft(2, "0")}-${date.day.toString().padLeft(2, "0")}';
+  }
+
+  Future<void> _generateAndSaveDailyReport() async {
+    setState(() => _loading = true);
+    try {
+      final authController = Get.find<AuthController>();
+      final staffId = authController.currentUser?.id ?? 0;
+      final staffName = authController.currentUser?.name ?? 'Admin';
+      final reportDate = _selectedReportDate();
+      final reportData = await DailyReportService.generateDailyReport(
+        date: reportDate,
+        staffId: staffId,
+        staffName: staffName,
+        openedAt: null,
+        closedAt: null,
+      );
+
+      final dateKey = _formatDateKey(reportDate);
+      final existingReport = await DatabaseService.db.cashRegisterStates
+          .filter()
+          .dateEqualTo(dateKey)
+          .findFirst();
+
+      final report = existingReport ?? CashRegisterState()
+        ..date = dateKey;
+      report.closingReport = jsonEncode(reportData);
+      report.isOpen = true;
+      report.openedAt = reportDate;
+      report.openedByStaffId = staffId;
+      report.openedByStaffName = staffName;
+      report.closedAt = null;
+      report.closedByStaffId = null;
+      report.closedByStaffName = null;
+
+      await DatabaseService.db.writeTxn(() async {
+        await DatabaseService.db.cashRegisterStates.put(report);
+      });
+
+      Get.snackbar(
+        'Rapport enregistré',
+        'Le rapport du $dateKey a été généré et enregistré.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      await _loadAllReports();
+    } catch (e) {
+      Get.snackbar(
+        'Erreur',
+        'Impossible de générer ou d\'enregistrer le rapport : $e',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   void _viewDetailedReport(Map<String, dynamic> report) {
@@ -254,8 +365,11 @@ class _DailyReportsScreenState extends State<DailyReportsScreen> {
                         color: Colors.white.withOpacity(0.15),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: const Icon(Icons.bar_chart_rounded,
-                          color: Colors.white, size: 22),
+                      child: const Icon(
+                        Icons.bar_chart_rounded,
+                        color: Colors.white,
+                        size: 22,
+                      ),
                     ),
                     const SizedBox(width: 12),
                     const Expanded(
@@ -276,7 +390,11 @@ class _DailyReportsScreenState extends State<DailyReportsScreen> {
                           color: Colors.white.withOpacity(0.2),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.close, color: Colors.white, size: 18),
+                        child: const Icon(
+                          Icons.close,
+                          color: Colors.white,
+                          size: 18,
+                        ),
                       ),
                       onPressed: () => Get.back(),
                     ),
@@ -294,18 +412,24 @@ class _DailyReportsScreenState extends State<DailyReportsScreen> {
                       // Badge date
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 8),
+                          horizontal: 14,
+                          vertical: 8,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xFF1A237E).withOpacity(0.08),
                           borderRadius: BorderRadius.circular(30),
                           border: Border.all(
-                              color: const Color(0xFF1A237E).withOpacity(0.2)),
+                            color: const Color(0xFF1A237E).withOpacity(0.2),
+                          ),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.calendar_today_rounded,
-                                size: 14, color: Color(0xFF1A237E)),
+                            const Icon(
+                              Icons.calendar_today_rounded,
+                              size: 14,
+                              color: Color(0xFF1A237E),
+                            ),
                             const SizedBox(width: 6),
                             Text(
                               report['date']?.toString() ?? 'Date inconnue',
@@ -319,6 +443,125 @@ class _DailyReportsScreenState extends State<DailyReportsScreen> {
                         ),
                       ),
                       const SizedBox(height: 16),
+
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Container(
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.04),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Staff',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Color(0xFF6D7885),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    report['staff_name']?.toString() ?? 'Inconnu',
+                                    style: const TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w700,
+                                      color: Color(0xFF1A237E),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Container(
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.04),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Commandes',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Color(0xFF6D7885),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    '${(summary['total_orders'] as int? ?? 0)}',
+                                    style: const TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w700,
+                                      color: Color(0xFF1A237E),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Container(
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.04),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'CA total',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Color(0xFF6D7885),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    '${(summary['total_revenue'] as num? ?? 0).toDouble().toStringAsFixed(2)} Dhs',
+                                    style: const TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w700,
+                                      color: Color(0xFF1A237E),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 18),
 
                       // Résumé financier
                       _buildDialogSection(
@@ -382,8 +625,9 @@ class _DailyReportsScreenState extends State<DailyReportsScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: BoxDecoration(
               color: color.withOpacity(0.07),
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(14)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(14),
+              ),
               border: Border(bottom: BorderSide(color: color.withOpacity(0.1))),
             ),
             child: Row(
@@ -419,10 +663,11 @@ class _DailyReportsScreenState extends State<DailyReportsScreen> {
   // ─────────────────────────────────────────────────────────────
 
   List<Widget> _buildOrderTypesSection(Map<String, dynamic> summary) {
-    final orderTypesData = summary['order_types'] as Map<String, dynamic>? ?? {};
+    final orderTypesData =
+        summary['order_types'] as Map<String, dynamic>? ?? {};
     Map<String, int> orderTypes = {
-      'onsite':   (orderTypesData['onsite']   as num?)?.toInt() ?? 0,
-      'pickup':   (orderTypesData['pickup']   as num?)?.toInt() ?? 0,
+      'onsite': (orderTypesData['onsite'] as num?)?.toInt() ?? 0,
+      'pickup': (orderTypesData['pickup'] as num?)?.toInt() ?? 0,
       'delivery': (orderTypesData['delivery'] as num?)?.toInt() ?? 0,
     };
     final hasData = orderTypes.values.any((v) => v > 0);
@@ -434,12 +679,16 @@ class _DailyReportsScreenState extends State<DailyReportsScreen> {
         color: const Color(0xFF00897B),
         children: hasData
             ? [
-                _buildInfoRow('Sur place',  orderTypes['onsite'].toString()),
+                _buildInfoRow('Sur place', orderTypes['onsite'].toString()),
                 _buildInfoRow('À emporter', orderTypes['pickup'].toString()),
-                _buildInfoRow('Livraison',  orderTypes['delivery'].toString()),
+                _buildInfoRow('Livraison', orderTypes['delivery'].toString()),
               ]
-            : [const Text('Aucune donnée sur les types de commande',
-                style: TextStyle(color: Colors.grey, fontSize: 13))],
+            : [
+                const Text(
+                  'Aucune donnée sur les types de commande',
+                  style: TextStyle(color: Colors.grey, fontSize: 13),
+                ),
+              ],
       ),
       const SizedBox(height: 12),
     ];
@@ -448,9 +697,9 @@ class _DailyReportsScreenState extends State<DailyReportsScreen> {
   List<Widget> _buildChannelsSection(Map<String, dynamic> summary) {
     final channelsData = summary['channels'] as Map<String, dynamic>? ?? {};
     Map<String, double> channels = {
-      'pos':   (channelsData['pos']   as num?)?.toDouble() ?? 0.0,
-      'api':   (channelsData['api']   as num?)?.toDouble() ?? 0.0,
-      'web':   (channelsData['web']   as num?)?.toDouble() ?? 0.0,
+      'pos': (channelsData['pos'] as num?)?.toDouble() ?? 0.0,
+      'api': (channelsData['api'] as num?)?.toDouble() ?? 0.0,
+      'web': (channelsData['web'] as num?)?.toDouble() ?? 0.0,
       'kiosk': (channelsData['kiosk'] as num?)?.toDouble() ?? 0.0,
     };
     final hasData = channels.values.any((v) => v > 0);
@@ -462,13 +711,29 @@ class _DailyReportsScreenState extends State<DailyReportsScreen> {
         color: const Color(0xFF6A1B9A),
         children: hasData
             ? [
-                _buildInfoRow('POS',   '${channels['pos']!.toStringAsFixed(2)} Dhs'),
-                _buildInfoRow('API',   '${channels['api']!.toStringAsFixed(2)} Dhs'),
-                _buildInfoRow('Web',   '${channels['web']!.toStringAsFixed(2)} Dhs'),
-                _buildInfoRow('Kiosk', '${channels['kiosk']!.toStringAsFixed(2)} Dhs'),
+                _buildInfoRow(
+                  'POS',
+                  '${channels['pos']!.toStringAsFixed(2)} Dhs',
+                ),
+                _buildInfoRow(
+                  'API',
+                  '${channels['api']!.toStringAsFixed(2)} Dhs',
+                ),
+                _buildInfoRow(
+                  'Web',
+                  '${channels['web']!.toStringAsFixed(2)} Dhs',
+                ),
+                _buildInfoRow(
+                  'Kiosk',
+                  '${channels['kiosk']!.toStringAsFixed(2)} Dhs',
+                ),
               ]
-            : [const Text('Aucune donnée sur les canaux',
-                style: TextStyle(color: Colors.grey, fontSize: 13))],
+            : [
+                const Text(
+                  'Aucune donnée sur les canaux',
+                  style: TextStyle(color: Colors.grey, fontSize: 13),
+                ),
+              ],
       ),
       const SizedBox(height: 12),
     ];
@@ -477,10 +742,10 @@ class _DailyReportsScreenState extends State<DailyReportsScreen> {
   List<Widget> _buildPaymentMethodsSection(Map<String, dynamic> summary) {
     final pmData = summary['payment_methods'] as Map<String, dynamic>? ?? {};
     Map<String, double> pm = {
-      'cash':       (pmData['cash']       as num?)?.toDouble() ?? 0.0,
-      'tpe':        (pmData['tpe']        as num?)?.toDouble() ?? 0.0,
-      'en_compte':  (pmData['en_compte']  as num?)?.toDouble() ?? 0.0,
-      'other':      (pmData['other']      as num?)?.toDouble() ?? 0.0,
+      'cash': (pmData['cash'] as num?)?.toDouble() ?? 0.0,
+      'tpe': (pmData['tpe'] as num?)?.toDouble() ?? 0.0,
+      'en_compte': (pmData['en_compte'] as num?)?.toDouble() ?? 0.0,
+      'other': (pmData['other'] as num?)?.toDouble() ?? 0.0,
     };
     final hasData = pm.values.any((v) => v > 0);
 
@@ -491,13 +756,26 @@ class _DailyReportsScreenState extends State<DailyReportsScreen> {
         color: const Color(0xFFE65100),
         children: hasData
             ? [
-                _buildInfoRow('Espèces',   '${pm['cash']!.toStringAsFixed(2)} Dhs'),
-                _buildInfoRow('TPE',       '${pm['tpe']!.toStringAsFixed(2)} Dhs'),
-                _buildInfoRow('En compte', '${pm['en_compte']!.toStringAsFixed(2)} Dhs'),
-                _buildInfoRow('Autre',     '${pm['other']!.toStringAsFixed(2)} Dhs'),
+                _buildInfoRow(
+                  'Espèces',
+                  '${pm['cash']!.toStringAsFixed(2)} Dhs',
+                ),
+                _buildInfoRow('TPE', '${pm['tpe']!.toStringAsFixed(2)} Dhs'),
+                _buildInfoRow(
+                  'En compte',
+                  '${pm['en_compte']!.toStringAsFixed(2)} Dhs',
+                ),
+                _buildInfoRow(
+                  'Autre',
+                  '${pm['other']!.toStringAsFixed(2)} Dhs',
+                ),
               ]
-            : [const Text('Aucune donnée de paiement disponible',
-                style: TextStyle(color: Colors.grey, fontSize: 13))],
+            : [
+                const Text(
+                  'Aucune donnée de paiement disponible',
+                  style: TextStyle(color: Colors.grey, fontSize: 13),
+                ),
+              ],
       ),
       const SizedBox(height: 12),
     ];
@@ -508,8 +786,12 @@ class _DailyReportsScreenState extends State<DailyReportsScreen> {
 
     final children = <Widget>[];
     if (staffBreakdown.isEmpty) {
-      children.add(const Text('Aucun serveur trouvé',
-          style: TextStyle(color: Colors.grey, fontSize: 13)));
+      children.add(
+        const Text(
+          'Aucun serveur trouvé',
+          style: TextStyle(color: Colors.grey, fontSize: 13),
+        ),
+      );
     } else {
       for (final s in staffBreakdown) {
         if (s is Map<String, dynamic>) {
@@ -522,27 +804,48 @@ class _DailyReportsScreenState extends State<DailyReportsScreen> {
                 color: const Color(0xFF1A237E).withOpacity(0.04),
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
-                    color: const Color(0xFF1A237E).withOpacity(0.1)),
+                  color: const Color(0xFF1A237E).withOpacity(0.1),
+                ),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(children: [
-                    const Icon(Icons.person_outline_rounded,
-                        size: 14, color: Color(0xFF1A237E)),
-                    const SizedBox(width: 4),
-                    Text('Serveur #${s['staff_id']}',
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.person_outline_rounded,
+                        size: 14,
+                        color: Color(0xFF1A237E),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Serveur #${s['staff_id']}',
                         style: const TextStyle(
-                            fontWeight: FontWeight.w700, fontSize: 13)),
-                  ]),
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 6),
                   _buildInfoRow('Commandes', '${s['orders_count']}'),
-                  _buildInfoRow('CA',
-                      '${(s['total_revenue'] as num?)?.toDouble().toStringAsFixed(2) ?? '0.00'} Dhs'),
+                  _buildInfoRow(
+                    'CA',
+                    '${(s['total_revenue'] as num?)?.toDouble().toStringAsFixed(2) ?? '0.00'} Dhs',
+                  ),
                   if (s.containsKey('payment_methods')) ...[
-                    _buildInfoRow('Espèces', '${(pm['cash'] as num?)?.toDouble().toStringAsFixed(2) ?? '0.00'} Dhs'),
-                    _buildInfoRow('TPE', '${(pm['tpe'] as num?)?.toDouble().toStringAsFixed(2) ?? '0.00'} Dhs'),
-                    _buildInfoRow('En compte', '${(pm['en_compte'] as num?)?.toDouble().toStringAsFixed(2) ?? '0.00'} Dhs'),
+                    _buildInfoRow(
+                      'Espèces',
+                      '${(pm['cash'] as num?)?.toDouble().toStringAsFixed(2) ?? '0.00'} Dhs',
+                    ),
+                    _buildInfoRow(
+                      'TPE',
+                      '${(pm['tpe'] as num?)?.toDouble().toStringAsFixed(2) ?? '0.00'} Dhs',
+                    ),
+                    _buildInfoRow(
+                      'En compte',
+                      '${(pm['en_compte'] as num?)?.toDouble().toStringAsFixed(2) ?? '0.00'} Dhs',
+                    ),
                   ],
                 ],
               ),
@@ -568,8 +871,12 @@ class _DailyReportsScreenState extends State<DailyReportsScreen> {
 
     final children = <Widget>[];
     if (deliveryBreakdown.isEmpty) {
-      children.add(const Text('Aucune livraison trouvée',
-          style: TextStyle(color: Colors.grey, fontSize: 13)));
+      children.add(
+        const Text(
+          'Aucune livraison trouvée',
+          style: TextStyle(color: Colors.grey, fontSize: 13),
+        ),
+      );
     } else {
       for (final d in deliveryBreakdown) {
         if (d is Map<String, dynamic>) {
@@ -581,23 +888,35 @@ class _DailyReportsScreenState extends State<DailyReportsScreen> {
                 color: const Color(0xFF00838F).withOpacity(0.05),
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
-                    color: const Color(0xFF00838F).withOpacity(0.2)),
+                  color: const Color(0xFF00838F).withOpacity(0.2),
+                ),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(children: [
-                    const Icon(Icons.delivery_dining_rounded,
-                        size: 14, color: Color(0xFF00838F)),
-                    const SizedBox(width: 4),
-                    Text('Livreur #${d['delivery_staff_id']}',
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.delivery_dining_rounded,
+                        size: 14,
+                        color: Color(0xFF00838F),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Livreur #${d['delivery_staff_id']}',
                         style: const TextStyle(
-                            fontWeight: FontWeight.w700, fontSize: 13)),
-                  ]),
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 6),
                   _buildInfoRow('Livraisons', '${d['delivery_count']}'),
-                  _buildInfoRow('CA',
-                      '${(d['delivery_revenue'] as num?)?.toDouble().toStringAsFixed(2) ?? '0.00'} Dhs'),
+                  _buildInfoRow(
+                    'CA',
+                    '${(d['delivery_revenue'] as num?)?.toDouble().toStringAsFixed(2) ?? '0.00'} Dhs',
+                  ),
                 ],
               ),
             ),
@@ -624,10 +943,7 @@ class _DailyReportsScreenState extends State<DailyReportsScreen> {
         children: [
           Text(
             label,
-            style: TextStyle(
-              fontSize: 13,
-              color: Colors.grey.shade700,
-            ),
+            style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
           ),
           Text(
             value,
@@ -679,8 +995,11 @@ class _DailyReportsScreenState extends State<DailyReportsScreen> {
                         color: const Color(0xFF1A237E).withOpacity(0.08),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Icon(Icons.filter_alt_rounded,
-                          size: 16, color: Color(0xFF1A237E)),
+                      child: const Icon(
+                        Icons.filter_alt_rounded,
+                        size: 16,
+                        color: Color(0xFF1A237E),
+                      ),
                     ),
                     const SizedBox(width: 8),
                     Text('Filtrer par période', style: SushiTypo.h4),
@@ -689,7 +1008,9 @@ class _DailyReportsScreenState extends State<DailyReportsScreen> {
                       const SizedBox(
                         width: 18,
                         height: 18,
-                        child: CircularProgressIndicator.adaptive(strokeWidth: 2),
+                        child: CircularProgressIndicator.adaptive(
+                          strokeWidth: 2,
+                        ),
                       ),
                   ],
                 ),
@@ -697,28 +1018,56 @@ class _DailyReportsScreenState extends State<DailyReportsScreen> {
                 Row(
                   children: [
                     // Date début
-                    Expanded(child: _buildDateButton(
-                      label: _startDate != null
-                          ? '${_startDate!.day}/${_startDate!.month}/${_startDate!.year}'
-                          : 'Date début',
-                      icon: Icons.calendar_month_rounded,
-                      active: _startDate != null,
-                      onTap: _selectStartDate,
-                    )),
+                    Expanded(
+                      child: _buildDateButton(
+                        label: _startDate != null
+                            ? '${_startDate!.day}/${_startDate!.month}/${_startDate!.year}'
+                            : 'Date début',
+                        icon: Icons.calendar_month_rounded,
+                        active: _startDate != null,
+                        onTap: _selectStartDate,
+                      ),
+                    ),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 8),
-                      child: Icon(Icons.arrow_forward_rounded,
-                          size: 16, color: Colors.grey.shade400),
+                      child: Icon(
+                        Icons.arrow_forward_rounded,
+                        size: 16,
+                        color: Colors.grey.shade400,
+                      ),
                     ),
                     // Date fin
-                    Expanded(child: _buildDateButton(
-                      label: _endDate != null
-                          ? '${_endDate!.day}/${_endDate!.month}/${_endDate!.year}'
-                          : 'Date fin',
-                      icon: Icons.calendar_month_rounded,
-                      active: _endDate != null,
-                      onTap: _selectEndDate,
-                    )),
+                    Expanded(
+                      child: _buildDateButton(
+                        label: _endDate != null
+                            ? '${_endDate!.day}/${_endDate!.month}/${_endDate!.year}'
+                            : 'Date fin',
+                        icon: Icons.calendar_month_rounded,
+                        active: _endDate != null,
+                        onTap: _selectEndDate,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    SizedBox(
+                      height: 38,
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF1A237E),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 10,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          elevation: 0,
+                        ),
+                        icon: const Icon(Icons.upload_file, size: 18),
+                        label: const Text('Générer'),
+                        onPressed: _generateAndSaveDailyReport,
+                      ),
+                    ),
                     const SizedBox(width: 8),
                     // Bouton reset
                     Tooltip(
@@ -763,8 +1112,10 @@ class _DailyReportsScreenState extends State<DailyReportsScreen> {
               child: Row(
                 children: [
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFF1A237E).withOpacity(0.1),
                       borderRadius: BorderRadius.circular(20),
@@ -792,8 +1143,8 @@ class _DailyReportsScreenState extends State<DailyReportsScreen> {
                     ),
                   )
                 : _reports.isEmpty
-                    ? _buildEmptyState()
-                    : _buildReportsList(),
+                ? _buildEmptyState()
+                : _buildReportsList(),
           ),
         ],
       ),
@@ -825,9 +1176,11 @@ class _DailyReportsScreenState extends State<DailyReportsScreen> {
         ),
         child: Row(
           children: [
-            Icon(icon,
-                size: 14,
-                color: active ? const Color(0xFF1A237E) : Colors.grey.shade500),
+            Icon(
+              icon,
+              size: 14,
+              color: active ? const Color(0xFF1A237E) : Colors.grey.shade500,
+            ),
             const SizedBox(width: 6),
             Expanded(
               child: Text(
@@ -836,7 +1189,9 @@ class _DailyReportsScreenState extends State<DailyReportsScreen> {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: active ? const Color(0xFF1A237E) : Colors.grey.shade600,
+                  color: active
+                      ? const Color(0xFF1A237E)
+                      : Colors.grey.shade600,
                 ),
               ),
             ),
@@ -923,7 +1278,10 @@ class _DailyReportsScreenState extends State<DailyReportsScreen> {
                       gradient: LinearGradient(
                         colors: isToday
                             ? [const Color(0xFF43A047), const Color(0xFF66BB6A)]
-                            : [const Color(0xFF1A237E), const Color(0xFF3949AB)],
+                            : [
+                                const Color(0xFF1A237E),
+                                const Color(0xFF3949AB),
+                              ],
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                       ),
@@ -933,7 +1291,9 @@ class _DailyReportsScreenState extends State<DailyReportsScreen> {
                   Expanded(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 14),
+                        horizontal: 14,
+                        vertical: 14,
+                      ),
                       child: Row(
                         children: [
                           // Icône
@@ -975,12 +1335,16 @@ class _DailyReportsScreenState extends State<DailyReportsScreen> {
                                       const SizedBox(width: 6),
                                       Container(
                                         padding: const EdgeInsets.symmetric(
-                                            horizontal: 6, vertical: 2),
+                                          horizontal: 6,
+                                          vertical: 2,
+                                        ),
                                         decoration: BoxDecoration(
-                                          color: const Color(0xFF43A047)
-                                              .withOpacity(0.12),
-                                          borderRadius:
-                                              BorderRadius.circular(6),
+                                          color: const Color(
+                                            0xFF43A047,
+                                          ).withOpacity(0.12),
+                                          borderRadius: BorderRadius.circular(
+                                            6,
+                                          ),
                                         ),
                                         child: const Text(
                                           'EN COURS',
@@ -1015,9 +1379,11 @@ class _DailyReportsScreenState extends State<DailyReportsScreen> {
                                   const SizedBox(height: 4),
                                   Row(
                                     children: [
-                                      Icon(Icons.person_outline_rounded,
-                                          size: 12,
-                                          color: Colors.grey.shade500),
+                                      Icon(
+                                        Icons.person_outline_rounded,
+                                        size: 12,
+                                        color: Colors.grey.shade500,
+                                      ),
                                       const SizedBox(width: 4),
                                       Text(
                                         staffName,
@@ -1038,7 +1404,9 @@ class _DailyReportsScreenState extends State<DailyReportsScreen> {
                               // Bouton impression
                               Container(
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFF43A047).withOpacity(0.07),
+                                  color: const Color(
+                                    0xFF43A047,
+                                  ).withOpacity(0.07),
                                   borderRadius: BorderRadius.circular(10),
                                 ),
                                 child: IconButton(
@@ -1047,7 +1415,8 @@ class _DailyReportsScreenState extends State<DailyReportsScreen> {
                                     size: 18,
                                     color: Color(0xFF43A047),
                                   ),
-                                  onPressed: () => _printDailyReport(reportData),
+                                  onPressed: () =>
+                                      _printDailyReport(reportData),
                                   tooltip: 'Imprimer le rapport',
                                   padding: const EdgeInsets.all(8),
                                   constraints: const BoxConstraints(),
@@ -1057,7 +1426,9 @@ class _DailyReportsScreenState extends State<DailyReportsScreen> {
                               // Bouton détail
                               Container(
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFF1A237E).withOpacity(0.07),
+                                  color: const Color(
+                                    0xFF1A237E,
+                                  ).withOpacity(0.07),
                                   borderRadius: BorderRadius.circular(10),
                                 ),
                                 child: IconButton(
@@ -1066,7 +1437,8 @@ class _DailyReportsScreenState extends State<DailyReportsScreen> {
                                     size: 18,
                                     color: Color(0xFF1A237E),
                                   ),
-                                  onPressed: () => _viewDetailedReport(reportData),
+                                  onPressed: () =>
+                                      _viewDetailedReport(reportData),
                                   tooltip: 'Voir le détail',
                                   padding: const EdgeInsets.all(8),
                                   constraints: const BoxConstraints(),
@@ -1198,10 +1570,7 @@ class _DailyReportsScreenState extends State<DailyReportsScreen> {
               ),
             ],
           ),
-          body: PdfPreview(
-            build: builder,
-            maxPageWidth: 700,
-          ),
+          body: PdfPreview(build: builder, maxPageWidth: 700),
         ),
       ),
     );

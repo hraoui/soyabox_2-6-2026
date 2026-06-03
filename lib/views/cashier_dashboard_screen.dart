@@ -12,7 +12,6 @@ class CashierDashboardScreen extends StatelessWidget {
 
   Future<void> _showDailyReportDialog(BuildContext context) async {
     try {
-      // Récupérer les données réelles du rapport journalier
       final authController = Get.find<AuthController>();
       final staffId = authController.currentUser?.id ?? 0;
       final staffName = authController.currentUser?.name ?? 'Inconnu';
@@ -25,7 +24,6 @@ class CashierDashboardScreen extends StatelessWidget {
         closedAt: null,
       );
 
-      // Afficher le rapport détaillé avec toutes les nouvelles données
       _viewDetailedReport(reportMap);
     } catch (e) {
       Get.snackbar(
@@ -41,36 +39,59 @@ class CashierDashboardScreen extends StatelessWidget {
 
     Get.dialog(
       Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
         child: Container(
           width: MediaQuery.of(Get.context!).size.width * 0.9,
           height: MediaQuery.of(Get.context!).size.height * 0.8,
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
+            color: const Color(0xFFF8F9FE),
+            borderRadius: BorderRadius.circular(20),
           ),
           child: Column(
             children: [
               // ── En-tête du rapport ──────────────────────────────────
               Container(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.fromLTRB(20, 18, 12, 18),
                 decoration: const BoxDecoration(
                   color: Color(0xFF1A237E),
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
                 ),
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      'Rapport Journalier Détaillé',
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(
+                        Icons.bar_chart_rounded,
                         color: Colors.white,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Text(
+                        'Rapport Journalier Détaillé',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                          letterSpacing: 0.2,
+                        ),
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.close, color: Colors.white),
+                      icon: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.15),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.close, color: Colors.white, size: 18),
+                      ),
                       onPressed: () => Get.back(),
                     ),
                   ],
@@ -84,43 +105,55 @@ class CashierDashboardScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Date du rapport
-                      _buildInfoRow('Date', report['date']),
-                      const SizedBox(height: 12),
-
-                      // Résumé financier
-                      const Text(
-                        'Résumé Financier',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF1A237E),
+                      // Date badge
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1A237E).withOpacity(0.08),
+                          borderRadius: BorderRadius.circular(30),
+                          border: Border.all(color: const Color(0xFF1A237E).withOpacity(0.18)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.calendar_today_rounded, size: 13, color: Color(0xFF1A237E)),
+                            const SizedBox(width: 6),
+                            Text(
+                              report['date']?.toString() ?? '',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF1A237E),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      _buildInfoRow(
-                        'Chiffre d\'affaires Total',
-                        '${(summary['total_revenue'] as double).toStringAsFixed(2)} Dhs',
-                      ),
-                      _buildInfoRow(
-                        'Nombre de Commandes',
-                        (summary['total_orders'] as int).toString(),
-                      ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 14),
 
-                      // Répartition par type de commande
+                      // Résumé financier
+                      _buildDialogSection(
+                        icon: Icons.account_balance_wallet_rounded,
+                        title: 'Résumé Financier',
+                        color: const Color(0xFF1A237E),
+                        children: [
+                          _buildInfoRow(
+                            'Chiffre d\'affaires Total',
+                            '${(summary['total_revenue'] as double).toStringAsFixed(2)} Dhs',
+                            highlight: true,
+                          ),
+                          _buildInfoRow(
+                            'Nombre de Commandes',
+                            (summary['total_orders'] as int).toString(),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+
                       ..._buildOrderTypesSection(summary),
-
-                      // Répartition par canal
                       ..._buildChannelsSection(summary),
-
-                      // Méthodes de paiement
                       ..._buildPaymentMethodsSection(summary),
-
-                      // Statistiques par serveur
                       ..._buildStaffBreakdownSection(summary),
-
-                      // Statistiques par livreur
                       ..._buildDeliveryBreakdownSection(summary),
                     ],
                   ),
@@ -133,215 +166,257 @@ class CashierDashboardScreen extends StatelessWidget {
     );
   }
 
+  Widget _buildDialogSection({
+    required IconData icon,
+    required String title,
+    required Color color,
+    required List<Widget> children,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8, offset: const Offset(0, 2)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.07),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
+              border: Border(bottom: BorderSide(color: color.withOpacity(0.1))),
+            ),
+            child: Row(
+              children: [
+                Icon(icon, size: 15, color: color),
+                const SizedBox(width: 8),
+                Text(
+                  title,
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: color),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: children),
+          ),
+        ],
+      ),
+    );
+  }
+
   List<Widget> _buildOrderTypesSection(Map<String, dynamic> summary) {
-    // Toujours afficher cette section car elle devrait toujours exister
     final orderTypes =
         summary['order_types'] as Map<String, int>? ??
         {'onsite': 0, 'pickup': 0, 'delivery': 0};
     return [
-      const Text(
-        'Répartition par Type de Commande',
-        style: TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.bold,
-          color: Color(0xFF1A237E),
-        ),
+      _buildDialogSection(
+        icon: Icons.restaurant_rounded,
+        title: 'Répartition par Type de Commande',
+        color: const Color(0xFF00897B),
+        children: [
+          _buildInfoRow('Sur place', (orderTypes['onsite'] ?? 0).toString()),
+          _buildInfoRow('À emporter', (orderTypes['pickup'] ?? 0).toString()),
+          _buildInfoRow('Livraison', (orderTypes['delivery'] ?? 0).toString()),
+        ],
       ),
-      const SizedBox(height: 8),
-      _buildInfoRow('Sur place', (orderTypes['onsite'] ?? 0).toString()),
-      _buildInfoRow('À emporter', (orderTypes['pickup'] ?? 0).toString()),
-      _buildInfoRow('Livraison', (orderTypes['delivery'] ?? 0).toString()),
-      const SizedBox(height: 16),
+      const SizedBox(height: 12),
     ];
   }
 
   List<Widget> _buildChannelsSection(Map<String, dynamic> summary) {
-    // Toujours afficher cette section car elle devrait toujours exister
     final channels =
         summary['channels'] as Map<String, double>? ??
         {'pos': 0.0, 'api': 0.0, 'web': 0.0, 'kiosk': 0.0};
     return [
-      const Text(
-        'Répartition par Canal',
-        style: TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.bold,
-          color: Color(0xFF1A237E),
-        ),
+      _buildDialogSection(
+        icon: Icons.device_hub_rounded,
+        title: 'Répartition par Canal',
+        color: const Color(0xFF6A1B9A),
+        children: [
+          _buildInfoRow('POS', '${(channels['pos'] ?? 0.0).toStringAsFixed(2)} Dhs'),
+          _buildInfoRow('API', '${(channels['api'] ?? 0.0).toStringAsFixed(2)} Dhs'),
+          _buildInfoRow('Web', '${(channels['web'] ?? 0.0).toStringAsFixed(2)} Dhs'),
+          _buildInfoRow('Kiosk', '${(channels['kiosk'] ?? 0.0).toStringAsFixed(2)} Dhs'),
+        ],
       ),
-      const SizedBox(height: 8),
-      _buildInfoRow(
-        'POS',
-        '${(channels['pos'] ?? 0.0).toStringAsFixed(2)} Dhs',
-      ),
-      _buildInfoRow(
-        'API',
-        '${(channels['api'] ?? 0.0).toStringAsFixed(2)} Dhs',
-      ),
-      _buildInfoRow(
-        'Web',
-        '${(channels['web'] ?? 0.0).toStringAsFixed(2)} Dhs',
-      ),
-      _buildInfoRow(
-        'Kiosk',
-        '${(channels['kiosk'] ?? 0.0).toStringAsFixed(2)} Dhs',
-      ),
-      const SizedBox(height: 16),
+      const SizedBox(height: 12),
     ];
   }
 
   List<Widget> _buildPaymentMethodsSection(Map<String, dynamic> summary) {
-    // Toujours afficher cette section car elle devrait toujours exister
     final paymentMethods =
         summary['payment_methods'] as Map<String, double>? ??
         {'cash': 0.0, 'tpe': 0.0, 'en_compte': 0.0, 'other': 0.0};
     return [
-      const Text(
-        'Méthodes de Paiement',
-        style: TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.bold,
-          color: Color(0xFF1A237E),
-        ),
+      _buildDialogSection(
+        icon: Icons.payments_rounded,
+        title: 'Méthodes de Paiement',
+        color: const Color(0xFFE65100),
+        children: [
+          _buildInfoRow('Espèces', '${(paymentMethods['cash'] ?? 0.0).toStringAsFixed(2)} Dhs'),
+          _buildInfoRow('TPE', '${(paymentMethods['tpe'] ?? 0.0).toStringAsFixed(2)} Dhs'),
+          _buildInfoRow('En compte', '${(paymentMethods['en_compte'] ?? 0.0).toStringAsFixed(2)} Dhs'),
+          _buildInfoRow('Autre', '${(paymentMethods['other'] ?? 0.0).toStringAsFixed(2)} Dhs'),
+        ],
       ),
-      const SizedBox(height: 8),
-      _buildInfoRow(
-        'Espèces',
-        '${(paymentMethods['cash'] ?? 0.0).toStringAsFixed(2)} Dhs',
-      ),
-      _buildInfoRow(
-        'TPE',
-        '${(paymentMethods['tpe'] ?? 0.0).toStringAsFixed(2)} Dhs',
-      ),
-      _buildInfoRow(
-        'En compte',
-        '${(paymentMethods['en_compte'] ?? 0.0).toStringAsFixed(2)} Dhs',
-      ),
-      _buildInfoRow(
-        'Autre',
-        '${(paymentMethods['other'] ?? 0.0).toStringAsFixed(2)} Dhs',
-      ),
-      const SizedBox(height: 16),
+      const SizedBox(height: 12),
     ];
   }
 
   List<Widget> _buildStaffBreakdownSection(Map<String, dynamic> summary) {
     final staffBreakdown = summary['staff_breakdown'] as List? ?? [];
 
-    final widgets = <Widget>[
-      const Text(
-        'Statistiques par Serveur',
-        style: TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.bold,
-          color: Color(0xFF1A237E),
-        ),
-      ),
-      const SizedBox(height: 8),
-    ];
+    final children = <Widget>[];
 
     if (staffBreakdown.isEmpty) {
-      widgets.add(const Text('Aucun serveur trouvé'));
-      widgets.add(const SizedBox(height: 16));
-      return widgets;
-    }
-
-    for (final staffStat in staffBreakdown) {
-      if (staffStat is Map<String, dynamic>) {
-        widgets.add(
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey.shade300),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Serveur ID: ${staffStat['staff_id']}'),
-                Text('Commandes: ${staffStat['orders_count']}'),
-                Text(
-                  'Chiffre d\'affaires: ${(staffStat['total_revenue'] as double).toStringAsFixed(2)} Dhs',
-                ),
-                if (staffStat.containsKey('payment_methods')) ...[
-                  const Text('Paiements:'),
-                  Text(
-                    '  - Espèces: ${(staffStat['payment_methods']['cash'] ?? 0.0).toStringAsFixed(2)} Dhs',
+      children.add(
+        const Text('Aucun serveur trouvé', style: TextStyle(color: Colors.grey, fontSize: 13)),
+      );
+    } else {
+      for (final staffStat in staffBreakdown) {
+        if (staffStat is Map<String, dynamic>) {
+          children.add(
+            Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1A237E).withOpacity(0.04),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFF1A237E).withOpacity(0.1)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.person_outline_rounded, size: 13, color: Color(0xFF1A237E)),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Serveur ID: ${staffStat['staff_id']}',
+                        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
+                      ),
+                    ],
                   ),
-                  Text(
-                    '  - TPE: ${(staffStat['payment_methods']['tpe'] ?? 0.0).toStringAsFixed(2)} Dhs',
+                  const SizedBox(height: 6),
+                  _buildInfoRow('Commandes', '${staffStat['orders_count']}'),
+                  _buildInfoRow(
+                    'Chiffre d\'affaires',
+                    '${(staffStat['total_revenue'] as double).toStringAsFixed(2)} Dhs',
                   ),
-                  Text(
-                    '  - En compte: ${(staffStat['payment_methods']['en_compte'] ?? 0.0).toStringAsFixed(2)} Dhs',
-                  ),
+                  if (staffStat.containsKey('payment_methods')) ...[
+                    _buildInfoRow(
+                      'Espèces',
+                      '${(staffStat['payment_methods']['cash'] ?? 0.0).toStringAsFixed(2)} Dhs',
+                    ),
+                    _buildInfoRow(
+                      'TPE',
+                      '${(staffStat['payment_methods']['tpe'] ?? 0.0).toStringAsFixed(2)} Dhs',
+                    ),
+                    _buildInfoRow(
+                      'En compte',
+                      '${(staffStat['payment_methods']['en_compte'] ?? 0.0).toStringAsFixed(2)} Dhs',
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
-          ),
-        );
-        widgets.add(const SizedBox(height: 8));
+          );
+        }
       }
     }
 
-    widgets.add(const SizedBox(height: 16));
-    return widgets;
+    return [
+      _buildDialogSection(
+        icon: Icons.people_alt_rounded,
+        title: 'Statistiques par Serveur',
+        color: const Color(0xFF1A237E),
+        children: children,
+      ),
+      const SizedBox(height: 12),
+    ];
   }
 
   List<Widget> _buildDeliveryBreakdownSection(Map<String, dynamic> summary) {
     final deliveryBreakdown = summary['delivery_breakdown'] as List? ?? [];
 
-    final widgets = <Widget>[
-      const Text(
-        'Statistiques par Livreur',
-        style: TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.bold,
-          color: Color(0xFF1A237E),
-        ),
-      ),
-      const SizedBox(height: 8),
-    ];
+    final children = <Widget>[];
 
     if (deliveryBreakdown.isEmpty) {
-      widgets.add(const Text('Aucune livraison trouvée'));
-      return widgets;
-    }
-
-    for (final deliveryStat in deliveryBreakdown) {
-      if (deliveryStat is Map<String, dynamic>) {
-        widgets.add(
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey.shade300),
-              borderRadius: BorderRadius.circular(8),
+      children.add(
+        const Text('Aucune livraison trouvée', style: TextStyle(color: Colors.grey, fontSize: 13)),
+      );
+    } else {
+      for (final deliveryStat in deliveryBreakdown) {
+        if (deliveryStat is Map<String, dynamic>) {
+          children.add(
+            Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: const Color(0xFF00838F).withOpacity(0.05),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFF00838F).withOpacity(0.2)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.delivery_dining_rounded, size: 13, color: Color(0xFF00838F)),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Livreur ID: ${deliveryStat['delivery_staff_id']}',
+                        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  _buildInfoRow('Livraisons', '${deliveryStat['delivery_count']}'),
+                  _buildInfoRow(
+                    'Chiffre d\'affaires',
+                    '${(deliveryStat['delivery_revenue'] as double).toStringAsFixed(2)} Dhs',
+                  ),
+                ],
+              ),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Livreur ID: ${deliveryStat['delivery_staff_id']}'),
-                Text('Livraisons: ${deliveryStat['delivery_count']}'),
-                Text(
-                  'Chiffre d\'affaires: ${(deliveryStat['delivery_revenue'] as double).toStringAsFixed(2)} Dhs',
-                ),
-              ],
-            ),
-          ),
-        );
-        widgets.add(const SizedBox(height: 8));
+          );
+        }
       }
     }
 
-    return widgets;
+    return [
+      _buildDialogSection(
+        icon: Icons.delivery_dining_rounded,
+        title: 'Statistiques par Livreur',
+        color: const Color(0xFF00838F),
+        children: children,
+      ),
+    ];
   }
 
-  Widget _buildInfoRow(String label, String value) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
-        Text(value),
-      ],
+  Widget _buildInfoRow(String label, String value, {bool highlight = false}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: highlight ? FontWeight.w800 : FontWeight.w600,
+              color: highlight ? const Color(0xFF1A237E) : Colors.black87,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -395,10 +470,7 @@ class CashierDashboardScreen extends StatelessWidget {
                               children: [
                                 Text(
                                   'Tableau de Bord',
-                                  style: TextStyle(
-                                    color: Colors.white70,
-                                    fontSize: 13,
-                                  ),
+                                  style: TextStyle(color: Colors.white70, fontSize: 13),
                                 ),
                                 Text(
                                   'Caissier',
@@ -429,11 +501,7 @@ class CashierDashboardScreen extends StatelessWidget {
                       color: Colors.white.withOpacity(0.15),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(
-                      Icons.logout,
-                      color: Colors.white,
-                      size: 20,
-                    ),
+                    child: const Icon(Icons.logout, color: Colors.white, size: 20),
                   ),
                   onPressed: () {
                     authController.logout();
@@ -460,7 +528,6 @@ class CashierDashboardScreen extends StatelessWidget {
                 _buildSectionTitle('Mes Actions'),
                 const SizedBox(height: 12),
 
-                // Voir les commandes
                 if (authController.currentRole == 'cashier' &&
                     authController.canViewOrders &&
                     authController.currentUser?.restaurantId != null &&
@@ -472,13 +539,11 @@ class CashierDashboardScreen extends StatelessWidget {
                     gradient: const LinearGradient(
                       colors: [Color(0xFF1565C0), Color(0xFF42A5F5)],
                     ),
-                    onTap: () =>
-                        Get.to(() => const CashierSimpleOrdersScreen()),
+                    onTap: () => Get.to(() => const CashierSimpleOrdersScreen()),
                   ),
                   const SizedBox(height: 12),
                 ],
 
-                // État financier
                 if (authController.currentRole == 'cashier' &&
                     authController.canViewFinancialStatus &&
                     authController.currentUser?.restaurantId != null &&
@@ -490,13 +555,11 @@ class CashierDashboardScreen extends StatelessWidget {
                     gradient: const LinearGradient(
                       colors: [Color(0xFF1B5E20), Color(0xFF43A047)],
                     ),
-                    onTap: () =>
-                        Get.to(() => const CashierSimpleFinancialScreen()),
+                    onTap: () => Get.to(() => const CashierSimpleFinancialScreen()),
                   ),
                   const SizedBox(height: 12),
                 ],
 
-                // Rapport journalier
                 if (authController.currentRole == 'cashier' &&
                     authController.currentUser?.restaurantId != null &&
                     authController.currentUser?.restaurantId != 0) ...[
@@ -512,7 +575,6 @@ class CashierDashboardScreen extends StatelessWidget {
                   const SizedBox(height: 12),
                 ],
 
-                // Gestion de caisse
                 if (authController.currentRole == 'cashier') ...[
                   _buildFeatureCard(
                     title: 'Gestion de caisse',
@@ -569,9 +631,7 @@ class CashierDashboardScreen extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.red.shade50, Colors.red.shade100],
-        ),
+        color: Colors.red.shade50,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.red.shade200),
       ),
@@ -629,15 +689,16 @@ class CashierDashboardScreen extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(16),
         child: Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.black.withOpacity(0.05)),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.06),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 3),
               ),
             ],
           ),
@@ -645,15 +706,15 @@ class CashierDashboardScreen extends StatelessWidget {
             children: [
               // Icône avec dégradé
               Container(
-                width: 52,
-                height: 52,
+                width: 48,
+                height: 48,
                 decoration: BoxDecoration(
                   gradient: gradient,
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(13),
                 ),
-                child: Icon(icon, color: Colors.white, size: 26),
+                child: Icon(icon, color: Colors.white, size: 24),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 14),
               // Texte
               Expanded(
                 child: Column(
@@ -662,7 +723,7 @@ class CashierDashboardScreen extends StatelessWidget {
                     Text(
                       title,
                       style: const TextStyle(
-                        fontSize: 15,
+                        fontSize: 14,
                         fontWeight: FontWeight.w700,
                         color: Color(0xFF1C1C1E),
                       ),
@@ -670,25 +731,22 @@ class CashierDashboardScreen extends StatelessWidget {
                     const SizedBox(height: 3),
                     Text(
                       subtitle,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF8E8E93),
-                      ),
+                      style: const TextStyle(fontSize: 12, color: Color(0xFF8E8E93)),
                     ),
                   ],
                 ),
               ),
               // Flèche
               Container(
-                width: 32,
-                height: 32,
+                width: 30,
+                height: 30,
                 decoration: BoxDecoration(
                   color: const Color(0xFFF2F2F7),
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(9),
                 ),
                 child: const Icon(
                   Icons.arrow_forward_ios_rounded,
-                  size: 14,
+                  size: 13,
                   color: Color(0xFF8E8E93),
                 ),
               ),
@@ -733,15 +791,16 @@ class CashierDashboardScreen extends StatelessWidget {
 
     final authController = Get.find<AuthController>();
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.black.withOpacity(0.05)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
@@ -751,15 +810,15 @@ class CashierDashboardScreen extends StatelessWidget {
           Row(
             children: [
               Container(
-                width: 56,
-                height: 56,
+                width: 52,
+                height: 52,
                 decoration: BoxDecoration(
                   color: bgColor,
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(14),
                 ),
-                child: Icon(statusIcon, color: statusColor, size: 28),
+                child: Icon(statusIcon, color: statusColor, size: 26),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -767,18 +826,15 @@ class CashierDashboardScreen extends StatelessWidget {
                     Text(
                       statusLabel,
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: 15,
                         fontWeight: FontWeight.w700,
                         color: statusColor,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 3),
                     Text(
                       'Dernière action : $staffInfo',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF8E8E93),
-                      ),
+                      style: const TextStyle(fontSize: 12, color: Color(0xFF8E8E93)),
                     ),
                   ],
                 ),
@@ -791,8 +847,8 @@ class CashierDashboardScreen extends StatelessWidget {
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: statusColor.withOpacity(0.4),
-                      blurRadius: 6,
+                      color: statusColor.withOpacity(0.35),
+                      blurRadius: 5,
                       spreadRadius: 2,
                     ),
                   ],
@@ -807,8 +863,7 @@ class CashierDashboardScreen extends StatelessWidget {
               child: ElevatedButton.icon(
                 onPressed: () async {
                   final staffId = authController.currentUser?.id ?? 0;
-                  final staffName =
-                      authController.currentUser?.name ?? 'Inconnu';
+                  final staffName = authController.currentUser?.name ?? 'Inconnu';
                   final success = await c.openCashRegister(
                     staffId: staffId,
                     staffName: staffName,
@@ -834,10 +889,7 @@ class CashierDashboardScreen extends StatelessWidget {
                     borderRadius: BorderRadius.circular(14),
                   ),
                   elevation: 0,
-                  textStyle: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                  ),
+                  textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
                 ),
               ),
             ),

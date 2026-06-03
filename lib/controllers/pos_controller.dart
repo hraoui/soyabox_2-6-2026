@@ -1803,6 +1803,9 @@ class PosController extends GetxController {
         final newTotal = existingTotal + newItemsTotal;
 
         order = _copyPosOrder(existingOrder)
+          ..staffId = existingOrder.staffId > 0
+              ? existingOrder.staffId
+              : _activeStaff!.id
           ..restaurantId = existingOrder.restaurantId ?? resolvedRestaurantId
           ..fulfillmentType = _fulfillmentType
           ..isGlovoDelivery = _isGlovoDelivery && _fulfillmentType == 'delivery'
@@ -1820,6 +1823,12 @@ class PosController extends GetxController {
           ..tableNumber = _tableNumber
           ..note = _note ?? note
           ..updatedAt = DateTime.now();
+        if (order.staffId <= 0) {
+          order.staffId = _activeStaff!.id;
+          appLogger.w(
+            '⚠️ [CREATE ORDER] Missing staffId detected on edited order, assigning active staff #${_activeStaff!.id}',
+          );
+        }
         orderId = await DatabaseService.updatePosOrder(order);
 
         appLogger.i('✏️ [SAVE EDIT] Order #${order.id} updated locally');

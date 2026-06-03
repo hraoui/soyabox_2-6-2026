@@ -5,14 +5,11 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:intl/intl.dart';
 import 'package:printing/printing.dart';
 import '../controllers/pos_controller.dart';
 import '../controllers/sync_controller.dart';
 import '../models/pos_order.dart';
 import '../models/pos_order_item.dart';
-import '../models/restaurant.dart';
-import '../models/user.dart';
 import '../services/app_settings_service.dart';
 import '../services/database_service.dart';
 import '../services/order_sync_service.dart';
@@ -38,11 +35,6 @@ class PosStaffOrdersScreen extends StatefulWidget {
 class _PosStaffOrdersScreenState extends State<PosStaffOrdersScreen> {
   Timer? _refreshTimer;
   static const Duration _refreshInterval = Duration(seconds: 30);
-  final TextEditingController _searchController = TextEditingController();
-  String _searchQuery = '';
-
-  String _selectedFulfillmentType = 'all';
-  DateTime _selectedDate = DateTime.now();
 
   // ✅ FIX: suppression de _filteredOrders comme état persistant.
   // Les commandes sont maintenant calculées à la volée depuis pos.ordersToday
@@ -80,16 +72,13 @@ class _PosStaffOrdersScreenState extends State<PosStaffOrdersScreen> {
   @override
   void dispose() {
     _refreshTimer?.cancel();
-    _searchController.dispose();
     super.dispose();
   }
 
   // ✅ FIX: calcul en ligne des commandes filtrées par date, sans état intermédiaire.
   // Appelé dans chaque build depuis pos.ordersToday (toujours à jour via GetX).
   List<PosOrder> _computeOrdersForDate(PosController pos) {
-    final orders = pos.ordersToday
-        .where((o) => _isSameDay(o.createdAt, _selectedDate))
-        .toList();
+    final orders = pos.ordersToday.toList();
     orders.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return orders;
   }
@@ -233,8 +222,6 @@ class _PosStaffOrdersScreenState extends State<PosStaffOrdersScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _filters(pos, ordersForDate),
-          SizedBox(height: gap),
           Expanded(
             child: ordersForDate.isEmpty
                 ? _emptyState()
@@ -263,26 +250,7 @@ class _PosStaffOrdersScreenState extends State<PosStaffOrdersScreen> {
                           : constraints.maxWidth;
 
                       // ✅ FIX: filtrage appliqué sur ordersForDate (déjà synchronisé)
-                      var displayOrders = _searchQuery.isEmpty
-                          ? ordersForDate
-                          : ordersForDate.where((order) {
-                              final orderId = order.id.toString();
-                              return orderId
-                                  .replaceAll('Id(', '')
-                                  .replaceAll(')', '')
-                                  .contains(_searchQuery.trim());
-                            }).toList();
-
-                      if (_selectedFulfillmentType != 'all') {
-                        displayOrders = displayOrders
-                            .where(
-                              (o) =>
-                                  o.fulfillmentType == _selectedFulfillmentType,
-                            )
-                            .toList();
-                      }
-
-                      displayOrders = displayOrders
+                      final displayOrders = ordersForDate
                           .where((order) => order.paymentStatus != 'paid')
                           .toList();
 
@@ -293,19 +261,17 @@ class _PosStaffOrdersScreenState extends State<PosStaffOrdersScreen> {
                       return ListView(
                         padding: EdgeInsets.only(bottom: gap),
                         children: [
-                          if (_searchQuery.isNotEmpty ||
-                              _selectedFulfillmentType != 'all')
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 12),
-                              child: Text(
-                                '${displayOrders.length} commande(s) affichée(s)',
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: AppColors.grisModerne,
-                                  fontWeight: FontWeight.w500,
-                                ),
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: Text(
+                              '${displayOrders.length} commande(s)',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: AppColors.grisModerne,
+                                fontWeight: FontWeight.w500,
                               ),
                             ),
+                          ),
                           AppWrapGrid.builder(
                             itemCount: displayOrders.length,
                             minChildWidth: minChildWidth,
@@ -345,242 +311,6 @@ class _PosStaffOrdersScreenState extends State<PosStaffOrdersScreen> {
   }
 
   // ✅ FIX: _filters reçoit ordersForDate en paramètre (calculé en ligne)
-  Widget _filters(PosController pos, List<PosOrder> ordersForDate) {
-    final total = ordersForDate.length;
-    final onSite = ordersForDate
-        .where((o) => o.fulfillmentType == 'on_site')
-        .length;
-    final pickup = ordersForDate
-        .where((o) => o.fulfillmentType == 'pickup')
-        .length;
-    final delivery = ordersForDate
-        .where((o) => o.fulfillmentType == 'delivery')
-        .length;
-
-    return AppSurfaceCard(
-      padding: const EdgeInsets.all(SushiSpace.md),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildDateSelector(ordersForDate),
-          const SizedBox(height: SushiSpace.sm),
-          Row(
-            children: [
-              const AppCardIconBadge(
-                icon: Icons.tune_rounded,
-                accent: AppColors.deepTeal,
-                background: Color(0xFFE8F5F0),
-                size: 40,
-                iconSize: 20,
-              ),
-              const SizedBox(width: SushiSpace.sm),
-              const Text(
-                'Filtres',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.charbon,
-                ),
-              ),
-              const Spacer(),
-              SizedBox(
-                width: 220,
-                child: TextField(
-                  controller: _searchController,
-                  decoration: InputDecoration(
-                    hintText: 'N° commande...',
-                    prefixIcon: const Icon(Icons.search, size: 20),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-                  ),
-                  onChanged: (value) {
-                    setState(() => _searchQuery = value.trim());
-                  },
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: SushiSpace.sm),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _filterChip('Tous', total, Icons.receipt_long),
-              _filterChip('Sur place', onSite, Icons.table_restaurant),
-              _filterChip('À emporter', pickup, Icons.shopping_bag),
-              _filterChip('Livraison', delivery, Icons.local_shipping),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ✅ FIX: _buildDateSelector reçoit ordersForDate pour afficher le bon total
-  Widget _buildDateSelector(List<PosOrder> ordersForDate) {
-    final dateFormat = DateFormat('EEEE d MMMM yyyy', 'fr_FR');
-    final displayDate = dateFormat.format(_selectedDate);
-    final isToday = _isSameDay(_selectedDate, DateTime.now());
-    final totalOrders = ordersForDate.length;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: AppColors.grisPale,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.calendar_today, size: 18, color: AppColors.deepTeal),
-          const SizedBox(width: 8),
-          Text(
-            isToday ? "Aujourd'hui" : displayDate,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: AppColors.charbon,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-            decoration: BoxDecoration(
-              color: AppColors.deepTeal.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(999),
-              border: Border.all(color: AppColors.deepTeal.withOpacity(0.3)),
-            ),
-            child: Text(
-              '$totalOrders commande${totalOrders > 1 ? 's' : ''}',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-                color: AppColors.deepTeal,
-              ),
-            ),
-          ),
-          const Spacer(),
-          IconButton(
-            icon: const Icon(Icons.chevron_left, size: 20),
-            onPressed: () {
-              setState(
-                () => _selectedDate = _selectedDate.subtract(
-                  const Duration(days: 1),
-                ),
-              );
-            },
-            tooltip: 'Jour précédent',
-            color: AppColors.deepTeal,
-          ),
-          if (!isToday)
-            TextButton.icon(
-              onPressed: () {
-                setState(() => _selectedDate = DateTime.now());
-              },
-              icon: const Icon(Icons.today, size: 16),
-              label: const Text("Aujourd'hui"),
-              style: TextButton.styleFrom(
-                foregroundColor: AppColors.deepTeal,
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              ),
-            ),
-          IconButton(
-            icon: const Icon(Icons.chevron_right, size: 20),
-            onPressed: _selectedDate.isBefore(DateTime.now())
-                ? () {
-                    setState(
-                      () => _selectedDate = _selectedDate.add(
-                        const Duration(days: 1),
-                      ),
-                    );
-                  }
-                : null,
-            tooltip: 'Jour suivant',
-            color: AppColors.deepTeal,
-          ),
-          const SizedBox(width: 4),
-          OutlinedButton.icon(
-            onPressed: _selectDate,
-            icon: const Icon(Icons.edit_calendar, size: 16),
-            label: const Text('Choisir'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppColors.deepTeal,
-              side: BorderSide(color: AppColors.deepTeal),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  bool _isSameDay(DateTime a, DateTime b) =>
-      a.year == b.year && a.month == b.month && a.day == b.day;
-
-  Future<void> _selectDate() async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: _selectedDate,
-      firstDate: DateTime.now().subtract(const Duration(days: 365)),
-      lastDate: DateTime.now().add(const Duration(days: 1)),
-      locale: const Locale('fr', 'FR'),
-    );
-    if (picked != null && picked != _selectedDate) {
-      setState(() => _selectedDate = picked);
-      // ✅ FIX: on recharge juste pos.ordersToday — le recalcul de la liste
-      // se fait automatiquement dans le prochain build via _computeOrdersForDate.
-      final pos = Get.find<PosController>();
-      await pos.loadOrdersToday();
-    }
-  }
-
-  Widget _filterChip(String label, int count, IconData icon) {
-    final isSelected =
-        (label == 'Tous' && _selectedFulfillmentType == 'all') ||
-        (label == 'Sur place' && _selectedFulfillmentType == 'on_site') ||
-        (label == 'À emporter' && _selectedFulfillmentType == 'pickup') ||
-        (label == 'Livraison' && _selectedFulfillmentType == 'delivery');
-
-    return FilterChip(
-      label: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            icon,
-            size: 16,
-            color: isSelected ? Colors.white : AppColors.deepTeal,
-          ),
-          const SizedBox(width: 6),
-          Text(
-            '$label ($count)',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: isSelected ? Colors.white : AppColors.deepTeal,
-            ),
-          ),
-        ],
-      ),
-      selected: isSelected,
-      onSelected: (selected) {
-        setState(() {
-          if (label == 'Tous') {
-            _selectedFulfillmentType = 'all';
-          } else if (label == 'Sur place') {
-            _selectedFulfillmentType = 'on_site';
-          } else if (label == 'À emporter') {
-            _selectedFulfillmentType = 'pickup';
-          } else if (label == 'Livraison') {
-            _selectedFulfillmentType = 'delivery';
-          }
-        });
-      },
-      selectedColor: AppColors.deepTeal,
-      checkmarkColor: Colors.white,
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-    );
-  }
 
   Widget _orderCard(PosController pos, PosOrder order) {
     final statusColor = _statusColor(order.status);

@@ -30,11 +30,11 @@ class DailyReportService {
     );
 
     // Calculer les statistiques détaillées
-    final summary = _calculateDetailedSummary(orders);
-    
+    final summary = await _calculateDetailedSummary(orders);
+
     // Préparer les données des commandes
     final ordersData = await _prepareOrdersData(orders);
-    
+
     // Obtenir le restaurant_id via Get.find pour éviter les problèmes d'initialisation
     int restaurantId = 1;
     try {
@@ -57,11 +57,13 @@ class DailyReportService {
   }
 
   /// Calcule le résumé détaillé des statistiques
-  static Map<String, dynamic> _calculateDetailedSummary(List<PosOrder> orders) {
+  static Future<Map<String, dynamic>> _calculateDetailedSummary(
+    List<PosOrder> orders,
+  ) async {
     double totalRevenue = 0.0;
     int totalOrders = orders.length;
 
-    // Répartition par mode de paiement (basée sur paymentMethod réel, même pour commandes non payées)
+    // Répartition par mode de paiement (basée sur les montants réellement payés)
     final paymentMethods = <String, double>{
       'cash': 0.0,
       'tpe': 0.0,
@@ -70,11 +72,7 @@ class DailyReportService {
     };
 
     // Répartition par type de commande
-    final orderTypes = <String, int>{
-      'onsite': 0,
-      'pickup': 0,
-      'delivery': 0,
-    };
+    final orderTypes = <String, int>{'onsite': 0, 'pickup': 0, 'delivery': 0};
 
     // Répartition par canal
     final channels = <String, double>{
@@ -91,65 +89,39 @@ class DailyReportService {
     final deliveryStats = <int, Map<String, dynamic>>{};
 
     for (final order in orders) {
-      // Calculer le chiffre d'affaires total sur TOUTES les commandes (même non payées)
-      final orderPrice = order.totalPrice;
-      if (orderPrice > 0) {
-        totalRevenue += orderPrice;
-        
-        // Analyser le mode de paiement (même pour commandes non payées)
-        // Utiliser normalizePaymentMethod pour une normalisation correcte
-        final paymentMethod = normalizePaymentMethod(order.paymentMethod);
-        if (paymentMethods.containsKey(paymentMethod)) {
-          paymentMethods[paymentMethod] = (paymentMethods[paymentMethod] ?? 0.0) + orderPrice;
-        } else {
-          paymentMethods['other'] = (paymentMethods['other'] ?? 0.0) + orderPrice;
-        }
+      final orderPaidMetrics = await _extractOrderPaymentMetrics(order);
+      final orderPaidAmount = orderPaidMetrics['paid_amount'] as double;
+      final orderPaymentMethods =
+          orderPaidMetrics['payment_methods'] as Map<String, double>;
 
-        // Analyser le type de commande
-        final fulfillmentType = (order.fulfillmentType).toLowerCase();
-        if (fulfillmentType == 'delivery') {
-          orderTypes['delivery'] = (orderTypes['delivery'] ?? 0) + 1;
-        } else if (fulfillmentType == 'pickup') {
-          orderTypes['pickup'] = (orderTypes['pickup'] ?? 0) + 1;
-        } else {
-          orderTypes['onsite'] = (orderTypes['onsite'] ?? 0) + 1;
-        }
+      totalRevenue += orderPaidAmount;
 
-        // Analyser le canal
-        final channel = (order.channel).toLowerCase();
-        if (channel == 'api') {
-          channels['api'] = (channels['api'] ?? 0.0) + orderPrice;
-        } else if (channel == 'web') {
-          channels['web'] = (channels['web'] ?? 0.0) + orderPrice;
-        } else if (channel == 'kiosk') {
-          channels['kiosk'] = (channels['kiosk'] ?? 0.0) + orderPrice;
-        } else {
-          channels['pos'] = (channels['pos'] ?? 0.0) + orderPrice;
-        }
-      } else {
-        // Commande sans prix - compter quand même pour les types et canaux
-        final fulfillmentType = (order.fulfillmentType).toLowerCase();
-        if (fulfillmentType == 'delivery') {
-          orderTypes['delivery'] = (orderTypes['delivery'] ?? 0) + 1;
-        } else if (fulfillmentType == 'pickup') {
-          orderTypes['pickup'] = (orderTypes['pickup'] ?? 0) + 1;
-        } else {
-          orderTypes['onsite'] = (orderTypes['onsite'] ?? 0) + 1;
-        }
-
-        final channel = (order.channel).toLowerCase();
-        if (channel == 'api') {
-          channels['api'] = (channels['api'] ?? 0.0);
-        } else if (channel == 'web') {
-          channels['web'] = (channels['web'] ?? 0.0);
-        } else if (channel == 'kiosk') {
-          channels['kiosk'] = (channels['kiosk'] ?? 0.0);
-        } else {
-          channels['pos'] = (channels['pos'] ?? 0.0);
-        }
+      for (final entry in orderPaymentMethods.entries) {
+        paymentMethods[entry.key] =
+            (paymentMethods[entry.key] ?? 0.0) + entry.value;
       }
 
-      // Statistiques par serveur - inclure TOUTES les commandes
+      final fulfillmentType = (order.fulfillmentType).toLowerCase();
+      if (fulfillmentType == 'delivery') {
+        orderTypes['delivery'] = (orderTypes['delivery'] ?? 0) + 1;
+      } else if (fulfillmentType == 'pickup') {
+        orderTypes['pickup'] = (orderTypes['pickup'] ?? 0) + 1;
+      } else {
+        orderTypes['onsite'] = (orderTypes['onsite'] ?? 0) + 1;
+      }
+
+      final orderPrice = order.totalPrice;
+      final channel = (order.channel).toLowerCase();
+      if (channel == 'api') {
+        channels['api'] = (channels['api'] ?? 0.0) + orderPrice;
+      } else if (channel == 'web') {
+        channels['web'] = (channels['web'] ?? 0.0) + orderPrice;
+      } else if (channel == 'kiosk') {
+        channels['kiosk'] = (channels['kiosk'] ?? 0.0) + orderPrice;
+      } else {
+        channels['pos'] = (channels['pos'] ?? 0.0) + orderPrice;
+      }
+
       final staffId = order.staffId;
       if (!staffStats.containsKey(staffId)) {
         staffStats[staffId] = {
@@ -164,24 +136,21 @@ class DailyReportService {
           },
         };
       }
-      
+
       final staffStat = staffStats[staffId]!;
       staffStat['orders_count'] = (staffStat['orders_count'] as int) + 1;
-      
-      if (orderPrice > 0) {
-        staffStat['total_revenue'] = (staffStat['total_revenue'] as double) + orderPrice;
-        
-        // Ajouter au mode de paiement du serveur
-        final paymentMethod = normalizePaymentMethod(order.paymentMethod);
-        final staffPaymentMethods = staffStat['payment_methods'] as Map<String, double>;
-        if (staffPaymentMethods.containsKey(paymentMethod)) {
-          staffPaymentMethods[paymentMethod] = (staffPaymentMethods[paymentMethod] ?? 0.0) + orderPrice;
-        } else {
-          staffPaymentMethods['other'] = (staffPaymentMethods['other'] ?? 0.0) + orderPrice;
+
+      if (orderPaidAmount > 0) {
+        staffStat['total_revenue'] =
+            (staffStat['total_revenue'] as double) + orderPaidAmount;
+        final staffPaymentMethods =
+            staffStat['payment_methods'] as Map<String, double>;
+        for (final entry in orderPaymentMethods.entries) {
+          staffPaymentMethods[entry.key] =
+              (staffPaymentMethods[entry.key] ?? 0.0) + entry.value;
         }
       }
 
-      // Statistiques par livreur
       if (order.deliveryLivreurId != null) {
         final deliveryStaffId = order.deliveryLivreurId!;
         if (!deliveryStats.containsKey(deliveryStaffId)) {
@@ -191,12 +160,13 @@ class DailyReportService {
             'delivery_revenue': 0.0,
           };
         }
-        
+
         final deliveryStat = deliveryStats[deliveryStaffId]!;
-        deliveryStat['delivery_count'] = (deliveryStat['delivery_count'] as int) + 1;
-        
+        deliveryStat['delivery_count'] =
+            (deliveryStat['delivery_count'] as int) + 1;
         if (orderPrice > 0) {
-          deliveryStat['delivery_revenue'] = (deliveryStat['delivery_revenue'] as double) + orderPrice;
+          deliveryStat['delivery_revenue'] =
+              (deliveryStat['delivery_revenue'] as double) + orderPrice;
         }
       }
     }
@@ -213,14 +183,16 @@ class DailyReportService {
   }
 
   /// Prépare les données des commandes pour le rapport
-  static Future<List<Map<String, dynamic>>> _prepareOrdersData(List<PosOrder> orders) async {
+  static Future<List<Map<String, dynamic>>> _prepareOrdersData(
+    List<PosOrder> orders,
+  ) async {
     final ordersData = <Map<String, dynamic>>[];
-    
+
     for (final order in orders) {
       // Obtenir les items de la commande
       final items = await DatabaseService.getPosOrderItems(order.id);
       final itemsCount = items.length;
-      
+
       ordersData.add({
         'order_id': order.id,
         'table_number': order.tableNumber,
@@ -236,7 +208,95 @@ class DailyReportService {
         'delivery_staff_id': order.deliveryLivreurId,
       });
     }
-    
+
     return ordersData;
+  }
+
+  static Future<Map<String, dynamic>> _extractOrderPaymentMetrics(
+    PosOrder order,
+  ) async {
+    final metrics = <String, double>{
+      'cash': 0.0,
+      'tpe': 0.0,
+      'en_compte': 0.0,
+      'other': 0.0,
+    };
+
+    double paidAmount = 0.0;
+
+    // Prefer paymentSplit if available
+    if (order.paymentSplit != null && order.paymentSplit!.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(order.paymentSplit!) as List<dynamic>;
+        for (final payment in decoded) {
+          final method = normalizePaymentMethod(
+            (payment['payment_method'] as String?) ?? '',
+          );
+          final amount = (payment['amount'] as num?)?.toDouble() ?? 0.0;
+          paidAmount += amount;
+          if (metrics.containsKey(method)) {
+            metrics[method] = (metrics[method] ?? 0.0) + amount;
+          } else {
+            metrics['other'] = (metrics['other'] ?? 0.0) + amount;
+          }
+        }
+      } catch (_) {
+        // ignore malformed split, fallback below
+      }
+    }
+
+    if (paidAmount <= 0) {
+      // If paymentSplit is not present or malformed, infer from status + order items
+      if (order.paymentStatus.trim().toLowerCase() == 'paid') {
+        paidAmount = order.totalPrice;
+        final method = normalizePaymentMethod(order.paymentMethod);
+        if (metrics.containsKey(method)) {
+          metrics[method] = (metrics[method] ?? 0.0) + paidAmount;
+        } else {
+          metrics['other'] = (metrics['other'] ?? 0.0) + paidAmount;
+        }
+      } else if (order.paymentStatus.trim().toLowerCase() == 'partially_paid') {
+        final items = await DatabaseService.getPosOrderItems(order.id);
+        final itemPaid = items.fold<double>(
+          0.0,
+          (sum, i) => sum + i.paidAmount,
+        );
+        if (itemPaid > 0) {
+          paidAmount = itemPaid;
+          if (order.paymentSplit != null && order.paymentSplit!.isNotEmpty) {
+            try {
+              final decoded = jsonDecode(order.paymentSplit!) as List<dynamic>;
+              for (final payment in decoded) {
+                final method = normalizePaymentMethod(
+                  (payment['payment_method'] as String?) ?? '',
+                );
+                final amount = (payment['amount'] as num?)?.toDouble() ?? 0.0;
+                if (metrics.containsKey(method)) {
+                  metrics[method] = (metrics[method] ?? 0.0) + amount;
+                } else {
+                  metrics['other'] = (metrics['other'] ?? 0.0) + amount;
+                }
+              }
+            } catch (_) {
+              final method = normalizePaymentMethod(order.paymentMethod);
+              if (metrics.containsKey(method)) {
+                metrics[method] = (metrics[method] ?? 0.0) + itemPaid;
+              } else {
+                metrics['other'] = (metrics['other'] ?? 0.0) + itemPaid;
+              }
+            }
+          } else {
+            final method = normalizePaymentMethod(order.paymentMethod);
+            if (metrics.containsKey(method)) {
+              metrics[method] = (metrics[method] ?? 0.0) + itemPaid;
+            } else {
+              metrics['other'] = (metrics['other'] ?? 0.0) + itemPaid;
+            }
+          }
+        }
+      }
+    }
+
+    return {'paid_amount': paidAmount, 'payment_methods': metrics};
   }
 }

@@ -11,6 +11,7 @@ import '../controllers/auth_controller.dart';
 import '../models/cash_register_state.dart';
 import '../services/database_service.dart';
 import '../services/daily_report_service.dart';
+import '../services/esc_pos_printer_service.dart';
 import '../theme/sushi_design.dart';
 import '../utils/pos_ticket_printer.dart';
 import '../widgets/admin_shell.dart';
@@ -472,7 +473,8 @@ class _DailyReportsScreenState extends State<DailyReportsScreen> {
                                   ),
                                   const SizedBox(height: 8),
                                   Text(
-                                    report['staff_name']?.toString() ?? 'Inconnu',
+                                    report['staff_name']?.toString() ??
+                                        'Inconnu',
                                     style: const TextStyle(
                                       fontSize: 15,
                                       fontWeight: FontWeight.w700,
@@ -819,7 +821,9 @@ class _DailyReportsScreenState extends State<DailyReportsScreen> {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        'Serveur #${s['staff_id']}',
+                        s['staff_name'] != null && s['staff_name'].toString().isNotEmpty
+                            ? 'Serveur ${s['staff_name']}'
+                            : 'Serveur #${s['staff_id']}',
                         style: const TextStyle(
                           fontWeight: FontWeight.w700,
                           fontSize: 13,
@@ -903,7 +907,9 @@ class _DailyReportsScreenState extends State<DailyReportsScreen> {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        'Livreur #${d['delivery_staff_id']}',
+                        d['delivery_staff_name'] != null && d['delivery_staff_name'].toString().isNotEmpty
+                            ? 'Livreur ${d['delivery_staff_name']}'
+                            : 'Livreur #${d['delivery_staff_id']}',
                         style: const TextStyle(
                           fontWeight: FontWeight.w700,
                           fontSize: 13,
@@ -1460,6 +1466,19 @@ class _DailyReportsScreenState extends State<DailyReportsScreen> {
   }
 
   Future<void> _printDailyReport(Map<String, dynamic> reportData) async {
+    final directPrinted = await EscPosPrinterService.instance
+        .tryPrintDailyReport(reportData);
+    if (directPrinted) {
+      Get.snackbar(
+        'Succès',
+        'Rapport journalier envoyé directement à l\'imprimante',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: const Color(0xFF22C55E),
+        colorText: Colors.white,
+      );
+      return;
+    }
+
     await _printOrPreview(
       builder: (format) => buildDailyReportPdf(reportData),
       fallbackTitle: 'Rapport journalier (aperçu)',

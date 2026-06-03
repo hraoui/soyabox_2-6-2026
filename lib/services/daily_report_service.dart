@@ -88,6 +88,17 @@ class DailyReportService {
     // Statistiques par livreur
     final deliveryStats = <int, Map<String, dynamic>>{};
 
+    final userNameCache = <int, String?>{};
+
+    Future<String?> resolveUserName(int? userId) async {
+      if (userId == null) return null;
+      if (userNameCache.containsKey(userId)) return userNameCache[userId];
+      final user = await DatabaseService.getUserById(userId);
+      final name = user?.name;
+      userNameCache[userId] = name;
+      return name;
+    }
+
     for (final order in orders) {
       final orderPaidMetrics = await _extractOrderPaymentMetrics(order);
       final orderPaidAmount = orderPaidMetrics['paid_amount'] as double;
@@ -124,8 +135,12 @@ class DailyReportService {
 
       final staffId = order.staffId;
       if (!staffStats.containsKey(staffId)) {
+        final staffName = (await resolveUserName(staffId))?.trim();
         staffStats[staffId] = {
           'staff_id': staffId,
+          'staff_name': staffName != null && staffName.isNotEmpty
+              ? staffName
+              : 'Serveur #$staffId',
           'orders_count': 0,
           'total_revenue': 0.0,
           'payment_methods': {
@@ -154,8 +169,12 @@ class DailyReportService {
       if (order.deliveryLivreurId != null) {
         final deliveryStaffId = order.deliveryLivreurId!;
         if (!deliveryStats.containsKey(deliveryStaffId)) {
+          final deliveryStaffName = (await resolveUserName(deliveryStaffId))?.trim() ?? order.deliveryLivreurName?.trim();
           deliveryStats[deliveryStaffId] = {
             'delivery_staff_id': deliveryStaffId,
+            'delivery_staff_name': deliveryStaffName != null && deliveryStaffName.isNotEmpty
+                ? deliveryStaffName
+                : 'Livreur #$deliveryStaffId',
             'delivery_count': 0,
             'delivery_revenue': 0.0,
           };
@@ -193,6 +212,15 @@ class DailyReportService {
       final items = await DatabaseService.getPosOrderItems(order.id);
       final itemsCount = items.length;
 
+      final orderStaffUser = await DatabaseService.getUserById(order.staffId);
+      final orderStaffName = orderStaffUser?.name.trim();
+      final orderDeliveryUser = order.deliveryLivreurId != null
+          ? await DatabaseService.getUserById(order.deliveryLivreurId!)
+          : null;
+      final orderDeliveryStaffName = orderDeliveryUser != null
+          ? orderDeliveryUser.name.trim()
+          : order.deliveryLivreurName?.trim();
+
       ordersData.add({
         'order_id': order.id,
         'table_number': order.tableNumber,
@@ -205,7 +233,9 @@ class DailyReportService {
         'items_count': itemsCount,
         'created_at': order.createdAt.toIso8601String(),
         'staff_id': order.staffId,
+        'staff_name': orderStaffName,
         'delivery_staff_id': order.deliveryLivreurId,
+        'delivery_staff_name': orderDeliveryStaffName,
       });
     }
 

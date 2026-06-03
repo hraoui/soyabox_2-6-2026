@@ -31,6 +31,7 @@ import '../services/database_service.dart';
 import '../services/order_sync_service.dart';
 import '../services/image_cache_service.dart';
 import '../services/app_settings_service.dart';
+import '../services/esc_pos_printer_service.dart';
 import '../utils/badge_code_utils.dart';
 import '../utils/pos_ticket_printer.dart';
 import '../utils/payment_method_utils.dart';
@@ -2207,20 +2208,40 @@ class _PosScreenState extends State<PosScreen> {
     );
   }
 
-  Future<void> _printTicket(PosOrder order, List<PosOrderItem> items) async {
-    await _printOrPreview(
-      builder: (format) => buildTicketPdf(order, items, format: format),
-      fallbackTitle: 'Ticket (aperçu)',
-      onFail: () => _showTextTicket(order, items, title: 'Ticket (texte)'),
-    );
-  }
-
   Future<void> _printKitchenTicket(
     PosOrder order,
-    List<PosOrderItem> items,
-  ) async {
+    List<PosOrderItem> items, {
+    String? staffName,
+    String? restaurantName,
+    String? restaurantPhone,
+  }) async {
+    final directPrinted = await EscPosPrinterService.instance
+        .tryPrintKitchenTicket(
+          order,
+          items,
+          staffName: staffName,
+          restaurantName: restaurantName,
+          restaurantPhone: restaurantPhone,
+        );
+    if (directPrinted) {
+      if (mounted) {
+        _notify(
+          'Ticket cuisine envoyé directement à l\'imprimante',
+          title: 'Impression',
+          type: POSSnackType.success,
+        );
+      }
+      return;
+    }
     await _printOrPreview(
-      builder: (format) => buildKitchenTicketPdf(order, items, format: format),
+      builder: (format) => buildKitchenTicketPdf(
+        order,
+        items,
+        format: format,
+        staffName: staffName,
+        restaurantName: restaurantName,
+        restaurantPhone: restaurantPhone,
+      ),
       fallbackTitle: 'Ticket cuisine (aperçu)',
       onFail: () =>
           _showTextTicket(order, items, title: 'Ticket cuisine (texte)'),
@@ -2303,16 +2324,15 @@ class _PosScreenState extends State<PosScreen> {
           orderId: savedOrderId,
           wasEditing: false,
           autoLock: true,
-          beforeAutoLock: () =>
-              _autoPrintKitchenAndCustomerByOrderId(savedOrderId),
+          beforeAutoLock: () => _autoPrintKitchenByOrderId(savedOrderId),
         );
         return;
       }
 
-      await _autoPrintKitchenAndCustomerByOrderId(orderId);
+      await _autoPrintKitchenByOrderId(orderId);
       if (!mounted) return;
       _notify(
-        'Tickets imprimés avec succès',
+        'Ticket cuisine imprimé avec succès',
         title: 'Impression',
         type: POSSnackType.success,
       );
@@ -2325,7 +2345,7 @@ class _PosScreenState extends State<PosScreen> {
     }
   }
 
-  Future<void> _autoPrintKitchenAndCustomerByOrderId(int orderId) async {
+  Future<void> _autoPrintKitchenByOrderId(int orderId) async {
     try {
       final order = await DatabaseService.getPosOrderById(orderId);
       if (order == null) return;
@@ -2355,7 +2375,7 @@ class _PosScreenState extends State<PosScreen> {
       }
       final restaurantPhone = auth?.currentUser?.phone;
 
-      await _printKitchenAndCustomerTickets(
+      await _printKitchenTicket(
         order,
         items,
         staffName: staffName,
@@ -2393,7 +2413,7 @@ class _PosScreenState extends State<PosScreen> {
       final restaurantPhone = auth?.currentUser?.phone;
 
       await _showTicketPreview(
-        (format) => buildKitchenAndCustomerTicketsPdf(
+        (format) => buildKitchenTicketPdf(
           order,
           items,
           format: format,
@@ -2401,34 +2421,9 @@ class _PosScreenState extends State<PosScreen> {
           restaurantName: restaurantName,
           restaurantPhone: restaurantPhone,
         ),
-        title: 'Tickets (aperçu, impression indisponible)',
+        title: 'Ticket cuisine (aperçu, impression indisponible)',
       );
     }
-  }
-
-  Future<void> _printKitchenAndCustomerTickets(
-    PosOrder order,
-    List<PosOrderItem> items, {
-    String? staffName,
-    String? restaurantName,
-    String? restaurantPhone,
-  }) async {
-    await _printOrPreview(
-      builder: (format) => buildKitchenAndCustomerTicketsPdf(
-        order,
-        items,
-        format: format,
-        staffName: staffName,
-        restaurantName: restaurantName,
-        restaurantPhone: restaurantPhone,
-      ),
-      fallbackTitle: 'Tickets (aperçu, imprimante absente)',
-      onFail: () => _showTextTicket(
-        order,
-        items,
-        title: 'Tickets (texte, imprimante absente)',
-      ),
-    );
   }
 
   bool _isMobileApi(PosOrder order) {
@@ -2738,10 +2733,7 @@ class _PosScreenState extends State<PosScreen> {
                                       order.id,
                                     );
                                 if (items.isNotEmpty) {
-                                  await _printKitchenAndCustomerTickets(
-                                    order,
-                                    items,
-                                  );
+                                  await _printKitchenTicket(order, items);
                                 }
                               } catch (e, st) {
                                 appLogger.e(

@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 
 import '../controllers/app_update_controller.dart';
 import '../controllers/settings_controller.dart';
+import '../models/app_settings.dart';
 import '../models/app_update_info.dart';
 import '../services/database_service.dart';
 import '../theme/sushi_design.dart';
@@ -26,6 +27,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late final TextEditingController _symbolController;
   late final TextEditingController _dayStartController;
   late final TextEditingController _dayEndController;
+  late final TextEditingController _printerHostController;
+  late final TextEditingController _printerPortController;
+  late final TextEditingController _kitchenPrinterHostController;
+  late final TextEditingController _kitchenPrinterPortController;
+  late bool _useEscPosPrinting;
+  late ReceiptPrinterTransport _printerTransport;
+  late ReceiptPrinterTransport _kitchenPrinterTransport;
   late final AppUpdateController _appUpdateController;
 
   @override
@@ -40,6 +48,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _dayEndController = TextEditingController(
       text: settings.dayEndHour.toString(),
     );
+    _printerHostController = TextEditingController(
+      text: settings.receiptPrinterHost ?? '',
+    );
+    _printerPortController = TextEditingController(
+      text: settings.receiptPrinterPort.toString(),
+    );
+    _kitchenPrinterHostController = TextEditingController(
+      text: settings.kitchenReceiptPrinterHost ?? '',
+    );
+    _kitchenPrinterPortController = TextEditingController(
+      text: settings.kitchenReceiptPrinterPort.toString(),
+    );
+    _useEscPosPrinting = settings.useEscPosPrinting;
+    _printerTransport = settings.receiptPrinterTransport;
+    _kitchenPrinterTransport = settings.kitchenReceiptPrinterTransport;
     _appUpdateController = Get.isRegistered<AppUpdateController>()
         ? Get.find<AppUpdateController>()
         : Get.put(AppUpdateController(), permanent: true);
@@ -54,6 +77,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _symbolController.dispose();
     _dayStartController.dispose();
     _dayEndController.dispose();
+    _printerHostController.dispose();
+    _printerPortController.dispose();
+    _kitchenPrinterHostController.dispose();
+    _kitchenPrinterPortController.dispose();
     super.dispose();
   }
 
@@ -72,14 +99,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
           return LayoutBuilder(
             builder: (context, constraints) {
               final grid = AppWrapGrid(
-                minChildWidth: constraints.maxWidth >= 1400 ? 320 : 360,
-                maxChildWidth: 440,
-                spacing: SushiSpace.lg,
-                runSpacing: SushiSpace.lg,
+                minChildWidth: constraints.maxWidth >= 1400 ? 280 : 300,
+                maxChildWidth: 380,
+                spacing: SushiSpace.md,
+                runSpacing: SushiSpace.md,
                 maxColumns: constraints.maxWidth >= 1400
-                    ? 3
+                    ? 4
                     : constraints.maxWidth >= 960
-                    ? 2
+                    ? 3
                     : 1,
                 children: [
                   _settingCard(
@@ -131,18 +158,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           style: TextStyle(fontSize: 13),
                         ),
                         const SizedBox(height: SushiSpace.sm),
-                        
+
                         // ✅ Afficher le nombre d'heures de travail
                         Container(
                           padding: const EdgeInsets.all(SushiSpace.md),
                           decoration: BoxDecoration(
                             color: SushiColors.teal.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: SushiColors.teal.withOpacity(0.3)),
+                            border: Border.all(
+                              color: SushiColors.teal.withOpacity(0.3),
+                            ),
                           ),
                           child: Row(
                             children: [
-                              Icon(Icons.access_time, color: SushiColors.teal, size: 24),
+                              Icon(
+                                Icons.access_time,
+                                color: SushiColors.teal,
+                                size: 24,
+                              ),
                               const SizedBox(width: SushiSpace.md),
                               Expanded(
                                 child: Column(
@@ -170,7 +203,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             ],
                           ),
                         ),
-                        
+
                         const SizedBox(height: SushiSpace.md),
                         Row(
                           children: [
@@ -266,6 +299,285 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ],
                       ),
                     ),
+                  _settingCard(
+                    icon: Icons.print,
+                    title: 'Imprimante ESC/POS',
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Impression directe vers une imprimante thermique réseau ou USB. '
+                          'En mode Auto, l\'app essaie d\'abord le réseau puis bascule vers l\'USB.',
+                          style: TextStyle(fontSize: 13),
+                        ),
+                        const SizedBox(height: SushiSpace.sm),
+                        SwitchListTile.adaptive(
+                          contentPadding: EdgeInsets.zero,
+                          title: const Text(
+                            'Activer l\'impression directe ESC/POS',
+                          ),
+                          subtitle: const Text(
+                            'Désactivé, les tickets repassent par l\'aperçu PDF.',
+                          ),
+                          value: _useEscPosPrinting,
+                          onChanged: (value) {
+                            setState(() => _useEscPosPrinting = value);
+                          },
+                        ),
+                        const SizedBox(height: SushiSpace.sm),
+                        DropdownButtonFormField<ReceiptPrinterTransport>(
+                          value: _printerTransport,
+                          decoration: const InputDecoration(
+                            labelText: 'Mode de connexion',
+                            prefixIcon: Icon(Icons.swap_horiz, size: 18),
+                          ),
+                          items: const [
+                            DropdownMenuItem(
+                              value: ReceiptPrinterTransport.auto,
+                              child: Text('Auto (réseau puis USB)'),
+                            ),
+                            DropdownMenuItem(
+                              value: ReceiptPrinterTransport.network,
+                              child: Text('Réseau'),
+                            ),
+                            DropdownMenuItem(
+                              value: ReceiptPrinterTransport.usb,
+                              child: Text('USB'),
+                            ),
+                          ],
+                          onChanged: (value) {
+                            if (value == null) return;
+                            setState(() => _printerTransport = value);
+                          },
+                        ),
+                        const SizedBox(height: SushiSpace.sm),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              flex: 3,
+                              child: _textField(
+                                controller: _printerHostController,
+                                label: 'IP imprimante (réseau)',
+                                hint: '192.168.1.50',
+                                icon: Icons.router,
+                                keyboardType: TextInputType.text,
+                              ),
+                            ),
+                            const SizedBox(width: SushiSpace.md),
+                            SizedBox(
+                              width: 140,
+                              child: _textField(
+                                controller: _printerPortController,
+                                label: 'Port TCP/IP',
+                                hint: '9100',
+                                icon: Icons.settings_ethernet,
+                                keyboardType: TextInputType.number,
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (_printerTransport ==
+                            ReceiptPrinterTransport.usb) ...[
+                          const SizedBox(height: SushiSpace.sm),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(SushiSpace.md),
+                            decoration: BoxDecoration(
+                              color: SushiColors.teal.withOpacity(0.08),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: SushiColors.teal.withOpacity(0.25),
+                              ),
+                            ),
+                            child: Text(
+                              'Mode USB actif: aucune adresse IP n\'est requise. '
+                              'L\'app scanne l\'imprimante USB au moment de l\'impression.',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: SushiColors.inkMid,
+                              ),
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: SushiSpace.md),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: SushiCTAButton(
+                            child: const Text('Enregistrer'),
+                            onPressed: () async {
+                              final host = _printerHostController.text.trim();
+                              final port =
+                                  int.tryParse(
+                                    _printerPortController.text.trim(),
+                                  ) ??
+                                  9100;
+
+                              if (_useEscPosPrinting &&
+                                  _printerTransport ==
+                                      ReceiptPrinterTransport.network &&
+                                  host.isEmpty) {
+                                _toast(
+                                  false,
+                                  'Renseignez l\'IP de l\'imprimante ESC/POS',
+                                );
+                                return;
+                              }
+
+                              if (port <= 0 || port > 65535) {
+                                _toast(false, 'Port imprimante invalide');
+                                return;
+                              }
+
+                              await controller.updatePrinterSettings(
+                                host: host,
+                                port: port,
+                                useEscPosPrinting: _useEscPosPrinting,
+                                transport: _printerTransport,
+                              );
+                              if (!mounted) return;
+                              _toast(
+                                true,
+                                'Paramètres d\'impression enregistrés',
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  _settingCard(
+                    icon: Icons.kitchen,
+                    title: 'Imprimante cuisine',
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Configurez une imprimante dédiée au ticket cuisine. '
+                          'Laisser vide pour utiliser la même imprimante que le ticket client.',
+                          style: TextStyle(fontSize: 13),
+                        ),
+                        const SizedBox(height: SushiSpace.sm),
+                        DropdownButtonFormField<ReceiptPrinterTransport>(
+                          value: _kitchenPrinterTransport,
+                          decoration: const InputDecoration(
+                            labelText: 'Mode de connexion',
+                            prefixIcon: Icon(Icons.swap_horiz, size: 18),
+                          ),
+                          items: const [
+                            DropdownMenuItem(
+                              value: ReceiptPrinterTransport.auto,
+                              child: Text('Auto (réseau puis USB)'),
+                            ),
+                            DropdownMenuItem(
+                              value: ReceiptPrinterTransport.network,
+                              child: Text('Réseau'),
+                            ),
+                            DropdownMenuItem(
+                              value: ReceiptPrinterTransport.usb,
+                              child: Text('USB'),
+                            ),
+                          ],
+                          onChanged: (value) {
+                            if (value == null) return;
+                            setState(() => _kitchenPrinterTransport = value);
+                          },
+                        ),
+                        const SizedBox(height: SushiSpace.sm),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              flex: 3,
+                              child: _textField(
+                                controller: _kitchenPrinterHostController,
+                                label: 'IP imprimante cuisine (réseau)',
+                                hint: '192.168.1.51',
+                                icon: Icons.router,
+                                keyboardType: TextInputType.text,
+                              ),
+                            ),
+                            const SizedBox(width: SushiSpace.md),
+                            SizedBox(
+                              width: 140,
+                              child: _textField(
+                                controller: _kitchenPrinterPortController,
+                                label: 'Port TCP/IP',
+                                hint: '9100',
+                                icon: Icons.settings_ethernet,
+                                keyboardType: TextInputType.number,
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (_kitchenPrinterTransport ==
+                            ReceiptPrinterTransport.usb) ...[
+                          const SizedBox(height: SushiSpace.sm),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(SushiSpace.md),
+                            decoration: BoxDecoration(
+                              color: SushiColors.teal.withOpacity(0.08),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: SushiColors.teal.withOpacity(0.25),
+                              ),
+                            ),
+                            child: Text(
+                              'Mode USB actif: aucune adresse IP n\'est requise. '
+                              'L\'app scanne l\'imprimante USB au moment de l\'impression.',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: SushiColors.inkMid,
+                              ),
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: SushiSpace.md),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: SushiCTAButton(
+                            child: const Text('Enregistrer imprimante cuisine'),
+                            onPressed: () async {
+                              final host = _kitchenPrinterHostController.text.trim();
+                              final port =
+                                  int.tryParse(
+                                    _kitchenPrinterPortController.text.trim(),
+                                  ) ??
+                                  9100;
+
+                              if (_useEscPosPrinting &&
+                                  _kitchenPrinterTransport ==
+                                      ReceiptPrinterTransport.network &&
+                                  host.isEmpty) {
+                                _toast(
+                                  false,
+                                  'Renseignez l\'IP de l\'imprimante cuisine',
+                                );
+                                return;
+                              }
+
+                              if (port <= 0 || port > 65535) {
+                                _toast(false, 'Port imprimante invalide');
+                                return;
+                              }
+
+                              await controller.updateKitchenPrinterSettings(
+                                host: host,
+                                port: port,
+                                transport: _kitchenPrinterTransport,
+                              );
+                              if (!mounted) return;
+                              _toast(
+                                true,
+                                'Paramètres imprimante cuisine enregistrés',
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                   _settingCard(
                     icon: Icons.apps,
                     title: 'Logo Application',
@@ -382,7 +694,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required Widget child,
   }) {
     return AppSurfaceCard(
-      padding: const EdgeInsets.all(SushiSpace.xl),
+      padding: const EdgeInsets.all(SushiSpace.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
@@ -393,16 +705,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 icon: icon,
                 accent: SushiColors.red,
                 background: SushiColors.redSurface,
-                size: 52,
-                iconSize: 24,
+                size: 46,
+                iconSize: 22,
               ),
-              const SizedBox(width: SushiSpace.md),
+              const SizedBox(width: SushiSpace.sm),
               Expanded(
-                child: Text(title, style: SushiTypo.h2.copyWith(fontSize: 20)),
+                child: Text(
+                  title,
+                  style:
+                      SushiTypo.h3.copyWith(fontSize: 18, fontWeight: FontWeight.w700),
+                ),
               ),
             ],
           ),
-          const SizedBox(height: SushiSpace.lg),
+          const SizedBox(height: SushiSpace.md),
           child,
         ],
       ),
@@ -861,7 +1177,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   /// Gère le cas où l'heure de fin est inférieure à l'heure de début (passe minuit)
   String _calculateWorkHours(int startHour, int endHour) {
     double hours;
-    
+
     if (endHour >= startHour) {
       // Cas normal: ex. 9h → 17h = 8 heures
       hours = (endHour - startHour).toDouble();
@@ -869,7 +1185,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       // Cas avec passage à minuit: ex. 22h → 6h = 8 heures
       hours = (24 - startHour + endHour).toDouble();
     }
-    
+
     // Formater: si entier, afficher sans décimale, sinon avec .5
     if (hours == hours.toInt()) {
       return '${hours.toInt()}';

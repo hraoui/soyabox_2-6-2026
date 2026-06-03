@@ -1,5 +1,6 @@
 // ignore_for_file: unused_element, unused_local_variable
 
+import 'dart:typed_data';
 import 'package:caisse_1/utils/pos_ticket_printer.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -7,6 +8,7 @@ import 'package:printing/printing.dart';
 import '../controllers/cash_register_controller.dart';
 import '../controllers/auth_controller.dart';
 import '../services/daily_report_service.dart';
+import '../services/esc_pos_printer_service.dart';
 
 class CashRegisterStatusScreen extends StatelessWidget {
   final CashRegisterController controller = Get.find<CashRegisterController>();
@@ -404,16 +406,43 @@ class CashRegisterStatusScreen extends StatelessWidget {
         closedAt: null,
       );
 
-      final bytes = await buildDailyReportPdf(report);
-      await Printing.layoutPdf(onLayout: (_) async => bytes);
+      final directPrinted = await EscPosPrinterService.instance
+          .tryPrintDailyReport(report);
+      if (directPrinted) {
+        Get.snackbar(
+          'Succès',
+          'Rapport journalier envoyé directement à l\'imprimante',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: const Color(0xFF22C55E),
+          colorText: Colors.white,
+        );
+        return;
+      }
 
-      Get.snackbar(
-        'Succès',
-        'Rapport journalier généré avec succès',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: const Color(0xFF22C55E),
-        colorText: Colors.white,
-      );
+      final bytes = await buildDailyReportPdf(report);
+      try {
+        await Printing.layoutPdf(
+          onLayout: (_) async => bytes,
+        ).timeout(const Duration(seconds: 6));
+
+        Get.snackbar(
+          'Succès',
+          'Rapport journalier généré avec succès',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: const Color(0xFF22C55E),
+          colorText: Colors.white,
+        );
+      } catch (e, st) {
+        debugPrint('Print failed for daily report: $e\n$st');
+        Get.snackbar(
+          'Imprimante absente',
+          'Le rapport ne peut pas être imprimé. Un aperçu est affiché à la place.',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: const Color(0xFFEF4444),
+          colorText: Colors.white,
+        );
+        await _showDailyReportPreview(bytes);
+      }
     } catch (e) {
       Get.snackbar(
         'Erreur',
@@ -424,15 +453,41 @@ class CashRegisterStatusScreen extends StatelessWidget {
       );
     }
   }
+
+  Future<void> _showDailyReportPreview(Uint8List bytes) async {
+    await Get.to(
+      () => Scaffold(
+        appBar: AppBar(
+          title: const Text('Rapport journalier (aperçu)'),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.print),
+              onPressed: () async {
+                try {
+                  await Printing.layoutPdf(onLayout: (_) async => bytes);
+                } catch (e) {
+                  Get.snackbar(
+                    'Erreur d\'impression',
+                    'Impossible d\'imprimer : $e',
+                    snackPosition: SnackPosition.BOTTOM,
+                  );
+                }
+              },
+            ),
+          ],
+        ),
+        body: PdfPreview(build: (_) async => bytes, maxPageWidth: 700),
+      ),
+    );
+  }
 }
 
 // ── Widgets compacts modernes ────────────────────────────────────────────
 
 class _CompactCard extends StatelessWidget {
   final Widget child;
-  final Color? accentColor;
 
-  const _CompactCard({required this.child, this.accentColor});
+  const _CompactCard({required this.child});
 
   @override
   Widget build(BuildContext context) {

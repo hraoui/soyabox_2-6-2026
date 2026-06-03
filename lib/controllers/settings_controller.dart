@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:file_picker/file_picker.dart';
 
@@ -14,7 +15,7 @@ class SettingsController extends GetxController {
   void onInit() {
     super.onInit();
     // AppSettingsService is already initialized in dependencies.dart
-    print('⚙️ [SETTINGS] SettingsController initialized');
+    debugPrint('⚙️ [SETTINGS] SettingsController initialized');
     load();
   }
 
@@ -29,15 +30,11 @@ class SettingsController extends GetxController {
     required String symbol,
   }) async {
     final current = settings;
-    final next = AppSettings(
+    final next = current.copyWith(
       currencyCode: code.trim().isEmpty ? current.currencyCode : code.trim(),
       currencySymbol: symbol.trim().isEmpty
           ? current.currencySymbol
           : symbol.trim(),
-      appLogoPath: current.appLogoPath,
-      ticketLogoPath: current.ticketLogoPath,
-      dayStartHour: current.dayStartHour,
-      dayEndHour: current.dayEndHour,
     );
     await AppSettingsService.instance.save(next);
     _settings.value = next;
@@ -49,11 +46,7 @@ class SettingsController extends GetxController {
     required int endHour,
   }) async {
     final current = settings;
-    final next = AppSettings(
-      currencyCode: current.currencyCode,
-      currencySymbol: current.currencySymbol,
-      appLogoPath: current.appLogoPath,
-      ticketLogoPath: current.ticketLogoPath,
+    final next = current.copyWith(
       dayStartHour: startHour.clamp(0, 23),
       dayEndHour: endHour.clamp(0, 23),
     );
@@ -69,12 +62,7 @@ class SettingsController extends GetxController {
         ? null
         : normalizedPath;
     final previousPath = current.appLogoPath;
-    final next = AppSettings(
-      currencyCode: current.currencyCode,
-      currencySymbol: current.currencySymbol,
-      appLogoPath: nextPath,
-      ticketLogoPath: current.ticketLogoPath,
-    );
+    final next = current.copyWith(appLogoPath: nextPath);
     await AppSettingsService.instance.save(next);
     if (previousPath != null && previousPath != nextPath) {
       await AppSettingsService.instance.deleteManagedLogo(previousPath);
@@ -90,16 +78,52 @@ class SettingsController extends GetxController {
         ? null
         : normalizedPath;
     final previousPath = current.ticketLogoPath;
-    final next = AppSettings(
-      currencyCode: current.currencyCode,
-      currencySymbol: current.currencySymbol,
-      appLogoPath: current.appLogoPath,
-      ticketLogoPath: nextPath,
-    );
+    final next = current.copyWith(ticketLogoPath: nextPath);
     await AppSettingsService.instance.save(next);
     if (previousPath != null && previousPath != nextPath) {
       await AppSettingsService.instance.deleteManagedLogo(previousPath);
     }
+    _settings.value = next;
+    update();
+  }
+
+  Future<void> updatePrinterSettings({
+    String? host,
+    int? port,
+    bool? useEscPosPrinting,
+    ReceiptPrinterTransport? transport,
+  }) async {
+    final current = settings;
+    final normalizedHost = host?.trim();
+    final next = current.copyWith(
+      receiptPrinterHost: normalizedHost == null || normalizedHost.isEmpty
+          ? null
+          : normalizedHost,
+      receiptPrinterPort: port ?? current.receiptPrinterPort,
+      useEscPosPrinting: useEscPosPrinting ?? current.useEscPosPrinting,
+      receiptPrinterTransport: transport ?? current.receiptPrinterTransport,
+    );
+    await AppSettingsService.instance.save(next);
+    _settings.value = next;
+    update();
+  }
+
+  Future<void> updateKitchenPrinterSettings({
+    String? host,
+    int? port,
+    ReceiptPrinterTransport? transport,
+  }) async {
+    final current = settings;
+    final normalizedHost = host?.trim();
+    final next = current.copyWith(
+      kitchenReceiptPrinterHost: normalizedHost == null || normalizedHost.isEmpty
+          ? null
+          : normalizedHost,
+      kitchenReceiptPrinterPort: port ?? current.kitchenReceiptPrinterPort,
+      kitchenReceiptPrinterTransport:
+          transport ?? current.kitchenReceiptPrinterTransport,
+    );
+    await AppSettingsService.instance.save(next);
     _settings.value = next;
     update();
   }

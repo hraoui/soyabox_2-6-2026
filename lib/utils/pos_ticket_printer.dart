@@ -1005,8 +1005,9 @@ Future<Uint8List> buildDailyReportPdf(Map<String, dynamic> reportData) async {
   final pickupCount = orderTypes['pickup'] as int? ?? 0;
   final deliveryCount = orderTypes['delivery'] as int? ?? 0;
 
-  // Statistiques par serveur
+  // Statistiques par serveur et livreur
   final staffBreakdown = summary['staff_breakdown'] as List<dynamic>? ?? [];
+  final deliveryBreakdown = summary['delivery_breakdown'] as List<dynamic>? ?? [];
 
   doc.addPage(
     pw.Page(
@@ -1020,20 +1021,32 @@ Future<Uint8List> buildDailyReportPdf(Map<String, dynamic> reportData) async {
           crossAxisAlignment: pw.CrossAxisAlignment.start,
           children: [
             // En-tête
-            pw.Center(
-              child: pw.Text(
-                'RAPPORT JOURNALIER',
-                style: pw.TextStyle(
-                  fontSize: 16,
-                  fontWeight: pw.FontWeight.bold,
-                ),
+            pw.Container(
+              width: double.infinity,
+              padding: const pw.EdgeInsets.symmetric(
+                horizontal: 8,
+                vertical: 10,
               ),
-            ),
-            pw.SizedBox(height: 8),
-            pw.Center(
-              child: pw.Text(
-                'Date: $dateStr',
-                style: pw.TextStyle(fontSize: 12),
+              decoration: pw.BoxDecoration(
+                border: pw.Border.all(color: PdfColors.grey500, width: 0.9),
+                borderRadius: pw.BorderRadius.circular(8),
+              ),
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.center,
+                children: [
+                  pw.Text(
+                    'RAPPORT JOURNALIER',
+                    style: pw.TextStyle(
+                      fontSize: 16,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                  ),
+                  pw.SizedBox(height: 4),
+                  pw.Text(
+                    'Date : $dateStr',
+                    style: pw.TextStyle(fontSize: 11),
+                  ),
+                ],
               ),
             ),
             pw.SizedBox(height: 12),
@@ -1092,6 +1105,10 @@ Future<Uint8List> buildDailyReportPdf(Map<String, dynamic> reportData) async {
               ...staffBreakdown.map((staff) {
                 final staffMap = staff as Map<String, dynamic>;
                 final staffId = staffMap['staff_id'] as int? ?? 0;
+                final staffNameRaw = (staffMap['staff_name'] as String?)?.trim();
+                final staffName = staffNameRaw != null && staffNameRaw.isNotEmpty
+                    ? staffNameRaw
+                    : 'Serveur #$staffId';
                 final ordersCount = staffMap['orders_count'] as int? ?? 0;
                 final totalRevenueStaff =
                     (staffMap['total_revenue'] as num?)?.toDouble() ?? 0.0;
@@ -1102,7 +1119,7 @@ Future<Uint8List> buildDailyReportPdf(Map<String, dynamic> reportData) async {
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
                     pw.Text(
-                      '   Serveur ID: $staffId',
+                      '   Serveur: $staffName',
                       style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
                     ),
                     _buildReportRow('      Commandes:', '$ordersCount'),
@@ -1132,6 +1149,39 @@ Future<Uint8List> buildDailyReportPdf(Map<String, dynamic> reportData) async {
                         '      En compte:',
                         '${(paymentMethodsStaff['en_compte'] as num?)?.toDouble().toStringAsFixed(2)} Dhs',
                       ),
+                    pw.SizedBox(height: 4),
+                  ],
+                );
+              }),
+            ],
+            if (deliveryBreakdown.isNotEmpty) ...[
+              pw.Text(
+                'Statistiques par livreur:',
+                style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+              ),
+              ...deliveryBreakdown.map((delivery) {
+                final deliveryMap = delivery as Map<String, dynamic>;
+                final deliveryStaffId = deliveryMap['delivery_staff_id'] as int? ?? 0;
+                final deliveryStaffNameRaw = (deliveryMap['delivery_staff_name'] as String?)?.trim();
+                final deliveryStaffName = deliveryStaffNameRaw != null && deliveryStaffNameRaw.isNotEmpty
+                    ? deliveryStaffNameRaw
+                    : 'Livreur #$deliveryStaffId';
+                final deliveryCount = deliveryMap['delivery_count'] as int? ?? 0;
+                final deliveryRevenue =
+                    (deliveryMap['delivery_revenue'] as num?)?.toDouble() ?? 0.0;
+
+                return pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text(
+                      '   Livreur: $deliveryStaffName',
+                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                    ),
+                    _buildReportRow('      Livraisons:', '$deliveryCount'),
+                    _buildReportRow(
+                      '      Chiffre d\'affaires:',
+                      '${deliveryRevenue.toStringAsFixed(2)} Dhs',
+                    ),
                     pw.SizedBox(height: 4),
                   ],
                 );

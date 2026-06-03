@@ -12,6 +12,7 @@ import '../models/pos_order.dart';
 import '../models/pos_order_item.dart';
 import '../services/app_settings_service.dart';
 import '../services/database_service.dart';
+import '../services/esc_pos_printer_service.dart';
 import '../services/order_sync_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/sushi_design.dart';
@@ -1681,9 +1682,19 @@ class _PosStaffOrdersScreenState extends State<PosStaffOrdersScreen> {
         );
         return;
       }
+      final directPrinted = await EscPosPrinterService.instance
+          .tryPrintCustomerTicket(order, items);
+      if (directPrinted) {
+        _notify(
+          'Ticket client envoyé directement à l\'imprimante',
+          title: 'Impression',
+          type: POSSnackType.success,
+        );
+        return;
+      }
       await Printing.layoutPdf(
         onLayout: (format) =>
-            buildKitchenAndCustomerTicketsPdf(order, items, format: format),
+            buildCustomerBillPdf(order, items, format: format),
         usePrinterSettings: false,
         dynamicLayout: false,
       );
@@ -2349,6 +2360,20 @@ class _PosStaffOrdersScreenState extends State<PosStaffOrdersScreen> {
                                   ? null
                                   : () async {
                                       try {
+                                        final directPrinted =
+                                            await EscPosPrinterService.instance
+                                                .tryPrintCustomerTicket(
+                                                  order,
+                                                  paidItemsForPrint,
+                                                );
+                                        if (directPrinted) {
+                                          _notify(
+                                            'Ticket partiel envoyé directement à l\'imprimante',
+                                            title: 'Impression',
+                                            type: POSSnackType.success,
+                                          );
+                                          return;
+                                        }
                                         await Printing.layoutPdf(
                                           onLayout: (format) =>
                                               buildCustomerBillPdf(

@@ -5,7 +5,7 @@ import 'package:get/get.dart';
 import 'package:printing/printing.dart';
 import '../controllers/pos_controller.dart';
 import '../models/pos_order.dart';
-import '../theme/sushi_design.dart';
+import '../services/esc_pos_printer_service.dart';
 import '../utils/pos_ticket_printer.dart';
 import '../services/database_service.dart';
 
@@ -19,11 +19,11 @@ class PosStaffPaidOrdersScreen extends StatefulWidget {
 
 class _PosStaffPaidOrdersScreenState extends State<PosStaffPaidOrdersScreen> {
   // ── palette ──────────────────────────────────────────────────────────────
-  static const _red    = Color(0xFFD32F2F);
-  static const _black  = Color(0xFF1A1A1A);
-  static const _grey   = Color(0xFF757575);
+  static const _red = Color(0xFFD32F2F);
+  static const _black = Color(0xFF1A1A1A);
+  static const _grey = Color(0xFF757575);
   static const _border = Color(0xFFE0E0E0);
-  static const _bg     = Color(0xFFF5F5F5);
+  static const _bg = Color(0xFFF5F5F5);
 
   final PosController pos = Get.find<PosController>();
   DateTime _selectedDate = DateTime.now();
@@ -44,12 +44,16 @@ class _PosStaffPaidOrdersScreenState extends State<PosStaffPaidOrdersScreen> {
     } catch (_) {}
     final all = pos.ordersToday;
     _filteredOrders = all
-        .where((o) =>
-            o.paymentStatus == 'paid' || o.paymentStatus == 'partially_paid')
-        .where((o) =>
-            o.createdAt.year  == _selectedDate.year  &&
-            o.createdAt.month == _selectedDate.month &&
-            o.createdAt.day   == _selectedDate.day)
+        .where(
+          (o) =>
+              o.paymentStatus == 'paid' || o.paymentStatus == 'partially_paid',
+        )
+        .where(
+          (o) =>
+              o.createdAt.year == _selectedDate.year &&
+              o.createdAt.month == _selectedDate.month &&
+              o.createdAt.day == _selectedDate.day,
+        )
         .toList();
     setState(() => _loading = false);
   }
@@ -73,28 +77,28 @@ class _PosStaffPaidOrdersScreenState extends State<PosStaffPaidOrdersScreen> {
   }
 
   String _paymentMethodLabel(String? method) => switch (method) {
-        'cash'  => 'Espèces',
-        'card'  => 'Carte',
-        'split' => 'Split',
-        null    => '—',
-        _       => method!,
-      };
+    'cash' => 'Espèces',
+    'card' => 'Carte',
+    'split' => 'Split',
+    null => '—',
+    _ => method,
+  };
 
   // ── channel badge ────────────────────────────────────────────────────────
   Widget _channelBadge(String? channel) {
     final c = channel?.trim().toLowerCase() ?? 'pos';
     final label = switch (c) {
-      'pos'      => 'POS',
-      'web'      => 'Web',
-      'api'      => 'API',
-      'mobile'   => 'Mobile',
-      _          => c.toUpperCase(),
+      'pos' => 'POS',
+      'web' => 'Web',
+      'api' => 'API',
+      'mobile' => 'Mobile',
+      _ => c.toUpperCase(),
     };
     final icon = switch (c) {
-      'web'    => Icons.language,
-      'api'    => Icons.code,
+      'web' => Icons.language,
+      'api' => Icons.code,
       'mobile' => Icons.smartphone,
-      _        => Icons.point_of_sale, // pos
+      _ => Icons.point_of_sale, // pos
     };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
@@ -108,11 +112,14 @@ class _PosStaffPaidOrdersScreenState extends State<PosStaffPaidOrdersScreen> {
         children: [
           Icon(icon, size: 10, color: _grey),
           const SizedBox(width: 3),
-          Text(label,
-              style: const TextStyle(
-                  fontSize: 9,
-                  fontWeight: FontWeight.w500,
-                  color: _grey)),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 9,
+              fontWeight: FontWeight.w500,
+              color: _grey,
+            ),
+          ),
         ],
       ),
     );
@@ -121,21 +128,34 @@ class _PosStaffPaidOrdersScreenState extends State<PosStaffPaidOrdersScreen> {
   // ── fulfillment helpers ───────────────────────────────────────────────────
   ({String label, IconData icon}) _fulfillmentInfo(String? type) =>
       switch (type) {
-        'on_site'  => (label: 'Sur place',  icon: Icons.table_restaurant),
-        'pickup'   => (label: 'À emporter', icon: Icons.shopping_bag_outlined),
-        'delivery' => (label: 'Livraison',  icon: Icons.delivery_dining),
-        _          => (label: 'Sur place',  icon: Icons.table_restaurant),
+        'on_site' => (label: 'Sur place', icon: Icons.table_restaurant),
+        'pickup' => (label: 'À emporter', icon: Icons.shopping_bag_outlined),
+        'delivery' => (label: 'Livraison', icon: Icons.delivery_dining),
+        _ => (label: 'Sur place', icon: Icons.table_restaurant),
       };
 
   Future<void> _printCustomerTicket(PosOrder order) async {
     try {
       final items = await DatabaseService.getPosOrderItems(order.id);
+      final directPrinted = await EscPosPrinterService.instance
+          .tryPrintCustomerTicket(order, items);
+      if (directPrinted) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Ticket envoye directement a l\'imprimante'),
+            ),
+          );
+        }
+        return;
+      }
       final pdfData = await buildCustomerBillPdf(order, items);
       await Printing.layoutPdf(onLayout: (_) async => pdfData);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Erreur impression: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Erreur impression: $e')));
       }
     }
   }
@@ -176,8 +196,10 @@ class _PosStaffPaidOrdersScreenState extends State<PosStaffPaidOrdersScreen> {
                 ),
                 // payment status chip
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 3,
+                  ),
                   decoration: BoxDecoration(
                     color: isPartial ? Colors.white12 : _red,
                     borderRadius: BorderRadius.circular(4),
@@ -205,7 +227,7 @@ class _PosStaffPaidOrdersScreenState extends State<PosStaffPaidOrdersScreen> {
               children: [
                 Icon(ff.icon, size: 12, color: _red),
                 const SizedBox(width: 5),
-                                Text(
+                Text(
                   ff.label,
                   style: const TextStyle(
                     fontSize: 11,
@@ -241,7 +263,7 @@ class _PosStaffPaidOrdersScreenState extends State<PosStaffPaidOrdersScreen> {
                 _infoRow(
                   'Heure',
                   '${order.createdAt.hour.toString().padLeft(2, '0')}:'
-                  '${order.createdAt.minute.toString().padLeft(2, '0')}',
+                      '${order.createdAt.minute.toString().padLeft(2, '0')}',
                 ),
               ],
             ),
@@ -278,17 +300,19 @@ class _PosStaffPaidOrdersScreenState extends State<PosStaffPaidOrdersScreen> {
   }
 
   Widget _infoRow(String label, String value) => Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label,
-              style: TextStyle(fontSize: 11, color: _grey)),
-          Text(value,
-              style: const TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w500,
-                  color: _black)),
-        ],
-      );
+    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    children: [
+      Text(label, style: TextStyle(fontSize: 11, color: _grey)),
+      Text(
+        value,
+        style: const TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w500,
+          color: _black,
+        ),
+      ),
+    ],
+  );
 
   void _onSearchChanged() {
     final q = _searchController.text.trim().toLowerCase();
@@ -298,9 +322,8 @@ class _PosStaffPaidOrdersScreenState extends State<PosStaffPaidOrdersScreen> {
     }
     setState(() {
       _filteredOrders = _filteredOrders.where((o) {
-        final s =
-            '${o.id} ${o.customerName ?? ''} ${o.customerPhone ?? ''}'
-                .toLowerCase();
+        final s = '${o.id} ${o.customerName ?? ''} ${o.customerPhone ?? ''}'
+            .toLowerCase();
         return s.contains(q);
       }).toList();
     });
@@ -339,29 +362,33 @@ class _PosStaffPaidOrdersScreenState extends State<PosStaffPaidOrdersScreen> {
                       controller: _searchController,
                       style: const TextStyle(fontSize: 13),
                       decoration: InputDecoration(
-                        contentPadding:
-                            const EdgeInsets.symmetric(vertical: 0),
-                        prefixIcon:
-                            const Icon(Icons.search, size: 18, color: _grey),
+                        contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                        prefixIcon: const Icon(
+                          Icons.search,
+                          size: 18,
+                          color: _grey,
+                        ),
                         hintText: 'Recherche…',
-                        hintStyle:
-                            const TextStyle(fontSize: 13, color: _grey),
+                        hintStyle: const TextStyle(fontSize: 13, color: _grey),
                         filled: true,
                         fillColor: Colors.white,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
-                          borderSide:
-                              const BorderSide(color: _border, width: 0.8),
+                          borderSide: const BorderSide(
+                            color: _border,
+                            width: 0.8,
+                          ),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
-                          borderSide:
-                              const BorderSide(color: _border, width: 0.8),
+                          borderSide: const BorderSide(
+                            color: _border,
+                            width: 0.8,
+                          ),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
-                          borderSide:
-                              const BorderSide(color: _red, width: 1.2),
+                          borderSide: const BorderSide(color: _red, width: 1.2),
                         ),
                       ),
                       onChanged: (_) => _onSearchChanged(),
@@ -392,17 +419,17 @@ class _PosStaffPaidOrdersScreenState extends State<PosStaffPaidOrdersScreen> {
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.calendar_today,
-                            size: 14, color: _red),
+                        const Icon(Icons.calendar_today, size: 14, color: _red),
                         const SizedBox(width: 6),
                         Text(
                           '${_selectedDate.year}-'
                           '${_selectedDate.month.toString().padLeft(2, '0')}-'
                           '${_selectedDate.day.toString().padLeft(2, '0')}',
                           style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                              color: _black),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: _black,
+                          ),
                         ),
                       ],
                     ),
@@ -415,13 +442,15 @@ class _PosStaffPaidOrdersScreenState extends State<PosStaffPaidOrdersScreen> {
             // ── grid ─────────────────────────────────────────────────────
             if (_loading)
               const Expanded(
-                  child: Center(
-                      child: CircularProgressIndicator(color: _red)))
+                child: Center(child: CircularProgressIndicator(color: _red)),
+              )
             else if (_filteredOrders.isEmpty)
               const Expanded(
                 child: Center(
-                  child: Text('Aucune commande trouvée',
-                      style: TextStyle(color: _grey, fontSize: 13)),
+                  child: Text(
+                    'Aucune commande trouvée',
+                    style: TextStyle(color: _grey, fontSize: 13),
+                  ),
                 ),
               )
             else
@@ -432,11 +461,11 @@ class _PosStaffPaidOrdersScreenState extends State<PosStaffPaidOrdersScreen> {
                   child: GridView.builder(
                     gridDelegate:
                         const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 6,
-                      crossAxisSpacing: 10,
-                      mainAxisSpacing: 10,
-                      childAspectRatio: 1.05,
-                    ),
+                          crossAxisCount: 6,
+                          crossAxisSpacing: 10,
+                          mainAxisSpacing: 10,
+                          childAspectRatio: 1.05,
+                        ),
                     itemCount: _filteredOrders.length,
                     itemBuilder: (_, i) => _orderCard(_filteredOrders[i]),
                   ),

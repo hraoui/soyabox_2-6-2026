@@ -298,7 +298,9 @@ class CashierDashboardScreen extends StatelessWidget {
                       const Icon(Icons.person_outline_rounded, size: 13, color: Color(0xFF1A237E)),
                       const SizedBox(width: 4),
                       Text(
-                        'Serveur ID: ${staffStat['staff_id']}',
+                        staffStat['staff_name'] != null && staffStat['staff_name'].toString().isNotEmpty
+                            ? 'Serveur ${staffStat['staff_name']}'
+                            : 'Serveur ID: ${staffStat['staff_id']}',
                         style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
                       ),
                     ],
@@ -371,7 +373,9 @@ class CashierDashboardScreen extends StatelessWidget {
                       const Icon(Icons.delivery_dining_rounded, size: 13, color: Color(0xFF00838F)),
                       const SizedBox(width: 4),
                       Text(
-                        'Livreur ID: ${deliveryStat['delivery_staff_id']}',
+                        deliveryStat['delivery_staff_name'] != null && deliveryStat['delivery_staff_name'].toString().isNotEmpty
+                            ? 'Livreur ${deliveryStat['delivery_staff_name']}'
+                            : 'Livreur ID: ${deliveryStat['delivery_staff_id']}',
                         style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
                       ),
                     ],

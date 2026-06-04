@@ -68,7 +68,7 @@ class EscPosPrinterService {
         restaurantName: restaurantName,
         restaurantPhone: restaurantPhone,
       );
-      await _sendBytes(bytes);
+      await _sendBytes(bytes, useKitchenPrinter: true);
       return true;
     } catch (e, st) {
       debugPrint('ESC/POS kitchen ticket failed: $e\n$st');
@@ -96,7 +96,7 @@ class EscPosPrinterService {
         restaurantName: restaurantName,
         restaurantPhone: restaurantPhone,
       );
-      await _sendBytes(bytes);
+      await _sendBytes(bytes, useKitchenPrinter: false);
       return true;
     } catch (e, st) {
       debugPrint('ESC/POS customer ticket failed: $e\n$st');
@@ -181,7 +181,8 @@ class EscPosPrinterService {
     final dateStr = reportData['date']?.toString() ?? '';
     final staffName = reportData['staff_name']?.toString() ?? '';
     final staffBreakdown = summary['staff_breakdown'] as List<dynamic>? ?? [];
-    final deliveryBreakdown = summary['delivery_breakdown'] as List<dynamic>? ?? [];
+    final deliveryBreakdown =
+        summary['delivery_breakdown'] as List<dynamic>? ?? [];
 
     List<int> bytes = [];
     bytes += generator.text(
@@ -212,7 +213,7 @@ class EscPosPrinterService {
 
     bytes += _divider(generator);
     bytes += generator.text(
-      'Résumé',
+      'Resume',
       styles: const PosStyles(align: PosAlign.left, bold: true),
       linesAfter: 1,
     );
@@ -263,7 +264,7 @@ class EscPosPrinterService {
       styles: const PosStyles(align: PosAlign.left),
     );
     bytes += generator.text(
-      _escPosText('À emporter : $pickupCount'),
+      _escPosText('A emporter : $pickupCount'),
       styles: const PosStyles(align: PosAlign.left),
     );
     bytes += generator.text(
@@ -308,13 +309,18 @@ class EscPosPrinterService {
         styles: const PosStyles(bold: true),
         linesAfter: 1,
       );
-      for (final deliveryRow in deliveryBreakdown.cast<Map<String, dynamic>>()) {
-        final deliveryStaffId = deliveryRow['delivery_staff_id']?.toString() ?? 'N/A';
-        final rawDeliveryStaffName = deliveryRow['delivery_staff_name']?.toString().trim();
-        final deliveryStaffName = rawDeliveryStaffName != null && rawDeliveryStaffName.isNotEmpty
+      for (final deliveryRow
+          in deliveryBreakdown.cast<Map<String, dynamic>>()) {
+        final deliveryStaffId =
+            deliveryRow['delivery_staff_id']?.toString() ?? 'N/A';
+        final rawDeliveryStaffName =
+            deliveryRow['delivery_staff_name']?.toString().trim();
+        final deliveryStaffName =
+            rawDeliveryStaffName != null && rawDeliveryStaffName.isNotEmpty
             ? rawDeliveryStaffName
             : 'Livreur $deliveryStaffId';
-        final deliveryCount = deliveryRow['delivery_count']?.toString() ?? '0';
+        final deliveryCount =
+            deliveryRow['delivery_count']?.toString() ?? '0';
         final deliveryRevenue =
             (deliveryRow['delivery_revenue'] as num?)?.toDouble() ?? 0.0;
 
@@ -422,9 +428,9 @@ class EscPosPrinterService {
         paymentStatus == 'paid' ||
         (hasPaymentEntries && remainingAmount <= 0.01);
     final paymentTitle = isPartialPayment
-        ? 'REÇU PAIEMENT PARTIEL'
+        ? 'RECU PAIEMENT PARTIEL'
         : isPaidPayment
-        ? 'REÇU PAIEMENT'
+        ? 'RECU PAIEMENT'
         : 'ADDITION CLIENT';
     final paymentMethodsLabel = paymentEntries.isNotEmpty
         ? paymentEntries
@@ -512,10 +518,10 @@ class EscPosPrinterService {
       bytes += generator.text(
         _escPosText('Etat: ${_paymentStatusLabel(order)}'),
       );
-      bytes += generator.text(_escPosText('Méthode: $paymentMethodsLabel'));
+      bytes += generator.text(_escPosText('Methode: $paymentMethodsLabel'));
       if (paymentEntries.isNotEmpty) {
         bytes += generator.text(
-          'Détails des paiements:',
+          'Details des paiements:',
           styles: const PosStyles(bold: true),
         );
         for (final entry in paymentEntries) {
@@ -534,7 +540,7 @@ class EscPosPrinterService {
       }
       if (remainingAmount > 0.01) {
         bytes += generator.text(
-          _escPosText('Reste à payer: ${_money(remainingAmount)}'),
+          _escPosText('Reste a payer: ${_money(remainingAmount)}'),
           styles: const PosStyles(bold: true),
           linesAfter: 1,
         );
@@ -548,7 +554,7 @@ class EscPosPrinterService {
       styles: const PosStyles(align: PosAlign.center, bold: true),
     );
     bytes += generator.text(
-      'À bientôt!',
+      'A bientot!',
       styles: const PosStyles(align: PosAlign.center),
     );
     bytes += generator.feed(1);
@@ -590,12 +596,14 @@ class EscPosPrinterService {
     await AppSettingsService.instance.init();
     final settings = AppSettingsService.instance.settings;
     if (!settings.useEscPosPrinting) {
-      throw StateError('Impression ESC/POS désactivée');
+      throw StateError('Impression ESC/POS desactivee');
     }
-    final host = (useKitchenPrinter
-            ? settings.kitchenReceiptPrinterHost
-            : settings.receiptPrinterHost)
-        ?.trim() ?? '';
+    final host =
+        (useKitchenPrinter
+                ? settings.kitchenReceiptPrinterHost
+                : settings.receiptPrinterHost)
+            ?.trim() ??
+        '';
     final port = useKitchenPrinter
         ? settings.kitchenReceiptPrinterPort
         : settings.receiptPrinterPort;
@@ -603,10 +611,14 @@ class EscPosPrinterService {
         ? settings.kitchenReceiptPrinterTransport
         : settings.receiptPrinterTransport;
 
+    debugPrint(
+      'ESC/POS _sendBytes: transport=$transport host=$host port=$port kitchen=$useKitchenPrinter',
+    );
+
     switch (transport) {
       case ReceiptPrinterTransport.network:
         if (host.isEmpty) {
-          throw StateError('Aucune imprimante réseau configurée');
+          throw StateError('Aucune imprimante reseau configuree');
         }
         await _sendBytesOverNetwork(bytes, host: host, port: port);
         return;
@@ -634,6 +646,7 @@ class EscPosPrinterService {
     required String host,
     required int port,
   }) async {
+    debugPrint('ESC/POS connecting to network printer $host:$port');
     final socket = await Socket.connect(
       host,
       port,
@@ -642,13 +655,16 @@ class EscPosPrinterService {
     try {
       socket.add(bytes);
       await socket.flush();
+      debugPrint('ESC/POS network print done');
     } finally {
       await socket.close();
     }
   }
 
   Future<void> _sendBytesOverUsb(List<int> bytes) async {
+    debugPrint('ESC/POS scanning for USB printers...');
     final manager = unified_printer.PrinterManager();
+    bool connected = false;
     try {
       final devices = await manager.scanPrinters(
         timeout: const Duration(seconds: 5),
@@ -657,19 +673,41 @@ class EscPosPrinterService {
       final usbDevices = devices
           .whereType<unified_printer.UsbPrinterDevice>()
           .toList();
+
+      debugPrint(
+        'ESC/POS USB devices found: ${usbDevices.map((d) => '${d.name ?? 'unknown'} [${d.toString()}]').join(', ')}',
+      );
+
       if (usbDevices.isEmpty) {
-        throw StateError('Aucune imprimante USB détectée');
+        throw StateError('Aucune imprimante USB detectee');
       }
 
+      // On prend la premiere imprimante USB disponible.
+      // Si vous avez deux imprimantes de meme marque branchees en meme temps,
+      // assurez-vous que seule l'imprimante USB est branchee lors de l'impression USB.
       final device = usbDevices.first;
+      debugPrint('ESC/POS connecting to USB device: ${device.name ?? device.toString()}');
+
       await manager.connect(device);
-      try {
-        await manager.printBytes(bytes);
-      } finally {
-        await manager.disconnect();
-      }
+      connected = true;
+      debugPrint('ESC/POS USB connected, sending ${bytes.length} bytes...');
+
+      await manager.printBytes(bytes);
+      debugPrint('ESC/POS USB print done');
+
+      await manager.disconnect();
+      connected = false;
+      debugPrint('ESC/POS USB disconnected');
     } catch (e, st) {
       debugPrint('ESC/POS USB transport failed: $e\n$st');
+      if (connected) {
+        try {
+          await manager.disconnect();
+          debugPrint('ESC/POS USB disconnected after error');
+        } catch (disconnectError) {
+          debugPrint('ESC/POS USB disconnect after error failed: $disconnectError');
+        }
+      }
       rethrow;
     } finally {
       manager.dispose();
@@ -756,7 +794,7 @@ class EscPosPrinterService {
     }
     if (restaurantPhone != null && restaurantPhone.trim().isNotEmpty) {
       bytes += generator.text(
-        _escPosText('Tél: $restaurantPhone'),
+        _escPosText('Tel: $restaurantPhone'),
         styles: const PosStyles(align: PosAlign.center),
       );
     }
@@ -785,7 +823,9 @@ class EscPosPrinterService {
             final rawAmount = raw['amount'] ?? raw['montant'] ?? 0;
             final amount = rawAmount is num
                 ? rawAmount.toDouble()
-                : double.tryParse(rawAmount.toString().replaceAll(',', '.')) ??
+                : double.tryParse(
+                        rawAmount.toString().replaceAll(',', '.'),
+                      ) ??
                       0.0;
             final method = (raw['payment_method'] ?? raw['method'] ?? '')
                 .toString()
@@ -833,12 +873,12 @@ class EscPosPrinterService {
     final status = order.paymentStatus.trim().toLowerCase();
     switch (status) {
       case 'paid':
-        return 'Payé';
+        return 'Paye';
       case 'partially_paid':
-        return 'Partiellement payé';
+        return 'Partiellement paye';
       case 'pending':
       default:
-        return status.isEmpty ? 'Non renseigné' : status;
+        return status.isEmpty ? 'Non renseigne' : status;
     }
   }
 
@@ -932,11 +972,11 @@ class EscPosPrinterService {
       'Û': 'U',
       'Ü': 'U',
       'Ý': 'Y',
-      '’': "'",
-      '–': '-',
-      '—': '-',
-      '«': '"',
-      '»': '"',
+      '\u2018': "'",
+      '\u2013': '-',
+      '\u2014': '-',
+      '\u00ab': '"',
+      '\u00bb': '"',
     };
 
     final buffer = StringBuffer();

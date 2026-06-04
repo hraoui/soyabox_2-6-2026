@@ -137,7 +137,7 @@ class _EditUserScreenState extends State<EditUserScreen> {
                           value: 'superadmin',
                           child: Text('Super admin'),
                         ),
-                         DropdownMenuItem(
+                        DropdownMenuItem(
                           value: 'cashier',
                           child: Text('caissier'),
                         ),
@@ -161,7 +161,6 @@ class _EditUserScreenState extends State<EditUserScreen> {
                           if (v.length < 4 || v.length > 6) {
                             return 'Le PIN doit comporter 4 à 6 chiffres';
                           }
-                          // Vérifier que le PIN contient uniquement des chiffres
                           if (!RegExp(r'^[0-9]+$').hasMatch(v)) {
                             return 'Le PIN doit contenir uniquement des chiffres';
                           }
@@ -207,7 +206,10 @@ class _EditUserScreenState extends State<EditUserScreen> {
                             pinCode: _pinController.text.isEmpty
                                 ? null
                                 : _pinController.text,
-                            badgeCode: _badgeController.text,
+                            // FIX: passer null si vide, comme pinCode
+                            badgeCode: _badgeController.text.isEmpty
+                                ? null
+                                : _badgeController.text,
                             isActive: _isActive,
                           );
                           if (ok) {

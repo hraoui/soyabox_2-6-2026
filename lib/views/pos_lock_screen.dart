@@ -103,7 +103,7 @@ class _PosLockScreenState extends State<PosLockScreen> {
         // Logo circulaire
         Container(
           width: 100,
-          height: 100,
+          height: 80,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             gradient: LinearGradient(
@@ -142,16 +142,8 @@ class _PosLockScreenState extends State<PosLockScreen> {
             shadows: [Shadow(color: Color(0xFFD32F2F), blurRadius: 10)],
           ),
         ),
-        const SizedBox(height: 4),
-        Text(
-          'Déverrouillez pour accéder au point de vente',
-          style: TextStyle(
-            fontSize: 14,
-            color: Colors.white.withOpacity(0.7),
-            letterSpacing: 2,
-          ),
-        ),
-      ],
+        
+     ],
     );
   }
 

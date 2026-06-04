@@ -61,7 +61,7 @@ class DailyReportService {
     List<PosOrder> orders,
   ) async {
     double totalRevenue = 0.0;
-    int totalOrders = orders.length;
+    int totalOrders = 0;
 
     // Répartition par mode de paiement (basée sur les montants réellement payés)
     final paymentMethods = <String, double>{
@@ -75,11 +75,17 @@ class DailyReportService {
     final orderTypes = <String, int>{'onsite': 0, 'pickup': 0, 'delivery': 0};
 
     // Répartition par canal
-    final channels = <String, double>{
+    final channelRevenue = <String, double>{
       'pos': 0.0,
       'api': 0.0,
       'web': 0.0,
       'kiosk': 0.0,
+    };
+    final channelCounts = <String, int>{
+      'pos': 0,
+      'api': 0,
+      'web': 0,
+      'kiosk': 0,
     };
 
     // Statistiques par serveur
@@ -100,73 +106,84 @@ class DailyReportService {
     }
 
     for (final order in orders) {
+      final status = order.status.trim().toLowerCase();
+      if (status == 'cancelled' || status == 'canceled') {
+        continue;
+      }
+
       final orderPaidMetrics = await _extractOrderPaymentMetrics(order);
       final orderPaidAmount = orderPaidMetrics['paid_amount'] as double;
       final orderPaymentMethods =
           orderPaidMetrics['payment_methods'] as Map<String, double>;
 
       totalRevenue += orderPaidAmount;
+      totalOrders += 1;
 
       for (final entry in orderPaymentMethods.entries) {
         paymentMethods[entry.key] =
             (paymentMethods[entry.key] ?? 0.0) + entry.value;
       }
 
-      final fulfillmentType = (order.fulfillmentType).toLowerCase();
-      if (fulfillmentType == 'delivery') {
-        orderTypes['delivery'] = (orderTypes['delivery'] ?? 0) + 1;
-      } else if (fulfillmentType == 'pickup') {
-        orderTypes['pickup'] = (orderTypes['pickup'] ?? 0) + 1;
-      } else {
-        orderTypes['onsite'] = (orderTypes['onsite'] ?? 0) + 1;
-      }
+      final fulfillmentType = order.fulfillmentType.trim().toLowerCase();
+      final typeKey = fulfillmentType == 'delivery'
+          ? 'delivery'
+          : fulfillmentType == 'pickup'
+              ? 'pickup'
+              : 'onsite';
+      orderTypes[typeKey] = (orderTypes[typeKey] ?? 0) + 1;
 
       final orderPrice = order.totalPrice;
-      final channel = (order.channel).toLowerCase();
+      final channel = order.channel.trim().toLowerCase();
       if (channel == 'api') {
-        channels['api'] = (channels['api'] ?? 0.0) + orderPrice;
+        channelRevenue['api'] = (channelRevenue['api'] ?? 0.0) + orderPrice;
+        channelCounts['api'] = (channelCounts['api'] ?? 0) + 1;
       } else if (channel == 'web') {
-        channels['web'] = (channels['web'] ?? 0.0) + orderPrice;
+        channelRevenue['web'] = (channelRevenue['web'] ?? 0.0) + orderPrice;
+        channelCounts['web'] = (channelCounts['web'] ?? 0) + 1;
       } else if (channel == 'kiosk') {
-        channels['kiosk'] = (channels['kiosk'] ?? 0.0) + orderPrice;
+        channelRevenue['kiosk'] = (channelRevenue['kiosk'] ?? 0.0) + orderPrice;
+        channelCounts['kiosk'] = (channelCounts['kiosk'] ?? 0) + 1;
       } else {
-        channels['pos'] = (channels['pos'] ?? 0.0) + orderPrice;
+        channelRevenue['pos'] = (channelRevenue['pos'] ?? 0.0) + orderPrice;
+        channelCounts['pos'] = (channelCounts['pos'] ?? 0) + 1;
       }
 
       final staffId = order.staffId;
-      if (!staffStats.containsKey(staffId)) {
-        final staffName = (await resolveUserName(staffId))?.trim();
-        staffStats[staffId] = {
-          'staff_id': staffId,
-          'staff_name': staffName != null && staffName.isNotEmpty
-              ? staffName
-              : 'Serveur #$staffId',
-          'orders_count': 0,
-          'total_revenue': 0.0,
-          'payment_methods': {
-            'cash': 0.0,
-            'tpe': 0.0,
-            'en_compte': 0.0,
-            'other': 0.0,
-          },
-        };
-      }
+      if (staffId > 0) {
+        if (!staffStats.containsKey(staffId)) {
+          final staffName = (await resolveUserName(staffId))?.trim();
+          staffStats[staffId] = {
+            'staff_id': staffId,
+            'staff_name': staffName != null && staffName.isNotEmpty
+                ? staffName
+                : 'Serveur #$staffId',
+            'orders_count': 0,
+            'total_revenue': 0.0,
+            'payment_methods': {
+              'cash': 0.0,
+              'tpe': 0.0,
+              'en_compte': 0.0,
+              'other': 0.0,
+            },
+          };
+        }
 
-      final staffStat = staffStats[staffId]!;
-      staffStat['orders_count'] = (staffStat['orders_count'] as int) + 1;
+        final staffStat = staffStats[staffId]!;
+        staffStat['orders_count'] = (staffStat['orders_count'] as int) + 1;
 
-      if (orderPaidAmount > 0) {
-        staffStat['total_revenue'] =
-            (staffStat['total_revenue'] as double) + orderPaidAmount;
-        final staffPaymentMethods =
-            staffStat['payment_methods'] as Map<String, double>;
-        for (final entry in orderPaymentMethods.entries) {
-          staffPaymentMethods[entry.key] =
-              (staffPaymentMethods[entry.key] ?? 0.0) + entry.value;
+        if (orderPaidAmount > 0) {
+          staffStat['total_revenue'] =
+              (staffStat['total_revenue'] as double) + orderPaidAmount;
+          final staffPaymentMethods =
+              staffStat['payment_methods'] as Map<String, double>;
+          for (final entry in orderPaymentMethods.entries) {
+            staffPaymentMethods[entry.key] =
+                (staffPaymentMethods[entry.key] ?? 0.0) + entry.value;
+          }
         }
       }
 
-      if (order.deliveryLivreurId != null) {
+      if (order.deliveryLivreurId != null && order.deliveryLivreurId! > 0) {
         final deliveryStaffId = order.deliveryLivreurId!;
         if (!deliveryStats.containsKey(deliveryStaffId)) {
           final deliveryStaffName = (await resolveUserName(deliveryStaffId))?.trim() ?? order.deliveryLivreurName?.trim();
@@ -195,7 +212,9 @@ class DailyReportService {
       'total_orders': totalOrders,
       'payment_methods': paymentMethods,
       'order_types': orderTypes,
-      'channels': channels,
+      'channels': channelRevenue,
+      'channel_revenue': channelRevenue,
+      'channel_counts': channelCounts,
       'staff_breakdown': staffStats.values.toList(),
       'delivery_breakdown': deliveryStats.values.toList(),
     };

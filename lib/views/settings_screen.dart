@@ -4,10 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../controllers/app_update_controller.dart';
+import '../controllers/category_controller.dart';
+import '../controllers/product_controller.dart';
+import '../controllers/restaurant_controller.dart';
 import '../controllers/settings_controller.dart';
 import '../models/app_settings.dart';
 import '../models/app_update_info.dart';
 import '../services/database_service.dart';
+import '../services/fullscreen_service.dart';
 import '../theme/sushi_design.dart';
 import '../utils/image_resolver.dart';
 import '../widgets/app_card_kit.dart';
@@ -99,14 +103,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
           return LayoutBuilder(
             builder: (context, constraints) {
               final grid = AppWrapGrid(
-                minChildWidth: constraints.maxWidth >= 1400 ? 280 : 300,
-                maxChildWidth: 380,
+                minChildWidth: constraints.maxWidth >= 1200 ? 420 : 300,
+                maxChildWidth: 520,
                 spacing: SushiSpace.md,
                 runSpacing: SushiSpace.md,
-                maxColumns: constraints.maxWidth >= 1400
-                    ? 4
-                    : constraints.maxWidth >= 960
-                    ? 3
+                maxColumns: constraints.maxWidth >= 1200
+                    ? 2
                     : 1,
                 children: [
                   _settingCard(
@@ -281,7 +283,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text(
-                            'Effacer toutes les données locales (users, commandes, etc.) sauf les admins.',
+                            'Effacer toutes les données locales (users, commandes, etc.) sauf le superadmin.',
                             style: TextStyle(fontSize: 13),
                           ),
                           const SizedBox(height: SushiSpace.md),
@@ -443,6 +445,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             },
                           ),
                         ),
+                      ],
+                    ),
+                  ),
+                  // Fullscreen (desktop only)
+                  _settingCard(
+                    icon: Icons.fullscreen,
+                    title: 'Plein écran (Desktop)',
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Le plein écran est activé par défaut sur desktop (Windows/macOS). La barre des tâches/dock est masquée. Appuyez sur F11 pour basculer.',
+                          style: TextStyle(fontSize: 13),
+                        ),
+                        const SizedBox(height: SushiSpace.sm),
+                        StatefulBuilder(builder: (context, setState) {
+                          final enabled = FullscreenService.isFullscreen;
+                          return SwitchListTile.adaptive(
+                            contentPadding: EdgeInsets.zero,
+                            title: const Text('Activer le plein écran'),
+                            value: enabled,
+                            onChanged: (value) async {
+                              await FullscreenService.toggle(value);
+                              setState(() {});
+                            },
+                          );
+                        }),
                       ],
                     ),
                   ),
@@ -1055,7 +1084,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            _bulletPoint('Tous les utilisateurs (sauf admins)'),
+            _bulletPoint('Tous les utilisateurs (sauf superadmin)'),
             _bulletPoint('Tous les livreurs'),
             _bulletPoint('Toutes les commandes'),
             _bulletPoint('Tous les produits et catégories'),
@@ -1074,7 +1103,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Les comptes admin seront conservés',
+                      'Les comptes superadmin seront conservés',
                       style: TextStyle(
                         color: Colors.green.shade700,
                         fontWeight: FontWeight.bold,
@@ -1128,16 +1157,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final usersBefore = await DatabaseService.getAllUsers();
       debugPrint('📊 Users before clear: ${usersBefore.length}');
 
-      await DatabaseService.clearAllDataExceptAdmins();
+      await DatabaseService.clearAllDataExceptSuperadmins();
 
       // Count users after
       final usersAfter = await DatabaseService.getAllUsers();
       debugPrint('📊 Users after clear: ${usersAfter.length}');
       debugPrint('✅ Clear completed! Admins kept: ${usersAfter.length}');
 
+      if (Get.isRegistered<RestaurantController>()) {
+        Get.find<RestaurantController>().clearLocalRestaurants();
+      }
+      if (Get.isRegistered<CategoryController>()) {
+        Get.find<CategoryController>().clearLocalCategories();
+      }
+      if (Get.isRegistered<ProductController>()) {
+        Get.find<ProductController>().clearLocalProducts();
+      }
+      if (Get.isRegistered<AuthController>()) {
+        await Get.find<AuthController>().logout();
+      }
+
       if (!mounted) return;
 
-      _toast(true, 'Données locales supprimées (admins conservés)');
+      _toast(true, 'Données locales supprimées (superadmin conservé)');
 
       // Show success dialog
       Get.dialog(

@@ -97,7 +97,20 @@ class DatabaseService {
   }
 
   static Future<User?> getUserByEmail(String email) async {
-    return await _isar.users.filter().emailEqualTo(email).findFirst();
+    final normalizedEmail = email.trim().toLowerCase();
+    final exactMatch = await _isar.users
+        .filter()
+        .emailEqualTo(normalizedEmail)
+        .findFirst();
+    if (exactMatch != null) return exactMatch;
+
+    final allUsers = await _isar.users.where().findAll();
+    for (final user in allUsers) {
+      if (user.email.trim().toLowerCase() == normalizedEmail) {
+        return user;
+      }
+    }
+    return null;
   }
 
   static Future<User?> getUserByPhone(String phone) async {
@@ -183,7 +196,7 @@ class DatabaseService {
   static Future<User?> getStaffByPin(String pin) async {
     return getUserByPin(
       pin,
-      allowedRoles: const {'admin', 'superadmin', 'staff'},
+      allowedRoles: const {'admin', 'superadmin', 'staff', 'cashier'},
     );
   }
 
@@ -215,7 +228,7 @@ class DatabaseService {
       final role = user.role.trim().toLowerCase();
       return user.isActive &&
           normalizeBadgeCode(user.badgeCode) == normalizedBadgeCode &&
-          (role == 'staff' || role == 'admin' || role == 'superadmin');
+          (role == 'staff' || role == 'admin' || role == 'superadmin' || role == 'cashier');
     }).toList();
 
     int? importedRestaurantId;
@@ -733,23 +746,75 @@ class DatabaseService {
   }
 
   static Future<bool> deletePosOrder(int orderId) async {
-    return await _isar.writeTxn(() async {
-      final deletedItems = await deletePosOrderItems(orderId);
-      final deletedOrder = await _isar.posOrders.delete(orderId);
-      return deletedItems && deletedOrder;
-    });
+    appLogger.d('🗑️ [DB] deletePosOrder(orderId=$orderId)');
+    try {
+      return await _isar.writeTxn(() async {
+        // Delete related items within the same transaction to avoid nesting
+        final items = await _isar.posOrderItems
+            .filter()
+            .orderIdEqualTo(orderId)
+            .findAll();
+        final ids = items.map((e) => e.id).toList();
+        final deletedCount = ids.isNotEmpty
+            ? await _isar.posOrderItems.deleteAll(ids)
+            : 0;
+
+        final deletedOrder = await _isar.posOrders.delete(orderId);
+        return (ids.isEmpty || deletedCount == ids.length) && deletedOrder;
+      });
+    } catch (e, st) {
+      // Handle nested transaction attempts: if we're already inside a txn,
+      // perform the deletes directly (they will run in the existing txn).
+      final msg = e.toString().toLowerCase();
+      if (msg.contains('nested') || msg.contains('active transaction')) {
+        appLogger.w(
+          '⚠️ [DB] deletePosOrder detected nested transaction; falling back to direct deletes',
+        );
+        final items = await _isar.posOrderItems
+            .filter()
+            .orderIdEqualTo(orderId)
+            .findAll();
+        final ids = items.map((e) => e.id).toList();
+        final deletedCount = ids.isNotEmpty
+            ? await _isar.posOrderItems.deleteAll(ids)
+            : 0;
+        final deletedOrder = await _isar.posOrders.delete(orderId);
+        return (ids.isEmpty || deletedCount == ids.length) && deletedOrder;
+      }
+      appLogger.e('❌ [DB] deletePosOrder error', error: e, stackTrace: st);
+      rethrow;
+    }
   }
 
   static Future<bool> deletePosOrderItems(int orderId) async {
-    return await _isar.writeTxn(() async {
-      final items = await _isar.posOrderItems
-          .filter()
-          .orderIdEqualTo(orderId)
-          .findAll();
-      final ids = items.map((e) => e.id).toList();
-      final deletedCount = await _isar.posOrderItems.deleteAll(ids);
-      return deletedCount == ids.length;
-    });
+    appLogger.d('🗑️ [DB] deletePosOrderItems(orderId=$orderId)');
+    try {
+      return await _isar.writeTxn(() async {
+        final items = await _isar.posOrderItems
+            .filter()
+            .orderIdEqualTo(orderId)
+            .findAll();
+        final ids = items.map((e) => e.id).toList();
+        final deletedCount = await _isar.posOrderItems.deleteAll(ids);
+        return deletedCount == ids.length;
+      });
+    } catch (e, st) {
+      final msg = e.toString().toLowerCase();
+      if (msg.contains('nested') || msg.contains('active transaction')) {
+        appLogger.w(
+          '⚠️ [DB] deletePosOrderItems detected nested transaction; falling back to direct deletes',
+        );
+        final items = await _isar.posOrderItems
+            .filter()
+            .orderIdEqualTo(orderId)
+            .findAll();
+        final ids = items.map((e) => e.id).toList();
+        final deletedCount = await _isar.posOrderItems.deleteAll(ids);
+        return deletedCount == ids.length;
+      }
+      appLogger.e('❌ [DB] deletePosOrderItems error', error: e, stackTrace: st);
+      rethrow;
+    }
   }
 
   static Future<double> getStaffDailySales(int staffId) async {
@@ -835,13 +900,13 @@ class DatabaseService {
     });
   }
 
-  // ✅ Clear ALL local data EXCEPT admin users
-  static Future<void> clearAllDataExceptAdmins() async {
-    // Debug: clearAllDataExceptAdmins called
-    // appLogger.i('🗑️ clearAllDataExceptAdmins() called');
+  // ✅ Clear ALL local data EXCEPT superadmin users
+  static Future<void> clearAllDataExceptSuperadmins() async {
+    // Debug: clearAllDataExceptSuperadmins called
+    // appLogger.i('🗑️ clearAllDataExceptSuperadmins() called');
 
     await _isar.writeTxn(() async {
-      // Keep only admin/superadmin users
+      // Keep only superadmin users
       // appLogger.i('📊 Fetching all users...');
       final allUsers = await _isar.users.where().findAll();
       // appLogger.i('📊 Total users found: ${allUsers.length}');
@@ -849,12 +914,12 @@ class DatabaseService {
       // ignore: unused_local_variable
       int deletedCount = 0;
       for (final user in allUsers) {
-        if (user.role != 'admin' && user.role != 'superadmin') {
+        if (user.role != 'superadmin') {
           // appLogger.i('🗑️ Deleting user: ${user.name} (${user.role})');
           await _isar.users.delete(user.id);
           deletedCount++;
         } else {
-          // appLogger.i('✅ Keeping admin: ${user.name}');
+          // appLogger.i('✅ Keeping superadmin: ${user.name}');
         }
       }
 
@@ -883,7 +948,7 @@ class DatabaseService {
       await _isar.customers.clear();
     });
 
-    // appLogger.i('✅ All local data cleared except admin users');
+    // appLogger.i('✅ All local data cleared except superadmin users');
   }
 
   // Delivery methods

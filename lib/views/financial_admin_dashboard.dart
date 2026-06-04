@@ -587,6 +587,9 @@ class _FinancialAdminDashboardState extends State<FinancialAdminDashboard>
           // Orders by Channel
           _buildOrdersBreakdown(),
           const SizedBox(height: SushiSpace.lg),
+          // Orders by Fulfillment Type
+          _buildTypeBreakdown(),
+          const SizedBox(height: SushiSpace.lg),
           // Delivery Stats
           _buildDeliveryBreakdown(),
           const SizedBox(height: SushiSpace.lg),
@@ -684,6 +687,39 @@ class _FinancialAdminDashboardState extends State<FinancialAdminDashboard>
             '$_totalOrders',
             Icons.receipt_long,
             SushiColors.red,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTypeBreakdown() {
+    return Row(
+      children: [
+        Expanded(
+          child: _statCard(
+            'Sur place',
+            '${_ordersByTypeCount['onsite'] ?? 0}',
+            Icons.restaurant,
+            const Color(0xFF5D6D7E),
+          ),
+        ),
+        const SizedBox(width: SushiSpace.md),
+        Expanded(
+          child: _statCard(
+            'À emporter',
+            '${_ordersByTypeCount['pickup'] ?? 0}',
+            Icons.shopping_bag,
+            SushiColors.orange,
+          ),
+        ),
+        const SizedBox(width: SushiSpace.md),
+        Expanded(
+          child: _statCard(
+            'Livraison',
+            '${_ordersByTypeCount['delivery'] ?? 0}',
+            Icons.local_shipping,
+            SushiColors.teal,
           ),
         ),
       ],
@@ -1368,6 +1404,7 @@ class _FinancialAdminDashboardState extends State<FinancialAdminDashboard>
         ? SushiColors.red
         : SushiColors.orange;
 
+    final auth = Get.find<AuthController>();
     return Container(
       margin: const EdgeInsets.symmetric(
         horizontal: SushiSpace.sm,
@@ -1586,18 +1623,18 @@ class _FinancialAdminDashboardState extends State<FinancialAdminDashboard>
                       foregroundColor: SushiColors.orange,
                     ),
                   ),
-                  // ✅ Voir commande (détails)
-                  TextButton.icon(
-                    onPressed: () => _showOrderDetails(order),
-                    icon: const Icon(Icons.visibility, size: 16),
-                    label: const Text('Voir'),
-                    style: TextButton.styleFrom(
-                      foregroundColor: SushiColors.teal,
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      minimumSize: Size.zero,
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
+                // ✅ Voir commande (détails)
+                TextButton.icon(
+                  onPressed: () => _showOrderDetails(order),
+                  icon: const Icon(Icons.visibility, size: 16),
+                  label: const Text('Voir'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: SushiColors.teal,
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
+                ),
                 TextButton.icon(
                   onPressed: () => _editOrder(order),
                   icon: const Icon(Icons.edit, size: 16),
@@ -1606,6 +1643,15 @@ class _FinancialAdminDashboardState extends State<FinancialAdminDashboard>
                     foregroundColor: const Color(0xFF2196F3),
                   ),
                 ),
+                if (auth.canDeleteOrders)
+                  TextButton.icon(
+                    onPressed: () => _confirmDeleteOrder(order),
+                    icon: const Icon(Icons.delete_outline, size: 16),
+                    label: const Text('Supprimer'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: SushiColors.red,
+                    ),
+                  ),
                 TextButton.icon(
                   onPressed: () => _cancelOrder(order),
                   icon: const Icon(Icons.cancel, size: 16),
@@ -1661,6 +1707,56 @@ class _FinancialAdminDashboardState extends State<FinancialAdminDashboard>
       _hasCache = false;
       await _loadData(forceRefresh: true);
     }
+  }
+
+  Future<void> _confirmDeleteOrder(PosOrder order) async {
+    if (!mounted) return;
+
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Supprimer la commande'),
+        content: const Text(
+          'Voulez-vous vraiment supprimer cette commande ? Cette action est réservée aux administrateurs.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(result: false),
+            child: const Text('Annuler'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Get.back(result: true),
+            child: const Text('Supprimer'),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldDelete != true) return;
+
+    final posController = Get.find<PosController>();
+    await posController.deleteOrder(order);
+    if (posController.error != null) {
+      Get.snackbar(
+        'Erreur',
+        posController.error!,
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      return;
+    }
+
+    Get.snackbar(
+      'Commande supprimée',
+      'La commande a été supprimée avec succès.',
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.green,
+      colorText: Colors.white,
+    );
+    _hasCache = false;
+    await _loadData(forceRefresh: true);
   }
 }
 

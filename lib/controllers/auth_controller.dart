@@ -760,6 +760,12 @@ class AuthController extends GetxController {
       currentRole == 'superadmin' ||
       currentRole == 'cashier';
 
+  bool get canDeleteOrders =>
+      currentRole == 'admin' || currentRole == 'superadmin';
+
+  bool get canDeleteReports =>
+      currentRole == 'admin' || currentRole == 'superadmin';
+
   // Validate PIN code format
   bool isValidPin(String pin) {
     if (pin.length < 4 || pin.length > 6) return false;

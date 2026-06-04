@@ -7,7 +7,9 @@ list(APPEND FLUTTER_PLUGIN_LIST
   desktop_multi_window
   isar_flutter_libs
   printing
+  screen_retriever
   url_launcher_linux
+  window_manager
 )
 
 list(APPEND FLUTTER_FFI_PLUGIN_LIST

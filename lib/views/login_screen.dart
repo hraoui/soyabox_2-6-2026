@@ -310,7 +310,7 @@ class _LoginScreenState extends State<LoginScreen> {
               Flexible(
                 child: _buildLoginOption(
                   title: 'Admin / Super Admin',
-                  description: 'Accédez au tableau de bord avec votre code PIN',
+                  description: 'Accédez au tableau de bord avec votre code PIN ou badge',
                   icon: Icons.admin_panel_settings,
                   iconColor: const Color(0xFFFF9800),
                   buttonLabel: 'Connexion Admin',

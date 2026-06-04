@@ -33,6 +33,17 @@ class CategoryController extends GetxController {
       appLogger.i('📂 Loading categories from local DB...');
       final categories = await DatabaseService.getAllCategories();
       appLogger.i('📂 Loaded ${categories.length} categories from local DB');
+      // Sort categories: local categories (IDs >= 9000) first,
+      // then backend categories ordered by sortOrder then name.
+      categories.sort((a, b) {
+        final aLocal = a.id >= 9000 ? 0 : 1;
+        final bLocal = b.id >= 9000 ? 0 : 1;
+        if (aLocal != bLocal) return aLocal.compareTo(bLocal);
+
+        // Both local or both backend: preserve backend sortOrder then name
+        final cmp = a.sortOrder.compareTo(b.sortOrder);
+        return cmp != 0 ? cmp : a.name.compareTo(b.name);
+      });
       _categories.assignAll(categories);
 
       if (categories.isEmpty) {
@@ -144,6 +155,13 @@ class CategoryController extends GetxController {
   // Get deleted categories only
   List<Category> getDeletedCategories() {
     return _categories.where((category) => category.isDeleted).toList();
+  }
+
+  /// Clear in-memory category cache after a local reset
+  void clearLocalCategories() {
+    _categories.clear();
+    _selectedCategory.value = null;
+    update();
   }
 
   // Soft delete category

@@ -212,9 +212,17 @@ class PosController extends GetxController {
       (_activeStaff!.role == 'staff' ||
           _activeStaff!.role == 'admin' ||
           _activeStaff!.role == 'superadmin');
-  bool get canModifyOrders =>
-      _activeStaff != null &&
-      (_activeStaff!.role == 'admin' || _activeStaff!.role == 'superadmin');
+  bool get canModifyOrders {
+    if (Get.isRegistered<AuthController>()) {
+      final auth = Get.find<AuthController>();
+      if (auth.canDeleteOrders) {
+        return true;
+      }
+    }
+    return _activeStaff != null &&
+        (_activeStaff!.role == 'admin' || _activeStaff!.role == 'superadmin');
+  }
+
   bool get isAdminEditor {
     final role = (_activeStaff?.role ?? '').trim().toLowerCase();
     return role == 'admin' || role == 'superadmin';
@@ -793,6 +801,13 @@ class PosController extends GetxController {
 
   /// ✅ Vérifie si un utilisateur est autorisé à se connecter sur ce restaurant
   bool _isUserAllowedForCurrentRestaurant(User user) {
+    // SUPERADMIN: Toujours autorisé (pas de restriction par restaurant)
+    if (user.role.trim().toLowerCase() == 'superadmin') {
+      appLogger.d(
+        '✅ [POS] Superadmin autorisé: ${user.email} (pas de restriction restaurant)',
+      );
+      return true;
+    }
     // 1. Récupérer le restaurant importé
     int? importedRestaurantId;
     if (Get.isRegistered<RestaurantController>()) {

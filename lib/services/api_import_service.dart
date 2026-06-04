@@ -300,6 +300,9 @@ class ApiImportService {
           final category = Category(
             name: categoryName,
             image: normalizedCategoryImage,
+            sortOrder: (categoryData['sort_order'] is num)
+                ? (categoryData['sort_order'] as num).toInt()
+                : (int.tryParse(categoryData['sort_order']?.toString() ?? '') ?? i),
             createdAt: DateTime.parse(
               categoryData['created_at'] ?? DateTime.now().toIso8601String(),
             ),

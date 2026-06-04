@@ -30,6 +30,16 @@ class ProductController extends GetxController {
       appLogger.i('📦 Loading products from local DB...');
       final products = await DatabaseService.getAllProducts();
       appLogger.i('📦 Loaded ${products.length} products from local DB');
+      // Ensure products are ordered with local products first (IDs >= 900),
+      // then backend products ordered by sortOrder then name.
+      products.sort((a, b) {
+        final aLocal = a.id >= 900 ? 0 : 1;
+        final bLocal = b.id >= 900 ? 0 : 1;
+        if (aLocal != bLocal) return aLocal.compareTo(bLocal);
+
+        final cmp = a.sortOrder.compareTo(b.sortOrder);
+        return cmp != 0 ? cmp : a.name.compareTo(b.name);
+      });
       _products.assignAll(products);
       update();
     } catch (e) {
@@ -354,6 +364,15 @@ class ProductController extends GetxController {
     final filtered = _products
         .where((product) => product.categoryId == categoryId)
         .toList();
+    // Local products first within the category
+    filtered.sort((a, b) {
+      final aLocal = a.id >= 900 ? 0 : 1;
+      final bLocal = b.id >= 900 ? 0 : 1;
+      if (aLocal != bLocal) return aLocal.compareTo(bLocal);
+
+      final cmp = a.sortOrder.compareTo(b.sortOrder);
+      return cmp != 0 ? cmp : a.name.compareTo(b.name);
+    });
     appLogger.i(
       '📦 getProductsByCategory($categoryId): ${filtered.length} products',
     );
@@ -368,6 +387,12 @@ class ProductController extends GetxController {
   // Get available products only
   List<Product> getAvailableProducts() {
     return _products.where((product) => product.isAvailable).toList();
+  }
+
+  /// Clear in-memory product cache after a local reset
+  void clearLocalProducts() {
+    _products.clear();
+    update();
   }
 
   // Get products on offer

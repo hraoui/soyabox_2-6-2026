@@ -18,6 +18,7 @@ import 'controllers/auth_controller.dart';
 import 'seeders/database_seeder.dart';
 import 'services/database_service.dart';
 import 'services/image_cache_service.dart';
+import 'services/fullscreen_service.dart';
 import 'bindings/catalog_binding.dart';
 import 'theme/app_colors.dart';
 import 'views/login_screen.dart';
@@ -183,6 +184,11 @@ void main(List<String> args) async {
   print('🔧 [MAIN] Initializing dependency injection...');
   await dep.DependencyInjection.init();
   print('✅ [MAIN] Dependency injection completed');
+
+  // Initialize fullscreen service (desktop only)
+  print('🖥️ [MAIN] Initializing FullscreenService...');
+  await FullscreenService.init();
+  print('✅ [MAIN] FullscreenService initialized');
 
   String initialRoute = isSubWindow ? '/pos' : '/';
 

@@ -8,6 +8,7 @@ class Category {
   String name;
   String? image;
   bool isDeleted = false;
+  int sortOrder = 0;
 
   DateTime createdAt;
   DateTime updatedAt;
@@ -16,6 +17,7 @@ class Category {
     this.id = Isar.autoIncrement,
     required this.name,
     this.image,
+    this.sortOrder = 0,
     required this.createdAt,
     required this.updatedAt,
   });

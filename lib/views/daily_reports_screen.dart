@@ -1258,6 +1258,8 @@ class _DailyReportsScreenState extends State<DailyReportsScreen> {
         final dateStr = reportData['date'] as String? ?? 'Date inconnue';
         final staffName = reportData['staff_name'] as String?;
         final isToday = report.isOpen == true;
+        final canDeleteReport =
+            Get.find<AuthController>().canDeleteReports && report.id > 0;
 
         return Container(
           margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 2),
@@ -1450,6 +1452,25 @@ class _DailyReportsScreenState extends State<DailyReportsScreen> {
                                   constraints: const BoxConstraints(),
                                 ),
                               ),
+                              if (canDeleteReport) const SizedBox(width: 4),
+                              if (canDeleteReport)
+                                Container(
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFF5252).withOpacity(0.08),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: IconButton(
+                                    icon: const Icon(
+                                      Icons.delete_outline,
+                                      size: 18,
+                                      color: Color(0xFFFF5252),
+                                    ),
+                                    onPressed: () => _confirmDeleteReport(report),
+                                    tooltip: 'Supprimer le rapport',
+                                    padding: const EdgeInsets.all(8),
+                                    constraints: const BoxConstraints(),
+                                  ),
+                                ),
                             ],
                           ),
                         ],
@@ -1463,6 +1484,51 @@ class _DailyReportsScreenState extends State<DailyReportsScreen> {
         );
       },
     );
+  }
+
+  Future<void> _confirmDeleteReport(CashRegisterState report) async {
+    if (!mounted) return;
+
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Supprimer le rapport'),
+        content: const Text(
+          'Voulez-vous vraiment supprimer ce rapport journalier ? Cette action est réservée aux admins.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(result: false),
+            child: const Text('Annuler'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Get.back(result: true),
+            child: const Text('Supprimer'),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldDelete != true) return;
+
+    try {
+      await DatabaseService.db.writeTxn(() async {
+        await DatabaseService.db.cashRegisterStates.delete(report.id);
+      });
+      Get.snackbar(
+        'Rapport supprimé',
+        'Le rapport a été supprimé avec succès.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      await _loadAllReports();
+    } catch (e) {
+      Get.snackbar(
+        'Erreur',
+        'Impossible de supprimer le rapport : $e',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    }
   }
 
   Future<void> _printDailyReport(Map<String, dynamic> reportData) async {

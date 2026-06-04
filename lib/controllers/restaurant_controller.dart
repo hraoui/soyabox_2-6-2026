@@ -232,6 +232,13 @@ class RestaurantController extends GetxController {
     }
   }
 
+  /// Clear in-memory restaurant cache after a local reset
+  void clearLocalRestaurants() {
+    _restaurants.clear();
+    _selectedRestaurantId.value = null;
+    update();
+  }
+
   void setSelectedRestaurantId(int? id) {
     _selectedRestaurantId.value = id;
   }

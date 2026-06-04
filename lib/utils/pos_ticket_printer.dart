@@ -328,7 +328,12 @@ Future<Uint8List> buildKitchenTicketPdf(
   final regularFont = await PdfGoogleFonts.notoSansRegular();
   final boldFont = await PdfGoogleFonts.notoSansBold();
   final doc = pw.Document();
-  final pageFormat = format ?? PdfPageFormat.roll80;
+  final pageFormat = format ?? PdfPageFormat.roll80.copyWith(
+    marginTop: 6,
+    marginBottom: 6,
+    marginLeft: 6,
+    marginRight: 6,
+  );
   final logoImage = await _loadLogoImage();
   final orderTime = _formatOrderTime(order.createdAt);
 
@@ -449,7 +454,12 @@ Future<Uint8List> buildCustomerBillPdf(
   final regularFont = await PdfGoogleFonts.notoSansRegular();
   final boldFont = await PdfGoogleFonts.notoSansBold();
   final doc = pw.Document();
-  final pageFormat = format ?? PdfPageFormat.roll80;
+  final pageFormat = format ?? PdfPageFormat.roll80.copyWith(
+    marginTop: 6,
+    marginBottom: 6,
+    marginLeft: 6,
+    marginRight: 6,
+  );
   final logoImage = await _loadLogoImage();
   final money = AppSettingsService.instance.formatAmount;
   final orderTime = _formatOrderTime(order.createdAt);
@@ -657,7 +667,12 @@ Future<Uint8List> buildKitchenAndCustomerTicketsPdf(
 }) async {
   final regularFont = await PdfGoogleFonts.notoSansRegular();
   final boldFont = await PdfGoogleFonts.notoSansBold();
-  final pageFormat = format ?? PdfPageFormat.roll80;
+  final pageFormat = format ?? PdfPageFormat.roll80.copyWith(
+    marginTop: 6,
+    marginBottom: 6,
+    marginLeft: 6,
+    marginRight: 6,
+  );
   final doc = pw.Document();
   final logoImage = await _loadLogoImage();
   final money = AppSettingsService.instance.formatAmount;
@@ -982,7 +997,12 @@ Future<Uint8List> buildDailyReportPdf(Map<String, dynamic> reportData) async {
   final regularFont = await PdfGoogleFonts.notoSansRegular();
   final boldFont = await PdfGoogleFonts.notoSansBold();
   final doc = pw.Document();
-  final pageFormat = PdfPageFormat.roll80;
+  final pageFormat = PdfPageFormat.roll80.copyWith(
+    marginTop: 6,
+    marginBottom: 6,
+    marginLeft: 6,
+    marginRight: 6,
+  );
 
   // Extraire les données du rapport
   final dateStr = reportData['date'] as String? ?? 'Date inconnue';

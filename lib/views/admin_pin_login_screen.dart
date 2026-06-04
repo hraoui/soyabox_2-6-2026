@@ -1,8 +1,12 @@
 // ignore_for_file: unused_field
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import '../controllers/auth_controller.dart';
+import '../utils/badge_code_utils.dart';
 
 // ── Palette clavier ───────────────────────────────────────────────────────────
 class _KB {
@@ -34,8 +38,10 @@ class _AdminPinLoginScreenState
     extends State<AdminPinLoginScreen> {
   final TextEditingController _pinController =
       TextEditingController();
-
-  final _formKey = GlobalKey<FormState>();
+  final FocusNode _badgeListenerFocusNode = FocusNode(
+    debugLabel: 'admin_badge_listener',
+  );
+  final _formKey = GlobalKey<FormState>(); // conservé pour compatibilité future
 
   bool _isLoading = false;
   bool _showPin = false;
@@ -44,39 +50,142 @@ class _AdminPinLoginScreenState
   bool _isNumericMode = false;
   bool _isUpperCase = false;
 
+  // Badge HID
+  Timer? _badgeCommitTimer;
+  String _badgeBuffer = '';
+  DateTime? _lastBadgeKeyAt;
+  bool _isBadgeLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _badgeListenerFocusNode.requestFocus();
+      }
+    });
+  }
+
   @override
   void dispose() {
+    _badgeCommitTimer?.cancel();
+    _badgeListenerFocusNode.dispose();
     _pinController.dispose();
     super.dispose();
   }
 
-  // ── Saisie clavier ────────────────────────────────────────────────────────
+  // ── Saisie clavier fixe ───────────────────────────────────────────────────
   void _onKeyTap(String char) {
     setState(() {
       _pinController.text += char;
     });
+    _badgeListenerFocusNode.requestFocus();
   }
 
   void _onBackspace() {
-    if (_pinController.text.isNotEmpty) {
-      setState(() {
-        _pinController.text = _pinController.text.substring(
-          0,
-          _pinController.text.length - 1,
-        );
-      });
-    }
+    final text = _pinController.text;
+    if (text.isEmpty) return;
+    setState(() {
+      _pinController.text = text.substring(0, text.length - 1);
+    });
+    _badgeListenerFocusNode.requestFocus();
   }
 
   void _onClear() {
     setState(() {
       _pinController.clear();
     });
+    _badgeListenerFocusNode.requestFocus();
+  }
+
+  // ── Badge HID ─────────────────────────────────────────────────────────────
+  void _handleBadgeKeyEvent(KeyEvent event) {
+    if (event is! KeyDownEvent || _isBadgeLoading || _isLoading) return;
+
+    final key = event.logicalKey;
+    if (key == LogicalKeyboardKey.enter ||
+        key == LogicalKeyboardKey.numpadEnter ||
+        key == LogicalKeyboardKey.tab) {
+      unawaited(_commitBadgeScan());
+      return;
+    }
+
+    final char = event.character;
+    if (char == null || char.isEmpty) return;
+    if (char.codeUnitAt(0) < 32) return;
+
+    final now = DateTime.now();
+    if (_lastBadgeKeyAt != null &&
+        now.difference(_lastBadgeKeyAt!) > const Duration(milliseconds: 350)) {
+      _badgeBuffer = '';
+    }
+    _lastBadgeKeyAt = now;
+    _badgeBuffer += char;
+
+    _badgeCommitTimer?.cancel();
+    _badgeCommitTimer = Timer(
+      const Duration(milliseconds: 180),
+      () => unawaited(_commitBadgeScan()),
+    );
+  }
+
+  Future<void> _commitBadgeScan() async {
+    _badgeCommitTimer?.cancel();
+    final badgeCode = normalizeBadgeCode(_badgeBuffer);
+    _badgeBuffer = '';
+    _lastBadgeKeyAt = null;
+    if (badgeCode.isEmpty || _isBadgeLoading) return;
+
+    if (mounted) setState(() => _isBadgeLoading = true);
+
+    try {
+      final auth = Get.find<AuthController>();
+      final success = await auth.loginSuperAdminWithBadge(badgeCode);
+      final role = auth.currentRole?.trim().toLowerCase();
+
+      if (!success || auth.currentUser == null) {
+        throw Exception("Badge refusé");
+      }
+      if (role != 'admin' && role != 'superadmin') {
+        throw Exception('Accès réservé aux administrateurs');
+      }
+      if (mounted) Get.offAllNamed('/financial-dashboard');
+    } catch (e) {
+      if (mounted) {
+        Get.snackbar(
+          'Badge refusé',
+          e.toString(),
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: const Color(0xFFD32F2F),
+          colorText: Colors.white,
+          borderRadius: 8,
+          margin: const EdgeInsets.all(16),
+        );
+        Future.delayed(
+          const Duration(milliseconds: 300),
+          () => _badgeListenerFocusNode.requestFocus(),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isBadgeLoading = false);
+    }
   }
 
   // ── Login ────────────────────────────────────────────────────────────────
   Future<void> _handlePinLogin() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (_pinController.text.trim().isEmpty) {
+      Get.snackbar(
+        'PIN requis',
+        'Veuillez saisir un code PIN',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: const Color(0xFFD32F2F),
+        colorText: Colors.white,
+        borderRadius: 8,
+        margin: const EdgeInsets.all(16),
+      );
+      return;
+    }
 
     setState(() => _isLoading = true);
 
@@ -118,6 +227,12 @@ class _AdminPinLoginScreenState
           borderRadius: 8,
           margin: const EdgeInsets.all(16),
         );
+
+        // Redonner le focus après une erreur
+        Future.delayed(
+          const Duration(milliseconds: 300),
+          () => _badgeListenerFocusNode.requestFocus(),
+        );
       }
     } finally {
       if (mounted) {
@@ -129,86 +244,91 @@ class _AdminPinLoginScreenState
   // ── UI ───────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
-   return Scaffold(
-  body: Stack(
-    children: [
-      Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF0A0A0A),
-              Color(0xFF1A1A1A),
-              Color(0xFF2D0A0A),
-            ],
-          ),
-        ),
-        child: Stack(
-          children: [
-            Positioned.fill(
-              child: CustomPaint(
-                painter: _GlowPainter(),
+    return KeyboardListener(
+      focusNode: _badgeListenerFocusNode,
+      autofocus: true,
+      onKeyEvent: _handleBadgeKeyEvent,
+      child: Scaffold(
+      body: Stack(
+        children: [
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Color(0xFF0A0A0A),
+                  Color(0xFF1A1A1A),
+                  Color(0xFF2D0A0A),
+                ],
               ),
             ),
-            Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
-                child: ConstrainedBox(
-                  constraints:
-                      const BoxConstraints(
-                    maxWidth: 860,
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      _buildHeader(),
-                      const SizedBox(height: 32),
-                      _buildBody(),
-                    ],
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: CustomPaint(
+                    painter: _GlowPainter(),
                   ),
                 ),
-              ),
+                Center(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(24),
+                    child: ConstrainedBox(
+                      constraints:
+                          const BoxConstraints(
+                        maxWidth: 860,
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _buildHeader(),
+                          const SizedBox(height: 32),
+                          _buildBody(),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
 
-      // ── BOUTON RETOUR ─────────────────────
-      SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Align(
-            alignment: Alignment.topLeft,
-            child: GestureDetector(
-              onTap: () {
-                Get.offAllNamed('/login');
-              },
-              child: Container(
-                width: 46,
-                height: 46,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.08),
-                  borderRadius:
-                      BorderRadius.circular(14),
-                  border: Border.all(
-                    color:
-                        Colors.white.withOpacity(0.1),
+          // ── BOUTON RETOUR ─────────────────────
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Align(
+                alignment: Alignment.topLeft,
+                child: GestureDetector(
+                  onTap: () {
+                    Get.offAllNamed('/login');
+                  },
+                  child: Container(
+                    width: 46,
+                    height: 46,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.08),
+                      borderRadius:
+                          BorderRadius.circular(14),
+                      border: Border.all(
+                        color:
+                            Colors.white.withOpacity(0.1),
+                      ),
+                    ),
+                    child: const Icon(
+                      Icons.arrow_back_ios_new,
+                      color: Colors.white,
+                      size: 18,
+                    ),
                   ),
-                ),
-                child: const Icon(
-                  Icons.arrow_back_ios_new,
-                  color: Colors.white,
-                  size: 18,
                 ),
               ),
             ),
           ),
-        ),
+        ],
       ),
-    ],
-  ),
-);
+      ),
+    );
   }
 
   // ── Header ───────────────────────────────────────────────────────────────
@@ -338,9 +458,7 @@ class _AdminPinLoginScreenState
   // ── Formulaire ───────────────────────────────────────────────────────────
   Widget _formCard() {
     return _cardShell(
-      child: Form(
-        key: _formKey,
-        child: Column(
+      child: Column(
           crossAxisAlignment:
               CrossAxisAlignment.start,
           children: [
@@ -380,104 +498,63 @@ class _AdminPinLoginScreenState
 
             const SizedBox(height: 20),
 
+            // ── Affichage PIN / Badge ───────────────────────────────────
             ValueListenableBuilder(
               valueListenable: _pinController,
-              builder: (_, val, __) {
-                final txt =
-                    _pinController.text;
-
-                return Container(
-                  width: double.infinity,
-                  padding:
-                      const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 14,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white
-                        .withOpacity(0.07),
-                    borderRadius:
-                        BorderRadius.circular(
-                      12,
+              builder: (_, __, ___) {
+                final txt = _pinController.text;
+                return GestureDetector(
+                  onTap: () => _badgeListenerFocusNode.requestFocus(),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 14,
                     ),
-                    border: Border.all(
-                      color: txt.isEmpty
-                          ? Colors.white
-                              .withOpacity(
-                              0.12,
-                            )
-                          : const Color(
-                              0xFFFF5252,
-                            ).withOpacity(
-                              0.5,
-                            ),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.lock_outline,
-                        color:
-                            Color(0xFFFF5252),
-                        size: 18,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.07),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: txt.isEmpty
+                            ? Colors.white.withOpacity(0.12)
+                            : const Color(0xFFFF5252).withOpacity(0.5),
                       ),
-                      const SizedBox(
-                          width: 10),
-                      Expanded(
-                        child: Text(
-                          txt.isEmpty
-                              ? 'Code PIN'
-                              : (_showPin
-                                  ? txt
-                                  : '●' *
-                                      txt
-                                          .length),
-                          style: TextStyle(
-                            fontSize:
-                                txt.isEmpty
-                                    ? 14
-                                    : 20,
-                            fontWeight:
-                                FontWeight
-                                    .w700,
-                            letterSpacing:
-                                _showPin
-                                    ? 2
-                                    : 4,
-                            color:
-                                txt.isEmpty
-                                    ? Colors
-                                        .white
-                                        .withOpacity(
-                                        0.4,
-                                      )
-                                    : Colors
-                                        .white,
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          txt.isEmpty ? Icons.badge : Icons.lock_outline,
+                          color: const Color(0xFFFF5252),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            txt.isEmpty
+                                ? 'PIN ou passez votre badge'
+                                : (_showPin ? txt : '●' * txt.length),
+                            style: TextStyle(
+                              color: txt.isEmpty
+                                  ? Colors.white.withOpacity(0.4)
+                                  : Colors.white,
+                              fontSize: txt.isEmpty ? 14 : 20,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                         ),
-                      ),
-                      if (txt.isNotEmpty)
-                        GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              _showPin =
-                                  !_showPin;
-                            });
-                          },
-                          child: Icon(
-                            _showPin
-                                ? Icons
-                                    .visibility_off
-                                : Icons
-                                    .visibility,
-                            color: Colors.white
-                                .withOpacity(
-                              0.5,
+                        if (txt.isNotEmpty)
+                          IconButton(
+                            icon: Icon(
+                              _showPin
+                                  ? Icons.visibility_off
+                                  : Icons.visibility,
+                              color: Colors.white54,
+                              size: 20,
                             ),
-                            size: 18,
+                            onPressed: () =>
+                                setState(() => _showPin = !_showPin),
                           ),
-                        ),
-                    ],
+                      ],
+                    ),
                   ),
                 );
               },
@@ -488,8 +565,7 @@ class _AdminPinLoginScreenState
             SizedBox(
               width: double.infinity,
               height: 48,
-              child:
-                  ElevatedButton.icon(
+              child: ElevatedButton.icon(
                 onPressed: _isLoading
                     ? null
                     : _handlePinLogin,
@@ -528,11 +604,8 @@ class _AdminPinLoginScreenState
             ),
           ],
         ),
-      ),
     );
   }
-
-  // ── Keyboard ─────────────────────────────────────────────────────────────
   Widget _keyboardCard() {
     return _cardShell(
       child: _InlineKeyboard(
@@ -591,38 +664,15 @@ class _InlineKeyboard extends StatelessWidget {
   final VoidCallback onToggleCase;
 
   static const _row1 = [
-    'A',
-    'Z',
-    'E',
-    'R',
-    'T',
-    'Y',
-    'U',
-    'I',
-    'O',
-    'P',
+    'A', 'Z', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P',
   ];
 
   static const _row2 = [
-    'Q',
-    'S',
-    'D',
-    'F',
-    'G',
-    'H',
-    'J',
-    'K',
-    'L',
+    'Q', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L',
   ];
 
   static const _row3 = [
-    'W',
-    'X',
-    'C',
-    'V',
-    'B',
-    'N',
-    'M',
+    'W', 'X', 'C', 'V', 'B', 'N', 'M',
   ];
 
   @override
@@ -879,16 +929,8 @@ class _InlineKeyboard extends StatelessWidget {
         Row(
           children: [
             for (final d in [
-              '1',
-              '2',
-              '3',
-              '4',
-              '5',
-              '6',
-              '7',
-              '8',
-              '9',
-              '0',
+              '1', '2', '3', '4', '5',
+              '6', '7', '8', '9', '0',
             ]) ...[
               Expanded(
                 child: _quickNumKey(d),

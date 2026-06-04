@@ -920,4 +920,40 @@ class AuthController extends GetxController {
       _isLoading.value = false;
     }
   }
+
+  Future<bool> loginSuperAdminWithBadge(String badgeCode) async {
+  _isLoading.value = true;
+  try {
+    final normalizedBadge = badgeCode.trim();
+    if (normalizedBadge.isEmpty) throw Exception('Code badge vide');
+
+    // Chercher par badge dans la base locale
+    User? user = await DatabaseService.getUserByBadgeCode(normalizedBadge);
+
+    // Essayer en ligne si pas trouvé localement
+    if (user == null) {
+      final onlineResult = await _tryOnlinePinLogin(normalizedBadge);
+      if (onlineResult != null) user = onlineResult.user;
+    }
+
+    if (user == null) throw Exception('Badge non reconnu');
+
+    final role = user.role.trim().toLowerCase();
+    if (role != 'admin' && role != 'superadmin') {
+      throw Exception('Accès réservé aux administrateurs');
+    }
+    if (!user.isActive) throw Exception('Compte désactivé');
+    if (!_isUserAllowedForCurrentRestaurant(user)) {
+      throw Exception('Accès refusé : autre restaurant.');
+    }
+
+    await _completePinLogin(user: user, pin: normalizedBadge);
+    return true;
+  } catch (e, stackTrace) {
+    appLogger.e('Badge admin login error', error: e, stackTrace: stackTrace);
+    rethrow;
+  } finally {
+    _isLoading.value = false;
+  }
+}
 }

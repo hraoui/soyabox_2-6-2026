@@ -4,12 +4,16 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_esc_pos_utils/flutter_esc_pos_utils.dart';
 import 'package:unified_esc_pos_printer/unified_esc_pos_printer.dart'
     as unified_printer;
+import 'package:http/http.dart' as http;
+import 'package:image/image.dart' as img;
 import '../models/app_settings.dart';
 import '../models/pos_order.dart';
 import '../models/pos_order_item.dart';
 import '../services/app_settings_service.dart';
 import '../utils/order_item_grouping.dart';
 import '../utils/payment_method_utils.dart';
+
+const int _ticketLogoMaxWidth = 120;
 
 class EscPosPrinterService {
   EscPosPrinterService._();
@@ -53,6 +57,7 @@ class EscPosPrinterService {
     List<PosOrderItem> items, {
     PaperSize paperSize = PaperSize.mm80,
     String? staffName,
+    String? restaurantAddress,
     String? restaurantName,
     String? restaurantPhone,
   }) async {
@@ -65,6 +70,7 @@ class EscPosPrinterService {
         items,
         paperSize: paperSize,
         staffName: staffName,
+        restaurantAddress: restaurantAddress,
         restaurantName: restaurantName,
         restaurantPhone: restaurantPhone,
       );
@@ -81,6 +87,7 @@ class EscPosPrinterService {
     List<PosOrderItem> items, {
     PaperSize paperSize = PaperSize.mm80,
     String? staffName,
+    String? restaurantAddress,
     String? restaurantName,
     String? restaurantPhone,
   }) async {
@@ -93,6 +100,7 @@ class EscPosPrinterService {
         items,
         paperSize: paperSize,
         staffName: staffName,
+        restaurantAddress: restaurantAddress,
         restaurantName: restaurantName,
         restaurantPhone: restaurantPhone,
       );
@@ -109,6 +117,7 @@ class EscPosPrinterService {
     List<PosOrderItem> items, {
     PaperSize paperSize = PaperSize.mm80,
     String? staffName,
+    String? restaurantAddress,
     String? restaurantName,
     String? restaurantPhone,
   }) async {
@@ -126,6 +135,7 @@ class EscPosPrinterService {
           items,
           paperSize: paperSize,
           staffName: staffName,
+          restaurantAddress: restaurantAddress,
           restaurantName: restaurantName,
           restaurantPhone: restaurantPhone,
         );
@@ -134,6 +144,7 @@ class EscPosPrinterService {
           items,
           paperSize: paperSize,
           staffName: staffName,
+          restaurantAddress: restaurantAddress,
           restaurantName: restaurantName,
           restaurantPhone: restaurantPhone,
         );
@@ -146,6 +157,7 @@ class EscPosPrinterService {
         items,
         paperSize: paperSize,
         staffName: staffName,
+        restaurantAddress: restaurantAddress,
         restaurantName: restaurantName,
         restaurantPhone: restaurantPhone,
       );
@@ -313,14 +325,14 @@ class EscPosPrinterService {
           in deliveryBreakdown.cast<Map<String, dynamic>>()) {
         final deliveryStaffId =
             deliveryRow['delivery_staff_id']?.toString() ?? 'N/A';
-        final rawDeliveryStaffName =
-            deliveryRow['delivery_staff_name']?.toString().trim();
+        final rawDeliveryStaffName = deliveryRow['delivery_staff_name']
+            ?.toString()
+            .trim();
         final deliveryStaffName =
             rawDeliveryStaffName != null && rawDeliveryStaffName.isNotEmpty
             ? rawDeliveryStaffName
             : 'Livreur $deliveryStaffId';
-        final deliveryCount =
-            deliveryRow['delivery_count']?.toString() ?? '0';
+        final deliveryCount = deliveryRow['delivery_count']?.toString() ?? '0';
         final deliveryRevenue =
             (deliveryRow['delivery_revenue'] as num?)?.toDouble() ?? 0.0;
 
@@ -346,6 +358,7 @@ class EscPosPrinterService {
     List<PosOrderItem> items, {
     PaperSize paperSize = PaperSize.mm80,
     String? staffName,
+    String? restaurantAddress,
     String? restaurantName,
     String? restaurantPhone,
   }) async {
@@ -354,9 +367,11 @@ class EscPosPrinterService {
     var bytes = <int>[];
     final orderTime = _formatOrderTime(order.createdAt);
 
-    bytes += _buildRestaurantHeader(
+    bytes += await _buildRestaurantHeader(
       generator,
+      includeLogo: false,
       restaurantName: restaurantName,
+      restaurantAddress: restaurantAddress,
       restaurantPhone: restaurantPhone,
     );
     bytes += generator.text(
@@ -386,7 +401,13 @@ class EscPosPrinterService {
       );
     }
     bytes += _divider(generator);
-    bytes += _buildItemsBytes(generator, items, includePrices: false);
+    bytes += _buildItemsBytes(
+      generator,
+      items,
+      includePrices: false,
+      includeNotes: true,
+      includeCourseHeaders: true,
+    );
     bytes += _divider(generator);
     bytes += generator.text(
       _escPosText(
@@ -404,6 +425,7 @@ class EscPosPrinterService {
     List<PosOrderItem> items, {
     PaperSize paperSize = PaperSize.mm80,
     String? staffName,
+    String? restaurantAddress,
     String? restaurantName,
     String? restaurantPhone,
   }) async {
@@ -442,9 +464,11 @@ class EscPosPrinterService {
               .join(' / ')
         : paymentMethodLabel(order.paymentMethod);
 
-    bytes += _buildRestaurantHeader(
+    bytes += await _buildRestaurantHeader(
       generator,
+      includeLogo: true,
       restaurantName: restaurantName,
+      restaurantAddress: restaurantAddress,
       restaurantPhone: restaurantPhone,
     );
     bytes += generator.text(
@@ -477,7 +501,13 @@ class EscPosPrinterService {
       bytes += generator.text(_escPosText('Adresse: ${order.deliveryAddress}'));
     }
     bytes += _divider(generator);
-    bytes += _buildItemsBytes(generator, items, includePrices: true);
+    bytes += _buildItemsBytes(
+      generator,
+      items,
+      includePrices: true,
+      includeNotes: false,
+      includeCourseHeaders: false,
+    );
     bytes += _divider(generator);
     bytes += generator.row([
       PosColumn(
@@ -501,14 +531,33 @@ class EscPosPrinterService {
         ),
       ]);
     }
-    bytes += generator.row([
-      PosColumn(text: 'TOTAL', width: 8, styles: const PosStyles(bold: true)),
-      PosColumn(
-        text: _money(total),
-        width: 4,
-        styles: const PosStyles(align: PosAlign.right, bold: true),
-      ),
-    ]);
+    if (isPaidPayment) {
+      bytes += generator.row([
+        PosColumn(
+          text: 'TOTAL PAYE',
+          width: 8,
+          styles: const PosStyles(bold: true),
+        ),
+        PosColumn(
+          text: _money(paidAmount),
+          width: 4,
+          styles: const PosStyles(align: PosAlign.right, bold: true),
+        ),
+      ]);
+    } else {
+      bytes += generator.row([
+        PosColumn(
+          text: 'TOTAL A PAYER',
+          width: 8,
+          styles: const PosStyles(bold: true),
+        ),
+        PosColumn(
+          text: _money(total),
+          width: 4,
+          styles: const PosStyles(align: PosAlign.right, bold: true),
+        ),
+      ]);
+    }
     if (paymentEntries.isNotEmpty || paymentStatus != 'pending') {
       bytes += generator.text(
         'PAIEMENT',
@@ -567,6 +616,7 @@ class EscPosPrinterService {
     List<PosOrderItem> items, {
     PaperSize paperSize = PaperSize.mm80,
     String? staffName,
+    String? restaurantAddress,
     String? restaurantName,
     String? restaurantPhone,
   }) async {
@@ -575,6 +625,7 @@ class EscPosPrinterService {
       items,
       paperSize: paperSize,
       staffName: staffName,
+      restaurantAddress: restaurantAddress,
       restaurantName: restaurantName,
       restaurantPhone: restaurantPhone,
     );
@@ -583,6 +634,7 @@ class EscPosPrinterService {
       items,
       paperSize: paperSize,
       staffName: staffName,
+      restaurantAddress: restaurantAddress,
       restaurantName: restaurantName,
       restaurantPhone: restaurantPhone,
     );
@@ -680,7 +732,9 @@ class EscPosPrinterService {
     switch (config.transport) {
       case ReceiptPrinterTransport.network:
         if (host.isEmpty) {
-          throw StateError('Aucune adresse IP pour l\'imprimante ${config.displayName}');
+          throw StateError(
+            'Aucune adresse IP pour l\'imprimante ${config.displayName}',
+          );
         }
         await _sendBytesOverNetwork(bytes, host: host, port: config.port);
         return;
@@ -767,7 +821,9 @@ class EscPosPrinterService {
           await manager.disconnect();
           debugPrint('ESC/POS USB disconnected after error');
         } catch (disconnectError) {
-          debugPrint('ESC/POS USB disconnect after error failed: $disconnectError');
+          debugPrint(
+            'ESC/POS USB disconnect after error failed: $disconnectError',
+          );
         }
       }
       rethrow;
@@ -776,10 +832,103 @@ class EscPosPrinterService {
     }
   }
 
+  Future<List<int>> _buildRestaurantHeader(
+    Generator generator, {
+    bool includeLogo = true,
+    String? restaurantName,
+    String? restaurantAddress,
+    String? restaurantPhone,
+  }) async {
+    var bytes = <int>[];
+
+    if (includeLogo) {
+      // Try to load logo from app settings and print it first (if available)
+      try {
+        await AppSettingsService.instance.init();
+        final settings = AppSettingsService.instance.settings;
+        final logoPath = settings.ticketLogoPath;
+        if (logoPath != null && logoPath.trim().isNotEmpty) {
+          Uint8List? imageBytes;
+          try {
+            if (logoPath.startsWith('http://') ||
+                logoPath.startsWith('https://')) {
+              final resp = await http.get(Uri.parse(logoPath));
+              if (resp.statusCode == 200) {
+                imageBytes = resp.bodyBytes;
+              }
+            } else {
+              // Support file:// URIs as well as plain paths
+              var path = logoPath;
+              if (path.startsWith('file://')) {
+                path = path.replaceFirst('file://', '');
+              }
+              if (!kIsWeb) {
+                final f = File(path);
+                if (await f.exists()) {
+                  imageBytes = await f.readAsBytes();
+                }
+              }
+            }
+          } catch (_) {
+            imageBytes = null;
+          }
+
+          if (imageBytes != null && imageBytes.isNotEmpty) {
+            try {
+              final decoded = img.decodeImage(imageBytes);
+              if (decoded != null) {
+                final logoImage = decoded.width > _ticketLogoMaxWidth
+                    ? img.copyResize(decoded, width: _ticketLogoMaxWidth)
+                    : decoded;
+                // center the image and add to bytes
+                bytes += generator.image(logoImage);
+                bytes += generator.feed(1);
+              }
+            } catch (_) {
+              // ignore image print failures
+            }
+          }
+        }
+      } catch (_) {}
+    }
+
+    final hasRestaurantName = restaurantName?.trim().isNotEmpty == true;
+    final hasRestaurantAddress = restaurantAddress?.trim().isNotEmpty == true;
+    final hasRestaurantPhone = restaurantPhone?.trim().isNotEmpty == true;
+    final hasRestaurantInfo =
+        hasRestaurantName || hasRestaurantAddress || hasRestaurantPhone;
+
+    if (hasRestaurantName) {
+      bytes += generator.text(
+        _escPosText(restaurantName!.trim()),
+        styles: const PosStyles(align: PosAlign.center, bold: true),
+      );
+    }
+    if (hasRestaurantAddress) {
+      bytes += generator.text(
+        _escPosText('Adresse: ${restaurantAddress!.trim()}'),
+        styles: const PosStyles(align: PosAlign.center),
+      );
+    }
+    if (hasRestaurantPhone) {
+      bytes += generator.text(
+        _escPosText('Tel: ${restaurantPhone!.trim()}'),
+        styles: const PosStyles(align: PosAlign.center),
+      );
+    }
+
+    if (hasRestaurantInfo || (includeLogo && bytes.isNotEmpty)) {
+      bytes += generator.feed(1);
+    }
+    return bytes;
+  }
+
   List<int> _buildItemsBytes(
     Generator generator,
     List<PosOrderItem> items, {
     required bool includePrices,
+    bool includeNotes = true,
+    bool includeCourseHeaders = true,
   }) {
     var bytes = <int>[];
     final byGroup = groupOrderItemsByGuest(items);
@@ -798,11 +947,13 @@ class EscPosPrinterService {
 
       final byCourse = groupOrderItemsByCourse(groupItems);
       byCourse.forEach((course, courseItems) {
-        bytes += generator.text(
-          _escPosText('=== ${course.label} ==='),
-          styles: const PosStyles(bold: true),
-          linesAfter: 1,
-        );
+        if (includeCourseHeaders) {
+          bytes += generator.text(
+            _escPosText('=== ${course.label} ==='),
+            styles: const PosStyles(bold: true),
+            linesAfter: 1,
+          );
+        }
 
         for (final item in courseItems) {
           final note = item.itemNote?.trim();
@@ -828,7 +979,7 @@ class EscPosPrinterService {
               PosColumn(text: productName, width: 10),
             ]);
           }
-          if (note != null && note.isNotEmpty) {
+          if (includeNotes && note != null && note.isNotEmpty) {
             bytes += generator.text(
               _escPosText('  Note: $note'),
               styles: const PosStyles(bold: true),
@@ -839,30 +990,6 @@ class EscPosPrinterService {
       });
     });
 
-    return bytes;
-  }
-
-  List<int> _buildRestaurantHeader(
-    Generator generator, {
-    String? restaurantName,
-    String? restaurantPhone,
-  }) {
-    var bytes = <int>[];
-    if (restaurantName != null && restaurantName.trim().isNotEmpty) {
-      bytes += generator.text(
-        _escPosText(restaurantName),
-        styles: const PosStyles(align: PosAlign.center, bold: true),
-      );
-    }
-    if (restaurantPhone != null && restaurantPhone.trim().isNotEmpty) {
-      bytes += generator.text(
-        _escPosText('Tel: $restaurantPhone'),
-        styles: const PosStyles(align: PosAlign.center),
-      );
-    }
-    if (bytes.isNotEmpty) {
-      bytes += generator.feed(1);
-    }
     return bytes;
   }
 
@@ -885,9 +1012,7 @@ class EscPosPrinterService {
             final rawAmount = raw['amount'] ?? raw['montant'] ?? 0;
             final amount = rawAmount is num
                 ? rawAmount.toDouble()
-                : double.tryParse(
-                        rawAmount.toString().replaceAll(',', '.'),
-                      ) ??
+                : double.tryParse(rawAmount.toString().replaceAll(',', '.')) ??
                       0.0;
             final method = (raw['payment_method'] ?? raw['method'] ?? '')
                 .toString()

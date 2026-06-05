@@ -35,6 +35,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late final TextEditingController _printerPortController;
   late final TextEditingController _kitchenPrinterHostController;
   late final TextEditingController _kitchenPrinterPortController;
+  late final TextEditingController _kitchenPrinterHost2Controller;
+  late final TextEditingController _kitchenPrinterPort2Controller;
   late bool _useEscPosPrinting;
   late ReceiptPrinterTransport _printerTransport;
   late ReceiptPrinterTransport _kitchenPrinterTransport;
@@ -64,6 +66,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _kitchenPrinterPortController = TextEditingController(
       text: settings.kitchenReceiptPrinterPort.toString(),
     );
+    final kitchenPrinterConfigs = settings.printerConfigsFor(
+      ReceiptPrinterType.kitchen,
+    );
+    final secondaryKitchenConfig = kitchenPrinterConfigs.length > 1
+        ? kitchenPrinterConfigs[1]
+        : null;
+    _kitchenPrinterHost2Controller = TextEditingController(
+      text: secondaryKitchenConfig?.host ?? '',
+    );
+    _kitchenPrinterPort2Controller = TextEditingController(
+      text: (secondaryKitchenConfig?.port ?? settings.kitchenReceiptPrinterPort)
+          .toString(),
+    );
     _useEscPosPrinting = settings.useEscPosPrinting;
     _printerTransport = settings.receiptPrinterTransport;
     _kitchenPrinterTransport = settings.kitchenReceiptPrinterTransport;
@@ -85,6 +100,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _printerPortController.dispose();
     _kitchenPrinterHostController.dispose();
     _kitchenPrinterPortController.dispose();
+    _kitchenPrinterHost2Controller.dispose();
+    _kitchenPrinterPort2Controller.dispose();
     super.dispose();
   }
 
@@ -107,9 +124,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 maxChildWidth: 520,
                 spacing: SushiSpace.md,
                 runSpacing: SushiSpace.md,
-                maxColumns: constraints.maxWidth >= 1200
-                    ? 2
-                    : 1,
+                maxColumns: constraints.maxWidth >= 1200 ? 2 : 1,
                 children: [
                   _settingCard(
                     icon: Icons.currency_exchange,
@@ -460,18 +475,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           style: TextStyle(fontSize: 13),
                         ),
                         const SizedBox(height: SushiSpace.sm),
-                        StatefulBuilder(builder: (context, setState) {
-                          final enabled = FullscreenService.isFullscreen;
-                          return SwitchListTile.adaptive(
-                            contentPadding: EdgeInsets.zero,
-                            title: const Text('Activer le plein écran'),
-                            value: enabled,
-                            onChanged: (value) async {
-                              await FullscreenService.toggle(value);
-                              setState(() {});
-                            },
-                          );
-                        }),
+                        StatefulBuilder(
+                          builder: (context, setState) {
+                            final enabled = FullscreenService.isFullscreen;
+                            return SwitchListTile.adaptive(
+                              contentPadding: EdgeInsets.zero,
+                              title: const Text('Activer le plein écran'),
+                              value: enabled,
+                              onChanged: (value) async {
+                                await FullscreenService.toggle(value);
+                                setState(() {});
+                              },
+                            );
+                          },
+                        ),
                       ],
                     ),
                   ),
@@ -482,8 +499,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
-                          'Configurez une imprimante dédiée au ticket cuisine. '
-                          'Laisser vide pour utiliser la même imprimante que le ticket client.',
+                          'Configurez jusqu\'à deux imprimantes réseau dédiées au ticket cuisine. '
+                          'Laisser vide la deuxième si vous n\'en avez qu\'une.',
                           style: TextStyle(fontSize: 13),
                         ),
                         const SizedBox(height: SushiSpace.sm),
@@ -539,6 +556,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             ),
                           ],
                         ),
+                        const SizedBox(height: SushiSpace.sm),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              flex: 3,
+                              child: _textField(
+                                controller: _kitchenPrinterHost2Controller,
+                                label: 'IP imprimante cuisine 2 (réseau)',
+                                hint: '192.168.1.52',
+                                icon: Icons.router,
+                                keyboardType: TextInputType.text,
+                              ),
+                            ),
+                            const SizedBox(width: SushiSpace.md),
+                            SizedBox(
+                              width: 140,
+                              child: _textField(
+                                controller: _kitchenPrinterPort2Controller,
+                                label: 'Port TCP/IP 2',
+                                hint: '9100',
+                                icon: Icons.settings_ethernet,
+                                keyboardType: TextInputType.number,
+                              ),
+                            ),
+                          ],
+                        ),
                         if (_kitchenPrinterTransport ==
                             ReceiptPrinterTransport.usb) ...[
                           const SizedBox(height: SushiSpace.sm),
@@ -568,12 +612,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           child: SushiCTAButton(
                             child: const Text('Enregistrer imprimante cuisine'),
                             onPressed: () async {
-                              final host = _kitchenPrinterHostController.text.trim();
+                              final host = _kitchenPrinterHostController.text
+                                  .trim();
                               final port =
                                   int.tryParse(
                                     _kitchenPrinterPortController.text.trim(),
                                   ) ??
                                   9100;
+                              final host2 = _kitchenPrinterHost2Controller.text
+                                  .trim();
+                              final port2 =
+                                  int.tryParse(
+                                    _kitchenPrinterPort2Controller.text.trim(),
+                                  ) ??
+                                  port;
 
                               if (_useEscPosPrinting &&
                                   _kitchenPrinterTransport ==
@@ -591,9 +643,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 return;
                               }
 
+                              if (host2.isNotEmpty &&
+                                  (port2 <= 0 || port2 > 65535)) {
+                                _toast(
+                                  false,
+                                  'Port imprimante cuisine 2 invalide',
+                                );
+                                return;
+                              }
+
                               await controller.updateKitchenPrinterSettings(
                                 host: host,
                                 port: port,
+                                secondaryHost: host2,
+                                secondaryPort: port2,
                                 transport: _kitchenPrinterTransport,
                               );
                               if (!mounted) return;
@@ -741,8 +804,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
               Expanded(
                 child: Text(
                   title,
-                  style:
-                      SushiTypo.h3.copyWith(fontSize: 18, fontWeight: FontWeight.w700),
+                  style: SushiTypo.h3.copyWith(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
             ],

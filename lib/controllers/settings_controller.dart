@@ -111,17 +111,58 @@ class SettingsController extends GetxController {
   Future<void> updateKitchenPrinterSettings({
     String? host,
     int? port,
+    String? secondaryHost,
+    int? secondaryPort,
     ReceiptPrinterTransport? transport,
   }) async {
     final current = settings;
     final normalizedHost = host?.trim();
+    final normalizedSecondaryHost = secondaryHost?.trim();
+    final resolvedPort = port ?? current.kitchenReceiptPrinterPort;
+    final resolvedSecondaryPort = secondaryPort ?? resolvedPort;
+    final resolvedTransport =
+        transport ?? current.kitchenReceiptPrinterTransport;
+    final nextKitchenConfigs = <ReceiptPrinterConfig>[];
+
+    if (resolvedTransport != ReceiptPrinterTransport.usb) {
+      if (normalizedHost != null && normalizedHost.isNotEmpty) {
+        nextKitchenConfigs.add(
+          ReceiptPrinterConfig(
+            type: ReceiptPrinterType.kitchen,
+            host: normalizedHost,
+            port: resolvedPort,
+            transport: ReceiptPrinterTransport.network,
+            name: 'Cuisine 1',
+          ),
+        );
+      }
+      if (normalizedSecondaryHost != null &&
+          normalizedSecondaryHost.isNotEmpty) {
+        nextKitchenConfigs.add(
+          ReceiptPrinterConfig(
+            type: ReceiptPrinterType.kitchen,
+            host: normalizedSecondaryHost,
+            port: resolvedSecondaryPort,
+            transport: ReceiptPrinterTransport.network,
+            name: 'Cuisine 2',
+          ),
+        );
+      }
+    }
+
+    final preservedConfigs = current.printerConfigs
+        .where((config) => config.type != ReceiptPrinterType.kitchen)
+        .toList();
     final next = current.copyWith(
-      kitchenReceiptPrinterHost: normalizedHost == null || normalizedHost.isEmpty
+      kitchenReceiptPrinterHost:
+          resolvedTransport == ReceiptPrinterTransport.usb ||
+              normalizedHost == null ||
+              normalizedHost.isEmpty
           ? null
           : normalizedHost,
-      kitchenReceiptPrinterPort: port ?? current.kitchenReceiptPrinterPort,
-      kitchenReceiptPrinterTransport:
-          transport ?? current.kitchenReceiptPrinterTransport,
+      kitchenReceiptPrinterPort: resolvedPort,
+      kitchenReceiptPrinterTransport: resolvedTransport,
+      printerConfigs: [...preservedConfigs, ...nextKitchenConfigs],
     );
     await AppSettingsService.instance.save(next);
     _settings.value = next;

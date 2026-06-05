@@ -2212,6 +2212,7 @@ class _PosScreenState extends State<PosScreen> {
     PosOrder order,
     List<PosOrderItem> items, {
     String? staffName,
+    String? restaurantAddress,
     String? restaurantName,
     String? restaurantPhone,
   }) async {
@@ -2220,6 +2221,7 @@ class _PosScreenState extends State<PosScreen> {
           order,
           items,
           staffName: staffName,
+          restaurantAddress: restaurantAddress,
           restaurantName: restaurantName,
           restaurantPhone: restaurantPhone,
         );
@@ -2239,6 +2241,7 @@ class _PosScreenState extends State<PosScreen> {
         items,
         format: format,
         staffName: staffName,
+        restaurantAddress: restaurantAddress,
         restaurantName: restaurantName,
         restaurantPhone: restaurantPhone,
       ),
@@ -2362,23 +2365,33 @@ class _PosScreenState extends State<PosScreen> {
       final auth = Get.isRegistered<AuthController>()
           ? Get.find<AuthController>()
           : null;
+      final restaurantId =
+          order.restaurantId ?? auth?.currentUser?.restaurantId;
       String? restaurantName;
-      if (auth?.currentUser?.restaurantId != null) {
+      String? restaurantAddress;
+      String? restaurantPhone;
+      if (restaurantId != null) {
         try {
           final restaurant = await DatabaseService.getRestaurantById(
-            auth!.currentUser!.restaurantId!,
+            restaurantId,
           );
           restaurantName = restaurant?.name;
+          restaurantAddress = restaurant?.address;
+          // Prefer the restaurant phone when available, else fallback to user phone
+          restaurantPhone = restaurant?.phone ?? auth?.currentUser?.phone;
         } catch (_) {
-          // If restaurant not found, leave restaurantName as null
+          // If restaurant not found, fallback to user's phone
+          restaurantPhone = auth?.currentUser?.phone;
         }
+      } else {
+        restaurantPhone = auth?.currentUser?.phone;
       }
-      final restaurantPhone = auth?.currentUser?.phone;
 
       await _printKitchenTicket(
         order,
         items,
         staffName: staffName,
+        restaurantAddress: restaurantAddress,
         restaurantName: restaurantName,
         restaurantPhone: restaurantPhone,
       );
@@ -2399,18 +2412,25 @@ class _PosScreenState extends State<PosScreen> {
       final auth = Get.isRegistered<AuthController>()
           ? Get.find<AuthController>()
           : null;
+      final restaurantId =
+          order.restaurantId ?? auth?.currentUser?.restaurantId;
       String? restaurantName;
-      if (auth?.currentUser?.restaurantId != null) {
+      String? restaurantAddress;
+      String? restaurantPhone;
+      if (restaurantId != null) {
         try {
           final restaurant = await DatabaseService.getRestaurantById(
-            auth!.currentUser!.restaurantId!,
+            restaurantId,
           );
           restaurantName = restaurant?.name;
+          restaurantAddress = restaurant?.address;
+          restaurantPhone = restaurant?.phone ?? auth?.currentUser?.phone;
         } catch (_) {
-          // If restaurant not found, leave restaurantName as null
+          restaurantPhone = auth?.currentUser?.phone;
         }
+      } else {
+        restaurantPhone = auth?.currentUser?.phone;
       }
-      final restaurantPhone = auth?.currentUser?.phone;
 
       await _showTicketPreview(
         (format) => buildKitchenTicketPdf(
@@ -2418,6 +2438,7 @@ class _PosScreenState extends State<PosScreen> {
           items,
           format: format,
           staffName: staffName,
+          restaurantAddress: restaurantAddress,
           restaurantName: restaurantName,
           restaurantPhone: restaurantPhone,
         ),

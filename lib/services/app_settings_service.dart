@@ -52,18 +52,20 @@ class AppSettingsService {
   }) async {
     try {
       final imagesDir = await _settingsImagesDir();
+      final normalizedSourcePath = _normalizeSourcePath(sourcePath);
       final extension = _resolveImageExtension(
-        sourcePath: sourcePath,
+        sourcePath: normalizedSourcePath,
         originalFileName: originalFileName,
       );
       final destination = File('${imagesDir.path}/$targetBasename.$extension');
 
+      // Prefer writing provided bytes
       if (bytes != null && bytes.isNotEmpty) {
         await destination.writeAsBytes(bytes, flush: true);
         return destination.path;
       }
 
-      final trimmedPath = sourcePath?.trim();
+      final trimmedPath = normalizedSourcePath?.trim();
       if (trimmedPath == null || trimmedPath.isEmpty) return null;
 
       final sourceFile = File(trimmedPath);
@@ -93,6 +95,23 @@ class AppSettingsService {
     try {
       await logoFile.delete();
     } catch (_) {}
+  }
+
+  String? _normalizeSourcePath(String? path) {
+    if (path == null) return null;
+    final trimmed = path.trim();
+    if (trimmed.isEmpty) return null;
+
+    // Handle file:// URIs returned by some pickers
+    if (trimmed.startsWith('file://')) {
+      try {
+        return Uri.parse(trimmed).toFilePath();
+      } catch (_) {
+        return trimmed.replaceFirst(RegExp(r'^file://'), '');
+      }
+    }
+
+    return trimmed;
   }
 
   String formatAmount(double amount) {

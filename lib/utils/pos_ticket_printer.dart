@@ -12,6 +12,9 @@ import '../services/app_settings_service.dart';
 import 'order_item_grouping.dart';
 import 'payment_method_utils.dart';
 
+const double _ticketLogoHeight = 32;
+const double _ticketLogoSpacing = 4;
+
 class _TicketProductLine {
   final String name;
   final int quantity;
@@ -287,20 +290,6 @@ List<pw.Widget> _buildSimpleCustomerTicketItems(
           pw.Padding(
             padding: const pw.EdgeInsets.only(left: 12, top: 2),
             child: _buildOfferedBadgeWidget(),
-          ),
-        );
-      }
-      if (line.note != null && line.note!.isNotEmpty) {
-        widgets.add(
-          pw.Padding(
-            padding: const pw.EdgeInsets.only(left: 12, top: 2),
-            child: pw.Text(
-              line.note!,
-              style: pw.TextStyle(
-                fontSize: 9,
-                color: line.offered ? PdfColors.green : PdfColors.black,
-              ),
-            ),
           ),
         );
       }
@@ -600,8 +589,18 @@ Future<Uint8List> buildTicketPdf(
   PosOrder order,
   List<PosOrderItem> items, {
   PdfPageFormat? format,
+  String? restaurantAddress,
+  String? restaurantName,
+  String? restaurantPhone,
 }) async {
-  return buildCustomerBillPdf(order, items, format: format);
+  return buildCustomerBillPdf(
+    order,
+    items,
+    format: format,
+    restaurantAddress: restaurantAddress,
+    restaurantName: restaurantName,
+    restaurantPhone: restaurantPhone,
+  );
 }
 
 Future<Uint8List> buildKitchenTicketPdf(
@@ -609,6 +608,7 @@ Future<Uint8List> buildKitchenTicketPdf(
   List<PosOrderItem> items, {
   PdfPageFormat? format,
   String? staffName,
+  String? restaurantAddress,
   String? restaurantName,
   String? restaurantPhone,
 }) async {
@@ -623,7 +623,6 @@ Future<Uint8List> buildKitchenTicketPdf(
         marginLeft: 6,
         marginRight: 6,
       );
-  final logoImage = await _loadLogoImage();
   final orderTime = _formatOrderTime(order.createdAt);
 
   doc.addPage(
@@ -634,35 +633,13 @@ Future<Uint8List> buildKitchenTicketPdf(
         return pw.Column(
           crossAxisAlignment: pw.CrossAxisAlignment.start,
           children: [
-            // En-tête restaurant
-            if (logoImage != null)
-              pw.Center(
-                child: pw.SizedBox(
-                  height: 56,
-                  child: pw.Image(logoImage, fit: pw.BoxFit.contain),
-                ),
-              ),
-            if (logoImage != null || restaurantName != null)
-              pw.SizedBox(height: 6),
-            if (restaurantName != null)
-              pw.Center(
-                child: pw.Text(
-                  restaurantName,
-                  style: pw.TextStyle(
-                    fontSize: 11,
-                    fontWeight: pw.FontWeight.bold,
-                  ),
-                ),
-              ),
-            if (restaurantPhone != null)
-              pw.Center(
-                child: pw.Text(
-                  'Tél: $restaurantPhone',
-                  style: pw.TextStyle(fontSize: 9),
-                ),
-              ),
-            if (restaurantName != null || restaurantPhone != null)
-              pw.SizedBox(height: 6),
+            ..._buildRestaurantHeaderWidgets(
+              null,
+              includeLogo: false,
+              restaurantName: restaurantName,
+              restaurantAddress: restaurantAddress,
+              restaurantPhone: restaurantPhone,
+            ),
             // Titre ticket
             pw.Center(
               child: pw.Text(
@@ -738,6 +715,7 @@ Future<Uint8List> buildCustomerBillPdf(
   List<PosOrderItem> items, {
   PdfPageFormat? format,
   String? staffName,
+  String? restaurantAddress,
   String? restaurantName,
   String? restaurantPhone,
 }) async {
@@ -789,35 +767,13 @@ Future<Uint8List> buildCustomerBillPdf(
         return pw.Column(
           crossAxisAlignment: pw.CrossAxisAlignment.start,
           children: [
-            // En-tête restaurant
-            if (logoImage != null)
-              pw.Center(
-                child: pw.SizedBox(
-                  height: 56,
-                  child: pw.Image(logoImage, fit: pw.BoxFit.contain),
-                ),
-              ),
-            if (logoImage != null || restaurantName != null)
-              pw.SizedBox(height: 6),
-            if (restaurantName != null)
-              pw.Center(
-                child: pw.Text(
-                  restaurantName,
-                  style: pw.TextStyle(
-                    fontSize: 11,
-                    fontWeight: pw.FontWeight.bold,
-                  ),
-                ),
-              ),
-            if (restaurantPhone != null)
-              pw.Center(
-                child: pw.Text(
-                  'Tél: $restaurantPhone',
-                  style: pw.TextStyle(fontSize: 9),
-                ),
-              ),
-            if (restaurantName != null || restaurantPhone != null)
-              pw.SizedBox(height: 6),
+            ..._buildRestaurantHeaderWidgets(
+              logoImage,
+              includeLogo: true,
+              restaurantName: restaurantName,
+              restaurantAddress: restaurantAddress,
+              restaurantPhone: restaurantPhone,
+            ),
             // Titre ticket
             pw.Center(
               child: pw.Text(
@@ -896,14 +852,14 @@ Future<Uint8List> buildCustomerBillPdf(
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               children: [
                 pw.Text(
-                  'TOTAL À PAYER',
+                  isPaidPayment ? 'TOTAL PAYÉ' : 'TOTAL À PAYER',
                   style: pw.TextStyle(
                     fontWeight: pw.FontWeight.bold,
                     fontSize: 12,
                   ),
                 ),
                 pw.Text(
-                  money(total),
+                  isPaidPayment ? money(paidAmount) : money(total),
                   style: pw.TextStyle(
                     fontWeight: pw.FontWeight.bold,
                     fontSize: 12,
@@ -948,6 +904,7 @@ Future<Uint8List> buildKitchenAndCustomerTicketsPdf(
   List<PosOrderItem> items, {
   PdfPageFormat? format,
   String? staffName,
+  String? restaurantAddress,
   String? restaurantName,
   String? restaurantPhone,
 }) async {
@@ -990,48 +947,6 @@ Future<Uint8List> buildKitchenAndCustomerTicketsPdf(
     money: money,
   );
 
-  // Fonction helper pour le header restaurant
-  List<pw.Widget> buildRestaurantHeaderWidgets() {
-    final widgets = <pw.Widget>[];
-    if (logoImage != null) {
-      widgets.add(
-        pw.Center(
-          child: pw.SizedBox(
-            height: 56,
-            child: pw.Image(logoImage, fit: pw.BoxFit.contain),
-          ),
-        ),
-      );
-    }
-    if (logoImage != null || restaurantName != null) {
-      widgets.add(pw.SizedBox(height: 6));
-    }
-    if (restaurantName != null) {
-      widgets.add(
-        pw.Center(
-          child: pw.Text(
-            restaurantName,
-            style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold),
-          ),
-        ),
-      );
-    }
-    if (restaurantPhone != null) {
-      widgets.add(
-        pw.Center(
-          child: pw.Text(
-            'Tél: $restaurantPhone',
-            style: pw.TextStyle(fontSize: 9),
-          ),
-        ),
-      );
-    }
-    if (restaurantName != null || restaurantPhone != null) {
-      widgets.add(pw.SizedBox(height: 6));
-    }
-    return widgets;
-  }
-
   // Page 1: kitchen ticket
   doc.addPage(
     pw.Page(
@@ -1041,7 +956,13 @@ Future<Uint8List> buildKitchenAndCustomerTicketsPdf(
         return pw.Column(
           crossAxisAlignment: pw.CrossAxisAlignment.start,
           children: [
-            ...buildRestaurantHeaderWidgets(),
+            ..._buildRestaurantHeaderWidgets(
+              null,
+              includeLogo: false,
+              restaurantName: restaurantName,
+              restaurantAddress: restaurantAddress,
+              restaurantPhone: restaurantPhone,
+            ),
             pw.Center(
               child: pw.Text(
                 'BON CUISINE',
@@ -1110,7 +1031,13 @@ Future<Uint8List> buildKitchenAndCustomerTicketsPdf(
         return pw.Column(
           crossAxisAlignment: pw.CrossAxisAlignment.start,
           children: [
-            ...buildRestaurantHeaderWidgets(),
+            ..._buildRestaurantHeaderWidgets(
+              logoImage,
+              includeLogo: true,
+              restaurantName: restaurantName,
+              restaurantAddress: restaurantAddress,
+              restaurantPhone: restaurantPhone,
+            ),
             pw.Center(
               child: pw.Text(
                 paymentTitle,
@@ -1186,14 +1113,14 @@ Future<Uint8List> buildKitchenAndCustomerTicketsPdf(
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               children: [
                 pw.Text(
-                  'TOTAL À PAYER',
+                  isPaidPayment ? 'TOTAL PAYÉ' : 'TOTAL À PAYER',
                   style: pw.TextStyle(
                     fontWeight: pw.FontWeight.bold,
                     fontSize: 12,
                   ),
                 ),
                 pw.Text(
-                  money(total),
+                  isPaidPayment ? money(paidAmount) : money(total),
                   style: pw.TextStyle(
                     fontWeight: pw.FontWeight.bold,
                     fontSize: 12,
@@ -1229,6 +1156,72 @@ Future<Uint8List> buildKitchenAndCustomerTicketsPdf(
   );
 
   return doc.save();
+}
+
+List<pw.Widget> _buildRestaurantHeaderWidgets(
+  pw.MemoryImage? logoImage, {
+  required bool includeLogo,
+  String? restaurantName,
+  String? restaurantAddress,
+  String? restaurantPhone,
+}) {
+  final widgets = <pw.Widget>[];
+  final hasRestaurantName = restaurantName?.trim().isNotEmpty == true;
+  final hasRestaurantAddress = restaurantAddress?.trim().isNotEmpty == true;
+  final hasRestaurantPhone = restaurantPhone?.trim().isNotEmpty == true;
+  final hasRestaurantInfo =
+      hasRestaurantName || hasRestaurantAddress || hasRestaurantPhone;
+
+  if (includeLogo && logoImage != null) {
+    widgets.add(
+      pw.Center(
+        child: pw.SizedBox(
+          height: _ticketLogoHeight,
+          child: pw.Image(logoImage, fit: pw.BoxFit.contain),
+        ),
+      ),
+    );
+  }
+  if (includeLogo && logoImage != null) {
+    widgets.add(pw.SizedBox(height: _ticketLogoSpacing));
+  }
+
+  if (hasRestaurantName) {
+    widgets.add(
+      pw.Center(
+        child: pw.Text(
+          restaurantName!.trim(),
+          style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold),
+        ),
+      ),
+    );
+  }
+  if (hasRestaurantAddress) {
+    widgets.add(
+      pw.Center(
+        child: pw.Text(
+          'Adresse: ${restaurantAddress!.trim()}',
+          style: pw.TextStyle(fontSize: 8),
+        ),
+      ),
+    );
+  }
+  if (hasRestaurantPhone) {
+    widgets.add(
+      pw.Center(
+        child: pw.Text(
+          'Tél: ${restaurantPhone!.trim()}',
+          style: pw.TextStyle(fontSize: 9),
+        ),
+      ),
+    );
+  }
+
+  if (hasRestaurantInfo || (includeLogo && logoImage != null)) {
+    widgets.add(pw.SizedBox(height: _ticketLogoSpacing));
+  }
+
+  return widgets;
 }
 
 Future<pw.MemoryImage?> _loadLogoImage() async {
@@ -1294,8 +1287,9 @@ Future<Uint8List> buildDailyReportPdf(Map<String, dynamic> reportData) async {
   final totalRevenue = (summary['total_revenue'] as num?)?.toDouble() ?? 0.0;
   final totalOrders = summary['total_orders'] as int? ?? 0;
 
-    // Modes de paiement (cartographie dynamique)
-    final paymentMethods = summary['payment_methods'] as Map<String, dynamic>? ?? {};
+  // Modes de paiement (cartographie dynamique)
+  final paymentMethods =
+      summary['payment_methods'] as Map<String, dynamic>? ?? {};
 
   // Types de commande
   final orderTypes = summary['order_types'] as Map<String, dynamic>? ?? {};
@@ -1307,15 +1301,25 @@ Future<Uint8List> buildDailyReportPdf(Map<String, dynamic> reportData) async {
   final staffBreakdown = summary['staff_breakdown'] as List<dynamic>? ?? [];
   final deliveryBreakdown =
       summary['delivery_breakdown'] as List<dynamic>? ?? [];
-  final totalDiscounts = (summary['total_discounts'] as num?)?.toDouble() ?? 0.0;
+  final totalDiscounts =
+      (summary['total_discounts'] as num?)?.toDouble() ?? 0.0;
   final totalOfferedQuantity = summary['total_offered_quantity'] as int? ?? 0;
-  final totalOfferedValue = (summary['total_offered_value'] as num?)?.toDouble() ?? 0.0;
+  final totalOfferedValue =
+      (summary['total_offered_value'] as num?)?.toDouble() ?? 0.0;
+  final compteRendu =
+      (summary['compte_rendu'] as num?)?.toDouble() ??
+      (totalRevenue - (totalDiscounts + totalOfferedValue));
 
   doc.addPage(
     pw.Page(
       pageFormat: pageFormat,
       theme: pw.ThemeData.withFont(base: regularFont, bold: boldFont),
       build: (context) {
+        final visiblePayments = paymentMethods.entries.where((e) {
+          final amount = (e.value as num?)?.toDouble() ?? 0.0;
+          return amount > 0.0;
+        }).toList();
+
         return pw.Column(
           crossAxisAlignment: pw.CrossAxisAlignment.start,
           children: [
@@ -1353,26 +1357,41 @@ Future<Uint8List> buildDailyReportPdf(Map<String, dynamic> reportData) async {
               '${totalRevenue.toStringAsFixed(2)} Dhs',
             ),
             _buildReportRow('Nombre total de commandes:', '$totalOrders'),
-            _buildReportRow('Total remises:', '${totalDiscounts.toStringAsFixed(2)} Dhs'),
+            _buildReportRow(
+              'Total remises:',
+              '${totalDiscounts.toStringAsFixed(2)} Dhs',
+            ),
             _buildReportRow('Total produits offerts:', '$totalOfferedQuantity'),
-            _buildReportRow('Valeur offerts:', '${totalOfferedValue.toStringAsFixed(2)} Dhs'),
+            _buildReportRow(
+              'Valeur offerts:',
+              '${totalOfferedValue.toStringAsFixed(2)} Dhs',
+            ),
+            _buildReportRow(
+              'Compte rendu:',
+              '${compteRendu.toStringAsFixed(2)} Dhs',
+            ),
             pw.SizedBox(height: 8),
 
-            // Modes de paiement
-            if (paymentMethods.isNotEmpty) ...[
+            // Modes de paiement (affiche seulement ceux avec montant > 0)
+            if (visiblePayments.isNotEmpty) ...[
               pw.Text(
                 'Modes de paiement:',
                 style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
               ),
               pw.SizedBox(height: 4),
-              ...paymentMethods.entries.map((entry) {
+              ...visiblePayments.map((entry) {
                 final methodKey = entry.key.toString();
                 final amount = (entry.value as num?)?.toDouble() ?? 0.0;
                 return _buildReportRow(
                   '   ${paymentMethodLabel(methodKey)}:',
                   '${amount.toStringAsFixed(2)} Dhs',
                 );
-              }).toList(),
+              }),
+            ] else ...[
+              pw.Text(
+                'Modes de paiement: Aucun enregistrement',
+                style: pw.TextStyle(color: PdfColors.grey700),
+              ),
             ],
             pw.SizedBox(height: 8),
 
@@ -1409,6 +1428,22 @@ Future<Uint8List> buildDailyReportPdf(Map<String, dynamic> reportData) async {
                     (staffMap['total_revenue'] as num?)?.toDouble() ?? 0.0;
                 final paymentMethodsStaff =
                     staffMap['payment_methods'] as Map<String, dynamic>? ?? {};
+                final staffDiscounts =
+                    (staffMap['discounts'] as num?)?.toDouble() ?? 0.0;
+                final staffOfferedQty =
+                    staffMap['offered_quantity'] as int? ?? 0;
+                final staffOfferedValue =
+                    (staffMap['offered_value'] as num?)?.toDouble() ?? 0.0;
+                final staffCompte =
+                    (staffMap['compte_rendu'] as num?)?.toDouble() ??
+                    (totalRevenueStaff - (staffDiscounts + staffOfferedValue));
+
+                final visibleStaffPayments = paymentMethodsStaff.entries.where((
+                  e,
+                ) {
+                  final amount = (e.value as num?)?.toDouble() ?? 0.0;
+                  return amount > 0.0;
+                }).toList();
 
                 return pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -1422,28 +1457,35 @@ Future<Uint8List> buildDailyReportPdf(Map<String, dynamic> reportData) async {
                       '      Chiffre d\'affaires:',
                       '${totalRevenueStaff.toStringAsFixed(2)} Dhs',
                     ),
-                    if (((paymentMethodsStaff['cash'] as num?)?.toDouble() ??
-                            0) >
-                        0)
+                    if (visibleStaffPayments.isNotEmpty) ...[
+                      ...visibleStaffPayments.map((entry) {
+                        final key = entry.key.toString();
+                        final amount = (entry.value as num?)?.toDouble() ?? 0.0;
+                        return _buildReportRow(
+                          '      ${paymentMethodLabel(key)}:',
+                          '${amount.toStringAsFixed(2)} Dhs',
+                        );
+                      }),
+                    ],
+                    if (staffDiscounts > 0)
                       _buildReportRow(
-                        '      Cash:',
-                        '${(paymentMethodsStaff['cash'] as num?)?.toDouble().toStringAsFixed(2)} Dhs',
+                        '      Remises:',
+                        '-${staffDiscounts.toStringAsFixed(2)} Dhs',
                       ),
-                    if (((paymentMethodsStaff['tpe'] as num?)?.toDouble() ??
-                            0) >
-                        0)
+                    if (staffOfferedQty > 0)
                       _buildReportRow(
-                        '      TPE:',
-                        '${(paymentMethodsStaff['tpe'] as num?)?.toDouble().toStringAsFixed(2)} Dhs',
+                        '      Produits offerts:',
+                        '$staffOfferedQty',
                       ),
-                    if (((paymentMethodsStaff['en_compte'] as num?)
-                                ?.toDouble() ??
-                            0) >
-                        0)
+                    if (staffOfferedValue > 0)
                       _buildReportRow(
-                        '      En compte:',
-                        '${(paymentMethodsStaff['en_compte'] as num?)?.toDouble().toStringAsFixed(2)} Dhs',
+                        '      Valeur offerts:',
+                        '${staffOfferedValue.toStringAsFixed(2)} Dhs',
                       ),
+                    _buildReportRow(
+                      '      Compte rendu:',
+                      '${staffCompte.toStringAsFixed(2)} Dhs',
+                    ),
                     pw.SizedBox(height: 4),
                   ],
                 );
@@ -1538,7 +1580,8 @@ Future<Uint8List> buildDailyReportForRestaurantDate(
     return !created.isBefore(startOfDay) && !created.isAfter(endOfDay);
   }).toList();
 
-  final dateStr = "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+  final dateStr =
+      "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
 
   double totalRevenue = 0.0;
   int totalOrders = filtered.length;
@@ -1558,7 +1601,10 @@ Future<Uint8List> buildDailyReportForRestaurantDate(
     totalDiscounts += order.discountAmount;
 
     // Payment breakdown (respect split payments). Include all methods (offert included)
-    final splitTotals = splitPaymentTotalsByMethod(order.paymentSplit, includeOffert: true);
+    final splitTotals = splitPaymentTotalsByMethod(
+      order.paymentSplit,
+      includeOffert: true,
+    );
     if (splitTotals.isNotEmpty) {
       splitTotals.forEach((method, amount) {
         final key = method.isEmpty ? 'other' : method;
@@ -1567,7 +1613,8 @@ Future<Uint8List> buildDailyReportForRestaurantDate(
     } else {
       final norm = normalizePaymentMethod(order.paymentMethod);
       final methodKey = norm.isEmpty ? 'other' : norm;
-      paymentMethods[methodKey] = (paymentMethods[methodKey] ?? 0.0) + order.totalPrice;
+      paymentMethods[methodKey] =
+          (paymentMethods[methodKey] ?? 0.0) + order.totalPrice;
     }
 
     // Order types
@@ -1576,15 +1623,18 @@ Future<Uint8List> buildDailyReportForRestaurantDate(
 
     // Server / staff breakdown
     final staffKey = order.staffId;
-    final staffEntry = staffMap[staffKey] ?? {
-      'staff_id': staffKey,
-      'staff_name': null,
-      'orders_count': 0,
-      'total_revenue': 0.0,
-      'payment_methods': <String, double>{},
-    };
+    final staffEntry =
+        staffMap[staffKey] ??
+        {
+          'staff_id': staffKey,
+          'staff_name': null,
+          'orders_count': 0,
+          'total_revenue': 0.0,
+          'payment_methods': <String, double>{},
+        };
     staffEntry['orders_count'] = (staffEntry['orders_count'] as int) + 1;
-    staffEntry['total_revenue'] = (staffEntry['total_revenue'] as double) + order.totalPrice;
+    staffEntry['total_revenue'] =
+        (staffEntry['total_revenue'] as double) + order.totalPrice;
     // Add staff-level payment split totals
     if (splitTotals.isNotEmpty) {
       splitTotals.forEach((method, amount) {
@@ -1603,14 +1653,17 @@ Future<Uint8List> buildDailyReportForRestaurantDate(
     // Delivery breakdown
     if (order.deliveryLivreurId != null && order.deliveryLivreurId! > 0) {
       final dId = order.deliveryLivreurId!;
-      final dEntry = deliveryMap[dId] ?? {
-        'delivery_staff_id': dId,
-        'delivery_staff_name': order.deliveryLivreurName,
-        'delivery_count': 0,
-        'delivery_revenue': 0.0,
-      };
+      final dEntry =
+          deliveryMap[dId] ??
+          {
+            'delivery_staff_id': dId,
+            'delivery_staff_name': order.deliveryLivreurName,
+            'delivery_count': 0,
+            'delivery_revenue': 0.0,
+          };
       dEntry['delivery_count'] = (dEntry['delivery_count'] as int) + 1;
-      dEntry['delivery_revenue'] = (dEntry['delivery_revenue'] as double) + order.totalPrice;
+      dEntry['delivery_revenue'] =
+          (dEntry['delivery_revenue'] as double) + order.totalPrice;
       deliveryMap[dId] = dEntry;
     }
 
@@ -1634,10 +1687,7 @@ Future<Uint8List> buildDailyReportForRestaurantDate(
     'delivery_breakdown': deliveryMap.values.toList(),
   };
 
-  final reportData = {
-    'date': dateStr,
-    'summary': summary,
-  };
+  final reportData = {'date': dateStr, 'summary': summary};
 
   return buildDailyReportPdf(reportData);
 }

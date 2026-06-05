@@ -83,12 +83,15 @@ class _PosStaffPaidOrdersScreenState extends State<PosStaffPaidOrdersScreen> {
     );
 
     final filtered = all
-        .where((o) =>
-            o.paymentStatus == 'paid' || o.paymentStatus == 'partially_paid')
+        .where(
+          (o) =>
+              o.paymentStatus == 'paid' || o.paymentStatus == 'partially_paid',
+        )
         .where((o) {
-      final created = o.createdAt.toLocal();
-      return !created.isBefore(startOfDay) && !created.isAfter(endOfDay);
-    }).toList();
+          final created = o.createdAt.toLocal();
+          return !created.isBefore(startOfDay) && !created.isAfter(endOfDay);
+        })
+        .toList();
 
     if (!mounted) return;
     setState(() {
@@ -190,18 +193,32 @@ class _PosStaffPaidOrdersScreenState extends State<PosStaffPaidOrdersScreen> {
   Future<void> _printCustomerTicket(PosOrder order) async {
     try {
       final items = await DatabaseService.getPosOrderItems(order.id);
-      debugPrint('Printing: retrieved ${items.length} items for order ${order.id}');
+      debugPrint(
+        'Printing: retrieved ${items.length} items for order ${order.id}',
+      );
       if (items.isEmpty) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Aucun article trouvé pour cette commande')),
+            const SnackBar(
+              content: Text('Aucun article trouvé pour cette commande'),
+            ),
           );
         }
         return;
       }
 
+      final restaurant = order.restaurantId != null
+          ? await DatabaseService.getRestaurantById(order.restaurantId!)
+          : null;
+
       final directPrinted = await EscPosPrinterService.instance
-          .tryPrintCustomerTicket(order, items);
+          .tryPrintCustomerTicket(
+            order,
+            items,
+            restaurantAddress: restaurant?.address,
+            restaurantName: restaurant?.name,
+            restaurantPhone: restaurant?.phone,
+          );
       if (directPrinted) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -213,19 +230,32 @@ class _PosStaffPaidOrdersScreenState extends State<PosStaffPaidOrdersScreen> {
         return;
       }
 
-      debugPrint('ESC/POS print not available or failed, falling back to PDF for order ${order.id}');
+      debugPrint(
+        'ESC/POS print not available or failed, falling back to PDF for order ${order.id}',
+      );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Impression ESC/POS indisponible, génération du PDF...')),
+          const SnackBar(
+            content: Text(
+              'Impression ESC/POS indisponible, génération du PDF...',
+            ),
+          ),
         );
       }
-
-      final pdfData = await buildCustomerBillPdf(order, items);
+      final pdfData = await buildCustomerBillPdf(
+        order,
+        items,
+        restaurantAddress: restaurant?.address,
+        restaurantName: restaurant?.name,
+        restaurantPhone: restaurant?.phone,
+      );
       try {
         await Printing.layoutPdf(onLayout: (_) async => pdfData);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Aperçu PDF ouvert (ou envoyé à l\'imprimante).')),
+            const SnackBar(
+              content: Text('Aperçu PDF ouvert (ou envoyé à l\'imprimante).'),
+            ),
           );
         }
       } catch (pdfErr) {
@@ -237,7 +267,11 @@ class _PosStaffPaidOrdersScreenState extends State<PosStaffPaidOrdersScreen> {
           debugPrint('Saved PDF ticket to ${file.path}');
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Échec impression PDF: $pdfErr. PDF sauvegardé: ${file.path}')),
+              SnackBar(
+                content: Text(
+                  'Échec impression PDF: $pdfErr. PDF sauvegardé: ${file.path}',
+                ),
+              ),
             );
           }
           try {
@@ -255,7 +289,11 @@ class _PosStaffPaidOrdersScreenState extends State<PosStaffPaidOrdersScreen> {
           debugPrint('Saving PDF fallback failed: $saveErr');
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Échec impression PDF: $pdfErr. Erreur sauvegarde PDF: $saveErr')),
+              SnackBar(
+                content: Text(
+                  'Échec impression PDF: $pdfErr. Erreur sauvegarde PDF: $saveErr',
+                ),
+              ),
             );
           }
         }
@@ -263,9 +301,9 @@ class _PosStaffPaidOrdersScreenState extends State<PosStaffPaidOrdersScreen> {
     } catch (e, st) {
       debugPrint('Unexpected error printing ticket: $e\n$st');
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Erreur impression inattendue: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur impression inattendue: $e')),
+        );
       }
     }
   }
@@ -375,7 +413,10 @@ class _PosStaffPaidOrdersScreenState extends State<PosStaffPaidOrdersScreen> {
             // ── body ─────────────────────────────────────────────────────────
             Flexible(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 9,
+                ),
                 child: SingleChildScrollView(
                   physics: const ClampingScrollPhysics(),
                   child: Column(
@@ -399,7 +440,10 @@ class _PosStaffPaidOrdersScreenState extends State<PosStaffPaidOrdersScreen> {
                         _infoRow('Offerts', 'Oui'),
                         const SizedBox(height: 3),
                       ],
-                      _infoRow('Méthode', _paymentMethodLabel(order.paymentMethod)),
+                      _infoRow(
+                        'Méthode',
+                        _paymentMethodLabel(order.paymentMethod),
+                      ),
                       const SizedBox(height: 3),
                       _infoRow(
                         'Heure',
@@ -603,14 +647,13 @@ class _PosStaffPaidOrdersScreenState extends State<PosStaffPaidOrdersScreen> {
                   color: _red,
                   onRefresh: _load,
                   child: GridView.builder(
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 6,
-                          crossAxisSpacing: 10,
-                          mainAxisSpacing: 10,
-                          // lower aspect ratio => taller tiles to avoid vertical overflow
-                          childAspectRatio: 0.9,
-                        ),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 6,
+                      crossAxisSpacing: 10,
+                      mainAxisSpacing: 10,
+                      // lower aspect ratio => taller tiles to avoid vertical overflow
+                      childAspectRatio: 0.9,
+                    ),
                     itemCount: _filteredOrders.length,
                     itemBuilder: (_, i) => _orderCard(_filteredOrders[i]),
                   ),

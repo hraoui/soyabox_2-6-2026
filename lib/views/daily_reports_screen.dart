@@ -14,6 +14,7 @@ import '../services/daily_report_service.dart';
 import '../services/esc_pos_printer_service.dart';
 import '../theme/sushi_design.dart';
 import '../utils/pos_ticket_printer.dart';
+import '../utils/payment_method_utils.dart';
 import '../widgets/admin_shell.dart';
 
 class DailyReportsScreen extends StatefulWidget {
@@ -743,35 +744,22 @@ class _DailyReportsScreenState extends State<DailyReportsScreen> {
 
   List<Widget> _buildPaymentMethodsSection(Map<String, dynamic> summary) {
     final pmData = summary['payment_methods'] as Map<String, dynamic>? ?? {};
-    Map<String, double> pm = {
-      'cash': (pmData['cash'] as num?)?.toDouble() ?? 0.0,
-      'tpe': (pmData['tpe'] as num?)?.toDouble() ?? 0.0,
-      'en_compte': (pmData['en_compte'] as num?)?.toDouble() ?? 0.0,
-      'other': (pmData['other'] as num?)?.toDouble() ?? 0.0,
-    };
-    final hasData = pm.values.any((v) => v > 0);
+    final visible = pmData.entries
+        .where((e) => ((e.value as num?)?.toDouble() ?? 0.0) > 0.0)
+        .toList();
 
     return [
       _buildDialogSection(
         icon: Icons.payments_rounded,
         title: 'Méthodes de Paiement',
         color: const Color(0xFFE65100),
-        children: hasData
-            ? [
-                _buildInfoRow(
-                  'Espèces',
-                  '${pm['cash']!.toStringAsFixed(2)} Dhs',
-                ),
-                _buildInfoRow('TPE', '${pm['tpe']!.toStringAsFixed(2)} Dhs'),
-                _buildInfoRow(
-                  'En compte',
-                  '${pm['en_compte']!.toStringAsFixed(2)} Dhs',
-                ),
-                _buildInfoRow(
-                  'Autre',
-                  '${pm['other']!.toStringAsFixed(2)} Dhs',
-                ),
-              ]
+        children: visible.isNotEmpty
+            ? visible
+                .map((e) => _buildInfoRow(
+                      paymentMethodLabel(e.key.toString()),
+                      '${(e.value as num).toDouble().toStringAsFixed(2)} Dhs',
+                    ))
+                .toList()
             : [
                 const Text(
                   'Aucune donnée de paiement disponible',
@@ -798,6 +786,13 @@ class _DailyReportsScreenState extends State<DailyReportsScreen> {
       for (final s in staffBreakdown) {
         if (s is Map<String, dynamic>) {
           final pm = s['payment_methods'] as Map<String, dynamic>? ?? {};
+          final visiblePm = pm.entries
+              .where((e) => ((e.value as num?)?.toDouble() ?? 0.0) > 0.0)
+              .toList();
+          final discounts = (s['discounts'] as num?)?.toDouble() ?? 0.0;
+          final offeredQty = s['offered_quantity'] as int? ?? 0;
+          final offeredValue = (s['offered_value'] as num?)?.toDouble() ?? 0.0;
+          final compte = (s['compte_rendu'] as num?)?.toDouble() ?? ((s['total_revenue'] as num?)?.toDouble() ?? 0.0) - (discounts + offeredValue);
           children.add(
             Container(
               margin: const EdgeInsets.only(bottom: 8),
@@ -837,20 +832,14 @@ class _DailyReportsScreenState extends State<DailyReportsScreen> {
                     'CA',
                     '${(s['total_revenue'] as num?)?.toDouble().toStringAsFixed(2) ?? '0.00'} Dhs',
                   ),
-                  if (s.containsKey('payment_methods')) ...[
-                    _buildInfoRow(
-                      'Espèces',
-                      '${(pm['cash'] as num?)?.toDouble().toStringAsFixed(2) ?? '0.00'} Dhs',
-                    ),
-                    _buildInfoRow(
-                      'TPE',
-                      '${(pm['tpe'] as num?)?.toDouble().toStringAsFixed(2) ?? '0.00'} Dhs',
-                    ),
-                    _buildInfoRow(
-                      'En compte',
-                      '${(pm['en_compte'] as num?)?.toDouble().toStringAsFixed(2) ?? '0.00'} Dhs',
-                    ),
-                  ],
+                  if (visiblePm.isNotEmpty) ...visiblePm.map((e) => _buildInfoRow(
+                        paymentMethodLabel(e.key.toString()),
+                        '${(e.value as num).toDouble().toStringAsFixed(2)} Dhs',
+                      )),
+                  if (discounts > 0) _buildInfoRow('Remises', '-${discounts.toStringAsFixed(2)} Dhs'),
+                  if (offeredQty > 0) _buildInfoRow('Produits offerts', '$offeredQty'),
+                  if (offeredValue > 0) _buildInfoRow('Valeur offerts', '${offeredValue.toStringAsFixed(2)} Dhs'),
+                  _buildInfoRow('Compte rendu', '${compte.toStringAsFixed(2)} Dhs'),
                 ],
               ),
             ),

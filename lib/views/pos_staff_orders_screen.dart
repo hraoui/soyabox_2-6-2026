@@ -1681,8 +1681,17 @@ class _PosStaffOrdersScreenState extends State<PosStaffOrdersScreen> {
         );
         return;
       }
+      final restaurant = order.restaurantId != null
+          ? await DatabaseService.getRestaurantById(order.restaurantId!)
+          : null;
       final directPrinted = await EscPosPrinterService.instance
-          .tryPrintCustomerTicket(order, items);
+          .tryPrintCustomerTicket(
+            order,
+            items,
+            restaurantAddress: restaurant?.address,
+            restaurantName: restaurant?.name,
+            restaurantPhone: restaurant?.phone,
+          );
       if (directPrinted) {
         _notify(
           'Ticket client envoyé directement à l\'imprimante',
@@ -1692,8 +1701,14 @@ class _PosStaffOrdersScreenState extends State<PosStaffOrdersScreen> {
         return;
       }
       await Printing.layoutPdf(
-        onLayout: (format) =>
-            buildCustomerBillPdf(order, items, format: format),
+        onLayout: (format) => buildCustomerBillPdf(
+          order,
+          items,
+          format: format,
+          restaurantAddress: restaurant?.address,
+          restaurantName: restaurant?.name,
+          restaurantPhone: restaurant?.phone,
+        ),
         usePrinterSettings: false,
         dynamicLayout: false,
       );
@@ -2353,11 +2368,23 @@ class _PosStaffOrdersScreenState extends State<PosStaffOrdersScreen> {
                                   ? null
                                   : () async {
                                       try {
+                                        final restaurant =
+                                            order.restaurantId != null
+                                            ? await DatabaseService.getRestaurantById(
+                                                order.restaurantId!,
+                                              )
+                                            : null;
                                         final directPrinted =
                                             await EscPosPrinterService.instance
                                                 .tryPrintCustomerTicket(
                                                   order,
                                                   paidItemsForPrint,
+                                                  restaurantAddress:
+                                                      restaurant?.address,
+                                                  restaurantName:
+                                                      restaurant?.name,
+                                                  restaurantPhone:
+                                                      restaurant?.phone,
                                                 );
                                         if (directPrinted) {
                                           _notify(
@@ -2373,6 +2400,12 @@ class _PosStaffOrdersScreenState extends State<PosStaffOrdersScreen> {
                                                 order,
                                                 paidItemsForPrint,
                                                 format: format,
+                                                restaurantAddress:
+                                                    restaurant?.address,
+                                                restaurantName:
+                                                    restaurant?.name,
+                                                restaurantPhone:
+                                                    restaurant?.phone,
                                               ),
                                           usePrinterSettings: false,
                                           dynamicLayout: false,

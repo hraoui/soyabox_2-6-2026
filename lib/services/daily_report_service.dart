@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import '../utils/app_logger.dart';
 import 'package:intl/intl.dart';
 import '../models/pos_order.dart';
+import '../models/pos_order_item.dart';
 import '../services/database_service.dart';
 import '../controllers/auth_controller.dart';
 import '../utils/payment_method_utils.dart';
@@ -62,6 +63,9 @@ class DailyReportService {
   ) async {
     double totalRevenue = 0.0;
     int totalOrders = 0;
+    double totalDiscounts = 0.0;
+    var totalOfferedQuantity = 0;
+    double totalOfferedValue = 0.0;
 
     // Répartition par mode de paiement (basée sur les montants réellement payés)
     final paymentMethods = <String, double>{
@@ -111,12 +115,21 @@ class DailyReportService {
         continue;
       }
 
-      final orderPaidMetrics = await _extractOrderPaymentMetrics(order);
+        final orderPaidMetrics = await _extractOrderPaymentMetrics(order);
       final orderPaidAmount = orderPaidMetrics['paid_amount'] as double;
       final orderPaymentMethods =
           orderPaidMetrics['payment_methods'] as Map<String, double>;
+        // Discounts
+        final orderDiscount = order.discountAmount;
+        totalDiscounts += orderDiscount;
 
-      totalRevenue += orderPaidAmount;
+        // Offered items summary (quantity + value)
+        final items = await DatabaseService.getPosOrderItems(order.id);
+        final offeredSummary = _summarizeOfferedProducts(items);
+        totalOfferedQuantity += offeredSummary['quantity'] as int;
+        totalOfferedValue += offeredSummary['value'] as double;
+
+        totalRevenue += orderPaidAmount;
       totalOrders += 1;
 
       for (final entry in orderPaymentMethods.entries) {
@@ -165,6 +178,10 @@ class DailyReportService {
               'en_compte': 0.0,
               'other': 0.0,
             },
+            'discounts': 0.0,
+            'offered_quantity': 0,
+            'offered_value': 0.0,
+            'compte_rendu': 0.0,
           };
         }
 
@@ -181,6 +198,11 @@ class DailyReportService {
                 (staffPaymentMethods[entry.key] ?? 0.0) + entry.value;
           }
         }
+
+        // Accumulate discounts and offered values per staff
+        staffStat['discounts'] = (staffStat['discounts'] as double) + orderDiscount;
+        staffStat['offered_quantity'] = (staffStat['offered_quantity'] as int) + (offeredSummary['quantity'] as int);
+        staffStat['offered_value'] = (staffStat['offered_value'] as double) + (offeredSummary['value'] as double);
       }
 
       if (order.deliveryLivreurId != null && order.deliveryLivreurId! > 0) {
@@ -206,11 +228,23 @@ class DailyReportService {
         }
       }
     }
+    // Compute compte_rendu per staff (chiffre d'affaire - (remise + offert))
+    for (final staffEntry in staffStats.entries) {
+      final stat = staffEntry.value;
+      final rev = (stat['total_revenue'] as num?)?.toDouble() ?? 0.0;
+      final disc = (stat['discounts'] as num?)?.toDouble() ?? 0.0;
+      final offVal = (stat['offered_value'] as num?)?.toDouble() ?? 0.0;
+      stat['compte_rendu'] = (rev - (disc + offVal));
+    }
 
     return {
       'total_revenue': totalRevenue,
       'total_orders': totalOrders,
       'payment_methods': paymentMethods,
+      'total_discounts': totalDiscounts,
+      'total_offered_quantity': totalOfferedQuantity,
+      'total_offered_value': totalOfferedValue,
+      'compte_rendu': (totalRevenue - (totalDiscounts + totalOfferedValue)),
       'order_types': orderTypes,
       'channels': channelRevenue,
       'channel_revenue': channelRevenue,
@@ -218,6 +252,60 @@ class DailyReportService {
       'staff_breakdown': staffStats.values.toList(),
       'delivery_breakdown': deliveryStats.values.toList(),
     };
+  }
+
+  static Map<String, Object> _summarizeOfferedProducts(List<PosOrderItem> items) {
+    var quantity = 0;
+    var value = 0.0;
+
+    for (final item in items) {
+      var offeredQty = 0;
+
+      // If item flagged as offered
+      if (item.isOffered()) {
+        offeredQty = item.quantity;
+      }
+
+      // Parse partialPaymentHistory to find offered entries
+      if ((item.partialPaymentHistory ?? '').isNotEmpty) {
+        try {
+          final decoded = jsonDecode(item.partialPaymentHistory!) as List<dynamic>;
+          for (final raw in decoded) {
+            if (raw is! Map) continue;
+            if (raw['is_offered'] == true) {
+              final qty = (raw['quantity_paid'] as num?)?.toInt() ?? (raw['quantity'] as num?)?.toInt() ?? 0;
+              offeredQty += qty;
+            } else {
+              // Fallback: legacy payment_methods array may indicate 'offert'
+              final pm = raw['payment_methods'];
+              if (pm is List) {
+                final hasOffer = pm.any((p) {
+                  if (p is Map) {
+                    final method = (p['method'] ?? p['payment_method'] ?? '').toString();
+                    return normalizePaymentMethod(method) == paymentMethodOffert;
+                  }
+                  return false;
+                });
+                if (hasOffer) {
+                  final qty = (raw['quantity_paid'] as num?)?.toInt() ?? (raw['quantity'] as num?)?.toInt() ?? 0;
+                  offeredQty += qty;
+                }
+              }
+            }
+          }
+        } catch (_) {
+          // ignore malformed history
+        }
+      }
+
+      offeredQty = offeredQty.clamp(0, item.quantity);
+      if (offeredQty > 0) {
+        quantity += offeredQty;
+        value += offeredQty * item.unitPrice;
+      }
+    }
+
+    return {'quantity': quantity, 'value': value};
   }
 
   /// Prépare les données des commandes pour le rapport

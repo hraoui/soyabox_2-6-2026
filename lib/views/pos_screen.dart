@@ -3385,11 +3385,11 @@ class _PosScreenState extends State<PosScreen> {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                '${item.quantity} x ${_money(item.unitPrice)}',
+                '${item.quantity} x ${_money(item.isOffered() ? 0.0 : item.unitPrice)}',
                 style: SushiTypo.bodySm,
               ),
               Text(
-                _money(item.quantity * item.unitPrice),
+                _money(item.isOffered() ? 0.0 : item.quantity * item.unitPrice),
                 style: SushiTypo.price.copyWith(
                   color: isGlovo ? const Color(0xFF00897B) : null,
                 ),

@@ -598,6 +598,37 @@ class EscPosPrinterService {
     if (!settings.useEscPosPrinting) {
       throw StateError('Impression ESC/POS desactivee');
     }
+
+    final type = useKitchenPrinter
+        ? ReceiptPrinterType.kitchen
+        : ReceiptPrinterType.customer;
+    final configs = settings.printerConfigsFor(type);
+
+    if (configs.isNotEmpty) {
+      var successCount = 0;
+      final errors = <String>[];
+
+      for (final config in configs) {
+        try {
+          await _sendBytesToConfig(bytes, config);
+          successCount += 1;
+        } catch (e, st) {
+          final message =
+              'ESC/POS failed for printer ${config.displayName} (${config.host}:${config.port}): $e';
+          debugPrint('$message\n$st');
+          errors.add(message);
+        }
+      }
+
+      if (successCount > 0) {
+        return;
+      }
+
+      throw StateError(
+        'Aucune imprimante ${type.label.toLowerCase()} n\'a pu imprimer.\n${errors.join('\n')}',
+      );
+    }
+
     final host =
         (useKitchenPrinter
                 ? settings.kitchenReceiptPrinterHost
@@ -641,6 +672,37 @@ class EscPosPrinterService {
     }
   }
 
+  Future<void> _sendBytesToConfig(
+    List<int> bytes,
+    ReceiptPrinterConfig config,
+  ) async {
+    final host = config.host.trim();
+    switch (config.transport) {
+      case ReceiptPrinterTransport.network:
+        if (host.isEmpty) {
+          throw StateError('Aucune adresse IP pour l\'imprimante ${config.displayName}');
+        }
+        await _sendBytesOverNetwork(bytes, host: host, port: config.port);
+        return;
+      case ReceiptPrinterTransport.usb:
+        await _sendBytesOverUsb(bytes);
+        return;
+      case ReceiptPrinterTransport.auto:
+        if (host.isNotEmpty) {
+          try {
+            await _sendBytesOverNetwork(bytes, host: host, port: config.port);
+            return;
+          } catch (e, st) {
+            debugPrint(
+              'ESC/POS auto network fallback failed for printer ${config.displayName}: $e\n$st',
+            );
+          }
+        }
+        await _sendBytesOverUsb(bytes);
+        return;
+    }
+  }
+
   Future<void> _sendBytesOverNetwork(
     List<int> bytes, {
     required String host,
@@ -675,7 +737,7 @@ class EscPosPrinterService {
           .toList();
 
       debugPrint(
-        'ESC/POS USB devices found: ${usbDevices.map((d) => '${d.name ?? 'unknown'} [${d.toString()}]').join(', ')}',
+        'ESC/POS USB devices found: ${usbDevices.map((d) => '${d.name} [${d.toString()}]').join(', ')}',
       );
 
       if (usbDevices.isEmpty) {
@@ -686,7 +748,7 @@ class EscPosPrinterService {
       // Si vous avez deux imprimantes de meme marque branchees en meme temps,
       // assurez-vous que seule l'imprimante USB est branchee lors de l'impression USB.
       final device = usbDevices.first;
-      debugPrint('ESC/POS connecting to USB device: ${device.name ?? device.toString()}');
+      debugPrint('ESC/POS connecting to USB device: ${device.name}');
 
       await manager.connect(device);
       connected = true;

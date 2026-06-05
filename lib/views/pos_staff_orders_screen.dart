@@ -1,7 +1,6 @@
 // ignore_for_file: unused_element
 
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -1990,6 +1989,9 @@ class _PosStaffOrdersScreenState extends State<PosStaffOrdersScreen> {
             groupedItems.keys.first != 'Sans ensemble');
 
     final statusColor = _statusColor(order.status);
+    final hasOffertPayment =
+        isOfferedPaymentMethod(order.paymentMethod) ||
+        hasOfferedSplitPayment(order.paymentSplit);
 
     if (!mounted) return;
     await showDialog(
@@ -2091,6 +2093,15 @@ class _PosStaffOrdersScreenState extends State<PosStaffOrdersScreen> {
                                 style: TextStyle(
                                   fontSize: 11,
                                   color: Colors.red.shade600,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            if (hasOffertPayment)
+                              Text(
+                                'Offerts inclus',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.teal.shade700,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
@@ -2319,27 +2330,9 @@ class _PosStaffOrdersScreenState extends State<PosStaffOrdersScreen> {
                           builder: (ctx) {
                             List<PosOrderItem> paidItemsForPrint = [];
                             for (final it in items) {
-                              int paidQty = 0;
-                              try {
-                                if (it.paymentStatus == 'paid') {
-                                  paidQty = it.quantity;
-                                } else if (it.partialPaymentHistory != null &&
-                                    it.partialPaymentHistory!.isNotEmpty) {
-                                  final list = jsonDecode(
-                                    it.partialPaymentHistory!,
-                                  );
-                                  for (final entry in list) {
-                                    final q =
-                                        (entry['quantity_paid'] as num?)
-                                            ?.toInt() ??
-                                        0;
-                                    paidQty += q;
-                                  }
-                                  if (paidQty > it.quantity) {
-                                    paidQty = it.quantity;
-                                  }
-                                }
-                              } catch (_) {}
+                              final paidQty = it.paymentStatus == 'paid'
+                                  ? it.quantity
+                                  : it.getCoveredQuantity();
 
                               if (paidQty > 0) {
                                 paidItemsForPrint.add(
@@ -2846,50 +2839,14 @@ class _PosStaffOrdersScreenState extends State<PosStaffOrdersScreen> {
   }
 
   List<Map<String, dynamic>> _parsePaymentSplitForDisplay(String paymentSplit) {
-    final List<Map<String, dynamic>> payments = [];
-    final cleaned = paymentSplit.trim();
-    if (cleaned.isEmpty) return payments;
-    try {
-      final listRegex = RegExp(r'\[([^\]]+)\]');
-      final listMatch = listRegex.firstMatch(cleaned);
-      if (listMatch != null) {
-        final content = listMatch.group(1)!;
-        final objRegex = RegExp(
-          r'\{[^}]*method:\s*(\w+)[^}]*amount:\s*([\d.]+)[^}]*\}',
-        );
-        for (final match in objRegex.allMatches(content)) {
-          final method = match.group(1);
-          final amountStr = match.group(2);
-          if (method != null && amountStr != null) {
-            payments.add({
-              'method': method,
-              'amount': double.tryParse(amountStr) ?? 0.0,
-            });
-          }
-        }
-      }
-      if (payments.isEmpty) {
-        final jsonRegex = RegExp(r'"method"\s*:\s*"(\w+)"');
-        final amountRegex = RegExp(r'"amount"\s*:\s*([\d.]+)');
-        final methodMatches = jsonRegex.allMatches(cleaned);
-        final amountMatches = amountRegex.allMatches(cleaned);
-        for (
-          var i = 0;
-          i < methodMatches.length && i < amountMatches.length;
-          i++
-        ) {
-          payments.add({
-            'method': methodMatches.elementAt(i).group(1),
-            'amount':
-                double.tryParse(amountMatches.elementAt(i).group(1) ?? '0') ??
-                0.0,
-          });
-        }
-      }
-    } catch (e) {
-      appLogger.w('⚠️ Erreur parsing paymentSplit: $e');
-    }
-    return payments;
+    return parseSplitPaymentEntries(paymentSplit)
+        .map(
+          (entry) => {
+            'method': entry['payment_method']?.toString() ?? '',
+            'amount': (entry['amount'] as num?)?.toDouble() ?? 0.0,
+          },
+        )
+        .toList();
   }
 
   Widget _paymentDetailCard(String method, double amount) {

@@ -1,7 +1,10 @@
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
+import '../controllers/auth_controller.dart';
 import '../controllers/pos_controller.dart';
 import '../models/pos_order.dart';
 import '../models/pos_order_item.dart';
@@ -29,6 +32,7 @@ class _PartialPaymentDialogState extends State<PartialPaymentDialog> {
   final Map<int, int> _selectedQuantities = {}; // itemId -> quantity to pay
   bool _loading = true;
   bool _processing = false;
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
@@ -128,9 +132,15 @@ class _PartialPaymentDialogState extends State<PartialPaymentDialog> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
-        title: const Text('Confirmer paiement partiel'),
+        title: Text(
+          method == 'offert'
+              ? 'Confirmer offre d\'articles'
+              : 'Confirmer paiement partiel',
+        ),
         content: Text(
-          'Payer ${amount.toStringAsFixed(2)} DH par ${paymentMethodLabel(method)} ?',
+          method == 'offert'
+              ? 'Offrir les articles sélectionnés d\'une valeur de ${amount.toStringAsFixed(2)} DH ?'
+              : 'Payer ${amount.toStringAsFixed(2)} DH par ${paymentMethodLabel(method)} ?',
         ),
         actions: [
           TextButton(
@@ -147,6 +157,20 @@ class _PartialPaymentDialogState extends State<PartialPaymentDialog> {
 
     if (!mounted) return;
     if (confirmed != true) return;
+
+    // Check permission: offerts réservés aux admins
+    if (method == 'offert') {
+      final authController = Get.find<AuthController>();
+      final currentRole = authController.currentRole?.trim().toLowerCase();
+      if (currentRole != 'admin' && currentRole != 'superadmin') {
+        showPOSSnack(
+          context,
+          'Offerts réservés aux administrateurs.',
+          type: POSSnackType.error,
+        );
+        return;
+      }
+    }
 
     final paymentEntry = {'method': method, 'amount': amount};
     setState(() {
@@ -187,11 +211,24 @@ class _PartialPaymentDialogState extends State<PartialPaymentDialog> {
   }
 
   @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final dialogWidth = min(760.0, MediaQuery.of(context).size.width - 64);
+
     return AlertDialog(
-      title: const Text('Payer partiellement'),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+      contentPadding: const EdgeInsets.fromLTRB(24, 24, 20, 20),
+      title: const Text(
+        'Payer partiellement',
+        style: TextStyle(fontWeight: FontWeight.w800),
+      ),
       content: SizedBox(
-        width: 640,
+        width: dialogWidth,
         child: Stack(
           children: [
             _loading
@@ -205,77 +242,114 @@ class _PartialPaymentDialogState extends State<PartialPaymentDialog> {
                       if (_items.isEmpty) const Text('Aucun article à payer'),
                       if (_items.isNotEmpty)
                         SizedBox(
-                          height: 300,
-                          child: ListView.builder(
-                            shrinkWrap: true,
-                            itemCount: _items.length,
-                            itemBuilder: (context, i) {
-                              final it = _items[i];
-                              final total = (it.unitPrice * it.quantity)
-                                  .toStringAsFixed(2);
-                              final money =
-                                  AppSettingsService.instance.formatAmount;
-                              final selectedQty =
-                                  _selectedQuantities[it.id] ?? 0;
-                              final remainingQty = _getRemainingQuantity(it);
-                              final remainingText = remainingQty > 0
-                                  ? 'Reste: $remainingQty'
-                                  : 'Déjà payé';
-                              return Column(
-                                children: [
-                                  CheckboxListTile(
-                                    value: selectedQty > 0,
-                                    onChanged: (_) => _toggle(it.id),
-                                    title: Text(it.productName),
-                                    subtitle: Text(
-                                      'Unit: ${money(it.unitPrice)} • Total: $total DH • $remainingText',
-                                    ),
-                                  ),
-                                  if (selectedQty > 0)
-                                    Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 16.0,
-                                        vertical: 4,
-                                      ),
-                                      child: Row(
+                          height: 340,
+                          child: Scrollbar(
+                            controller: _scrollController,
+                            thumbVisibility: true,
+                            child: ListView.builder(
+                              controller: _scrollController,
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              itemCount: _items.length,
+                              itemBuilder: (context, i) {
+                                final it = _items[i];
+                                final total = (it.unitPrice * it.quantity)
+                                    .toStringAsFixed(2);
+                                final money =
+                                    AppSettingsService.instance.formatAmount;
+                                final selectedQty =
+                                    _selectedQuantities[it.id] ?? 0;
+                                final remainingQty = _getRemainingQuantity(it);
+                                final remainingText = remainingQty > 0
+                                    ? 'Reste: $remainingQty'
+                                    : 'Déjà payé';
+                                final hasOffered = hasOfferedQuantity(it.partialPaymentHistory);
+                                final offeredBy = getOfferedByName(it.partialPaymentHistory);
+                                
+                                return Column(
+                                  children: [
+                                    CheckboxListTile(
+                                      value: selectedQty > 0,
+                                      onChanged: (_) => _toggle(it.id),
+                                      title: Row(
                                         children: [
-                                          const Text('Quantité:'),
-                                          const SizedBox(width: 8),
-                                          IconButton(
-                                            onPressed: () => _setQuantity(
-                                              it.id,
-                                              selectedQty - 1,
+                                          Expanded(child: Text(it.productName)),
+                                          if (hasOffered)
+                                            Padding(
+                                              padding: const EdgeInsets.only(left: 8.0),
+                                              child: Tooltip(
+                                                message: 'Offert par $offeredBy',
+                                                child: Container(
+                                                  padding: const EdgeInsets.symmetric(
+                                                    horizontal: 6,
+                                                    vertical: 2,
+                                                  ),
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.green[100],
+                                                    borderRadius: BorderRadius.circular(4),
+                                              ),
+                                                  child: const Text(
+                                                    'GRATUIT',
+                                                    style: TextStyle(
+                                                      fontSize: 10,
+                                                      fontWeight: FontWeight.bold,
+                                                      color: Colors.green,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
                                             ),
-                                            icon: const Icon(
-                                              Icons.remove_circle_outline,
-                                            ),
-                                          ),
-                                          Text(
-                                            '$selectedQty',
-                                            style: const TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                          IconButton(
-                                            onPressed: () => _setQuantity(
-                                              it.id,
-                                              selectedQty + 1,
-                                            ),
-                                            icon: const Icon(
-                                              Icons.add_circle_outline,
-                                            ),
-                                          ),
-                                          const Spacer(),
-                                          Text(
-                                            'Sous-total: ${(it.unitPrice * selectedQty).toStringAsFixed(2)} DH',
-                                          ),
                                         ],
                                       ),
+                                      subtitle: Text(
+                                        'Unit: ${money(it.unitPrice)} • Total: $total DH • $remainingText',
+                                      ),
                                     ),
-                                  const Divider(),
-                                ],
-                              );
-                            },
+                                    if (selectedQty > 0)
+                                      Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 16.0,
+                                          vertical: 4,
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            const Text('Quantité:'),
+                                            const SizedBox(width: 8),
+                                            IconButton(
+                                              onPressed: () => _setQuantity(
+                                                it.id,
+                                                selectedQty - 1,
+                                              ),
+                                              icon: const Icon(
+                                                Icons.remove_circle_outline,
+                                              ),
+                                            ),
+                                            Text(
+                                              '$selectedQty',
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            IconButton(
+                                              onPressed: () => _setQuantity(
+                                                it.id,
+                                                selectedQty + 1,
+                                              ),
+                                              icon: const Icon(
+                                                Icons.add_circle_outline,
+                                              ),
+                                            ),
+                                            const Spacer(),
+                                            Text(
+                                              'Sous-total: ${(it.unitPrice * selectedQty).toStringAsFixed(2)} DH',
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    const Divider(),
+                                  ],
+                                );
+                              },
+                            ),
                           ),
                         ),
                       const SizedBox(height: 12),
@@ -310,6 +384,16 @@ class _PartialPaymentDialogState extends State<PartialPaymentDialog> {
                                 icon: const Icon(Icons.account_balance_wallet),
                                 label: const Text('En compte'),
                               ),
+                              // Offert button: admin only
+                              if (Get.find<AuthController>().currentRole == 'admin' ||
+                                  Get.find<AuthController>().currentRole == 'superadmin')
+                                ElevatedButton.icon(
+                                  onPressed: _selectedQuantities.isEmpty
+                                      ? null
+                                      : () => _pay('offert'),
+                                  icon: const Icon(Icons.card_giftcard),
+                                  label: const Text('Offert'),
+                                ),
                             ],
                           ),
                         ],

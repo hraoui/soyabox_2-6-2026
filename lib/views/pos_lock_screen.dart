@@ -125,17 +125,17 @@ class _PosLockScreenState extends State<PosLockScreen> {
           child: ClipOval(
             child: Image.asset(
               'assets/branding/app_icon.png',
-              width: 60,
-              height: 60,
+              width: 40,
+              height: 40,
               fit: BoxFit.contain,
             ),
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 4),
         const Text(
           'POS VERROUILLÉ',
           style: TextStyle(
-            fontSize: 32,
+            fontSize: 12,
             fontWeight: FontWeight.w900,
             color: Colors.white,
             letterSpacing: 3,
@@ -683,37 +683,8 @@ class _PosLockScreenState extends State<PosLockScreen> {
               ],
             ),
           ),
-          const SizedBox(height: 20),
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: const Color(0xFF4CAF50).withOpacity(0.2),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: const Color(0xFF4CAF50).withOpacity(0.3),
-              ),
-            ),
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.lightbulb_outline,
-                  color: Color(0xFF4CAF50),
-                  size: 20,
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    'Connexion possible avec le PIN ou avec le badge serveur.',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.white.withOpacity(0.9),
-                      height: 1.3,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
+          
+          
         ],
       ),
     );

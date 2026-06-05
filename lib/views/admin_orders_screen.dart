@@ -15,6 +15,7 @@ import '../utils/payment_method_utils.dart';
 import '../utils/order_item_dedup.dart';
 import '../utils/order_display_labels.dart';
 import '../widgets/admin_shell.dart';
+import '../widgets/unified_payment_dialog.dart';
 
 // ─── Palette Rouge Tactile ──────────────────────────────────────────────────
 class _R {
@@ -41,11 +42,11 @@ class _R {
 // ─── Dimensions optimisées pour Grid 3 colonnes (1024×768) ─────────────────
 class _D {
   static const double filterHeight = 68.0;
-  static const double buttonSize = 30.0;  // ⬇️ Ajusté pour 3 colonnes
-  static const double iconSize = 14.0;    // ⬇️ Ajusté
+  static const double buttonSize = 30.0; // ⬇️ Ajusté pour 3 colonnes
+  static const double iconSize = 14.0; // ⬇️ Ajusté
   static const double radius = 8.0;
   static const EdgeInsets cardPadding = EdgeInsets.symmetric(
-    horizontal: 8,   // ⬇️ Réduit pour plus d'espace contenu
+    horizontal: 8, // ⬇️ Réduit pour plus d'espace contenu
     vertical: 8,
   );
 }
@@ -88,7 +89,7 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
     try {
       final auth = Get.find<AuthController>();
       _adminRestaurantId = auth.currentUser?.restaurantId;
-      
+
       // ✅ Charger les commandes pour la date sélectionnée
       final startOfDay = DateTime(
         _selectedDate.year,
@@ -96,7 +97,7 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
         _selectedDate.day,
       );
       final endOfDay = startOfDay.add(const Duration(days: 1));
-      
+
       final allOrders = await DatabaseService.getPosOrdersByDateRange(
         startOfDay,
         endOfDay,
@@ -302,7 +303,9 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
             onPressed: _selectedDate.isBefore(DateTime.now())
                 ? () {
                     setState(() {
-                      _selectedDate = _selectedDate.add(const Duration(days: 1));
+                      _selectedDate = _selectedDate.add(
+                        const Duration(days: 1),
+                      );
                     });
                     _loadData();
                   }
@@ -362,8 +365,18 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
     final filters = [
       _FilterItem('all', 'Toutes', _R.all, Icons.list),
       _FilterItem('pending', 'En attente', _R.pending, Icons.schedule),
-      _FilterItem('confirmed', 'Confirmées', _R.confirmed, Icons.check_circle_outline),
-      _FilterItem('preparing', 'En préparation', _R.preparing, Icons.restaurant),
+      _FilterItem(
+        'confirmed',
+        'Confirmées',
+        _R.confirmed,
+        Icons.check_circle_outline,
+      ),
+      _FilterItem(
+        'preparing',
+        'En préparation',
+        _R.preparing,
+        Icons.restaurant,
+      ),
       _FilterItem('ready', 'Prêtes', _R.ready, Icons.check_circle),
       _FilterItem('delivered', 'Livrées', _R.delivered, Icons.delivery_dining),
       _FilterItem('cancelled', 'Annulées', _R.cancelled, Icons.cancel),
@@ -508,10 +521,10 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
     return GridView.builder(
       padding: const EdgeInsets.all(12),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,        // ✅ Toujours 3 cartes par ligne
+        crossAxisCount: 3, // ✅ Toujours 3 cartes par ligne
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,
-        childAspectRatio: 2.0,    // ✅ Ajusté pour éviter overflow vertical
+        childAspectRatio: 2.0, // ✅ Ajusté pour éviter overflow vertical
       ),
       itemCount: _filteredOrders.length,
       itemBuilder: (_, i) => _OrderCard(
@@ -943,6 +956,24 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
     }
   }
 
+  Future<void> _refreshOrderAfterPaymentChange(PosOrder order) async {
+    final updatedOrder = await DatabaseService.getPosOrderById(order.id);
+    if (updatedOrder != null) {
+      order.paymentMethod = updatedOrder.paymentMethod;
+      order.paymentStatus = updatedOrder.paymentStatus;
+      order.discountAmount = updatedOrder.discountAmount;
+      order.hasDiscount = updatedOrder.hasDiscount;
+      order.totalPrice = updatedOrder.totalPrice;
+      order.originalTotal = updatedOrder.originalTotal;
+      if (mounted) setState(() {});
+    }
+  }
+
+  bool _canModifyPayment(PosOrder order) {
+    final status = order.paymentStatus.trim().toLowerCase();
+    return status == 'paid' || status == 'partially_paid';
+  }
+
   void _showStatusMenu(PosOrder order) {
     final RenderBox button = context.findRenderObject() as RenderBox;
     final RenderBox overlay =
@@ -1121,145 +1152,143 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
                                     ),
                                   ),
                                 ]
-                              : items
-                                    .map(
-                                      (item) {
-                                        final serviceCourseLabel = _serviceCourseLabel(
-                                          item.serviceCourseKey,
-                                        );
-                                        final groupLabel = item.groupLabel?.trim().isNotEmpty == true
-                                            ? item.groupLabel!.trim()
-                                            : (item.groupNumber != null && item.groupNumber! > 0
-                                                ? 'Ensemble ${item.groupNumber}'
-                                                : null);
-                                        final hasNote = item.itemNote?.trim().isNotEmpty ?? false;
-                                        final hasMeta = serviceCourseLabel != null ||
-                                            groupLabel != null ||
-                                            hasNote;
+                              : items.map((item) {
+                                  final serviceCourseLabel =
+                                      _serviceCourseLabel(
+                                        item.serviceCourseKey,
+                                      );
+                                  final groupLabel =
+                                      item.groupLabel?.trim().isNotEmpty == true
+                                      ? item.groupLabel!.trim()
+                                      : (item.groupNumber != null &&
+                                                item.groupNumber! > 0
+                                            ? 'Ensemble ${item.groupNumber}'
+                                            : null);
+                                  final hasNote =
+                                      item.itemNote?.trim().isNotEmpty ?? false;
+                                  final hasMeta =
+                                      serviceCourseLabel != null ||
+                                      groupLabel != null ||
+                                      hasNote;
 
-                                        return Container(
-                                          width: double.infinity,
-                                          padding: const EdgeInsets.all(12),
-                                          margin: const EdgeInsets.only(
-                                            bottom: 8,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: _R.surface,
-                                            borderRadius: BorderRadius.circular(
-                                              8,
-                                            ),
-                                            border: Border.all(color: _R.border),
-                                          ),
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Row(
+                                  return Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.all(12),
+                                    margin: const EdgeInsets.only(bottom: 8),
+                                    decoration: BoxDecoration(
+                                      color: _R.surface,
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(color: _R.border),
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
                                                 children: [
-                                                  Expanded(
-                                                    child: Column(
-                                                      crossAxisAlignment:
-                                                          CrossAxisAlignment.start,
-                                                      children: [
-                                                        Text(
-                                                          item.productName,
-                                                          style: const TextStyle(
-                                                            fontSize: 14,
-                                                            fontWeight:
-                                                                FontWeight.w600,
-                                                            color: _R.text,
-                                                          ),
-                                                          maxLines: 2,
-                                                          overflow:
-                                                              TextOverflow.ellipsis,
-                                                        ),
-                                                        if (item
-                                                                .priceType
-                                                                ?.isNotEmpty ??
-                                                            false)
-                                                          Padding(
-                                                            padding:
-                                                                const EdgeInsets.only(
-                                                                    top: 4),
-                                                            child: Text(
-                                                              item.priceType!,
-                                                              style:
-                                                                  const TextStyle(
-                                                                fontSize: 10,
-                                                                color: _R.muted,
-                                                              ),
-                                                            ),
-                                                          ),
-                                                      ],
+                                                  Text(
+                                                    item.productName,
+                                                    style: const TextStyle(
+                                                      fontSize: 14,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                      color: _R.text,
                                                     ),
+                                                    maxLines: 2,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
                                                   ),
-                                                  const SizedBox(width: 8),
-                                                  Column(
-                                                    crossAxisAlignment:
-                                                        CrossAxisAlignment.end,
-                                                    children: [
-                                                      Text(
-                                                        'x${item.quantity}',
+                                                  if (item
+                                                          .priceType
+                                                          ?.isNotEmpty ??
+                                                      false)
+                                                    Padding(
+                                                      padding:
+                                                          const EdgeInsets.only(
+                                                            top: 4,
+                                                          ),
+                                                      child: Text(
+                                                        item.priceType!,
                                                         style: const TextStyle(
-                                                          fontSize: 12,
-                                                          fontWeight:
-                                                              FontWeight.bold,
-                                                          color: _R.primary,
+                                                          fontSize: 10,
+                                                          color: _R.muted,
                                                         ),
                                                       ),
-                                                      Text(
-                                                        _money(
-                                                          item.quantity *
-                                                              item.unitPrice,
-                                                        ),
-                                                        style: const TextStyle(
-                                                          fontSize: 13,
-                                                          fontWeight:
-                                                              FontWeight.w600,
-                                                          color: _R.dark,
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
+                                                    ),
                                                 ],
                                               ),
-                                              if (hasMeta) ...[
-                                                const SizedBox(height: 10),
-                                                Wrap(
-                                                  spacing: 8,
-                                                  runSpacing: 6,
-                                                  children: [
-                                                    if (serviceCourseLabel != null)
-                                                      _itemBadge(
-                                                        Icons.restaurant_outlined,
-                                                        serviceCourseLabel,
-                                                        color: Colors.deepPurple,
-                                                        background: Colors.deepPurple.withOpacity(0.12),
-                                                      ),
-                                                    if (groupLabel != null)
-                                                      _itemBadge(
-                                                        Icons.group_outlined,
-                                                        groupLabel,
-                                                        color: Colors.teal.shade700,
-                                                        background: Colors.teal.shade100,
-                                                      ),
-                                                    if (hasNote)
-                                                      _itemBadge(
-                                                        Icons.note_outlined,
-                                                        item.itemNote!,
-                                                        color: Colors.orange.shade800,
-                                                        background: Colors.orange.shade50,
-                                                        maxWidth: 240,
-                                                      ),
-                                                  ],
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.end,
+                                              children: [
+                                                Text(
+                                                  'x${item.quantity}',
+                                                  style: const TextStyle(
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: _R.primary,
+                                                  ),
+                                                ),
+                                                Text(
+                                                  _money(
+                                                    item.quantity *
+                                                        item.unitPrice,
+                                                  ),
+                                                  style: const TextStyle(
+                                                    fontSize: 13,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: _R.dark,
+                                                  ),
                                                 ),
                                               ],
+                                            ),
+                                          ],
+                                        ),
+                                        if (hasMeta) ...[
+                                          const SizedBox(height: 10),
+                                          Wrap(
+                                            spacing: 8,
+                                            runSpacing: 6,
+                                            children: [
+                                              if (serviceCourseLabel != null)
+                                                _itemBadge(
+                                                  Icons.restaurant_outlined,
+                                                  serviceCourseLabel,
+                                                  color: Colors.deepPurple,
+                                                  background: Colors.deepPurple
+                                                      .withOpacity(0.12),
+                                                ),
+                                              if (groupLabel != null)
+                                                _itemBadge(
+                                                  Icons.group_outlined,
+                                                  groupLabel,
+                                                  color: Colors.teal.shade700,
+                                                  background:
+                                                      Colors.teal.shade100,
+                                                ),
+                                              if (hasNote)
+                                                _itemBadge(
+                                                  Icons.note_outlined,
+                                                  item.itemNote!,
+                                                  color: Colors.orange.shade800,
+                                                  background:
+                                                      Colors.orange.shade50,
+                                                  maxWidth: 240,
+                                                ),
                                             ],
                                           ),
-                                        );
-                                      },
-                                    )
-                                    .toList(),
+                                        ],
+                                      ],
+                                    ),
+                                  );
+                                }).toList(),
                         ),
                         const SizedBox(height: 16),
                         _buildDetailSection(
@@ -1328,6 +1357,26 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
+                      if (_canModifyPayment(order)) ...[
+                        TextButton(
+                          onPressed: () async {
+                            final result = await showDialog<bool>(
+                              context: dialogContext,
+                              builder: (_) => UnifiedPaymentDialog(
+                                order: order,
+                                pos: Get.find<PosController>(),
+                                showEditOption: true,
+                              ),
+                            );
+                            if (result == true) {
+                              await _refreshOrderAfterPaymentChange(order);
+                            } else {
+                              await _refreshOrderAfterPaymentChange(order);
+                            }
+                          },
+                          child: const Text('Modifier paiement'),
+                        ),
+                      ],
                       TextButton(
                         onPressed: () => Navigator.pop(dialogContext),
                         child: const Text('Fermer'),
@@ -1478,7 +1527,8 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen> {
   }
 
   String? _serviceCourseLabel(String? serviceCourseKey) {
-    if (serviceCourseKey == null || serviceCourseKey.trim().isEmpty) return null;
+    if (serviceCourseKey == null || serviceCourseKey.trim().isEmpty)
+      return null;
     switch (serviceCourseKey.trim().toLowerCase()) {
       case 'starter':
         return 'Entrée';
@@ -1679,7 +1729,8 @@ class _OrderCard extends StatelessWidget {
             // ── Row 1: ID + Status badges ───────────────────────────────────
             Row(
               children: [
-                Flexible( // ✅ Flexible pour éviter overflow horizontal
+                Flexible(
+                  // ✅ Flexible pour éviter overflow horizontal
                   child: Text(
                     '#${order.id}',
                     style: const TextStyle(
@@ -1705,6 +1756,10 @@ class _OrderCard extends StatelessWidget {
                           OrderDisplayLabels.channelLabel(order.channel),
                           _R.muted,
                         ),
+                        if (order.hasDiscount && order.discountAmount > 0) ...[
+                          const SizedBox(width: 3),
+                          _statusChip('Remise', Colors.green),
+                        ],
                       ],
                     ),
                   ),
@@ -1712,7 +1767,7 @@ class _OrderCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 4),
-            
+
             // ── Row 2: Amount + Action buttons ──────────────────────────────
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1725,7 +1780,8 @@ class _OrderCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      FittedBox( // ✅ Scale down si texte trop long
+                      FittedBox(
+                        // ✅ Scale down si texte trop long
                         fit: BoxFit.scaleDown,
                         alignment: Alignment.centerLeft,
                         child: Text(
@@ -1753,11 +1809,12 @@ class _OrderCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                
+
                 // ── Boutons d'action (Wrap pour éviter overflow) ───────────
                 Flexible(
-                  child: Wrap( // ✅ Wrap au lieu de Row : passe à la ligne si besoin
-                    spacing: 2,   // Espacement horizontal entre boutons
+                  child: Wrap(
+                    // ✅ Wrap au lieu de Row : passe à la ligne si besoin
+                    spacing: 2, // Espacement horizontal entre boutons
                     runSpacing: 2, // Espacement vertical si wrap
                     alignment: WrapAlignment.end,
                     children: [
@@ -1778,7 +1835,9 @@ class _OrderCard extends StatelessWidget {
                           order.deliveryLivreurId != null
                               ? Icons.person_add
                               : Icons.person_add_outlined,
-                          order.deliveryLivreurId != null ? 'Changer' : 'Livreur',
+                          order.deliveryLivreurId != null
+                              ? 'Changer'
+                              : 'Livreur',
                           onTapAssignLivreur!,
                           order.deliveryLivreurId != null
                               ? Colors.teal.shade700

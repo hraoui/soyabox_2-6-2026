@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
@@ -6,7 +5,6 @@ import 'package:intl/intl.dart';
 import '../controllers/pos_controller.dart';
 import '../theme/sushi_design.dart';
 import '../services/database_service.dart';
-import '../utils/app_logger.dart';
 import '../utils/payment_method_utils.dart';
 import '../widgets/app_back_button.dart';
 import '../widgets/app_card_kit.dart';
@@ -56,27 +54,24 @@ class _PosStaffPaymentsScreenState extends State<PosStaffPaymentsScreen> {
       double other = 0.0;
 
       for (final order in paidOrders) {
-        // ✅ Gérer les paiements split ou partiels enregistrés via paymentSplit
-        if (order.paymentSplit != null && order.paymentSplit!.isNotEmpty) {
-          try {
-            final List<dynamic> payments = jsonDecode(order.paymentSplit!);
-            for (final payment in payments) {
-              final method = payment['payment_method'] as String?;
-              final amount = (payment['amount'] as num).toDouble();
-
-              if (isCashPaymentMethod(method)) {
-                cash += amount;
-              } else if (isTpePaymentMethod(method)) {
-                tpe += amount;
-              } else if (isEnComptePaymentMethod(method)) {
-                enCompte += amount;
-              } else {
-                other += amount;
-              }
+        final payments = parseSplitPaymentEntries(order.paymentSplit);
+        if (payments.isNotEmpty) {
+          for (final payment in payments) {
+            final method = payment['payment_method'] as String?;
+            final amount = (payment['amount'] as num?)?.toDouble() ?? 0.0;
+            if (isOfferedPaymentMethod(method)) {
+              continue;
             }
-          } catch (e) {
-            appLogger.e('❌ Erreur parsing paymentSplit: $e');
-            other += order.totalPrice;
+
+            if (isCashPaymentMethod(method)) {
+              cash += amount;
+            } else if (isTpePaymentMethod(method)) {
+              tpe += amount;
+            } else if (isEnComptePaymentMethod(method)) {
+              enCompte += amount;
+            } else {
+              other += amount;
+            }
           }
         } else if (isCashPaymentMethod(order.paymentMethod)) {
           cash += order.totalPrice;
@@ -84,7 +79,7 @@ class _PosStaffPaymentsScreenState extends State<PosStaffPaymentsScreen> {
           tpe += order.totalPrice;
         } else if (isEnComptePaymentMethod(order.paymentMethod)) {
           enCompte += order.totalPrice;
-        } else {
+        } else if (!isOfferedPaymentMethod(order.paymentMethod)) {
           other += order.totalPrice;
         }
       }

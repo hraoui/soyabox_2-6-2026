@@ -1,12 +1,14 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'dart:io';
+import 'dart:async';
 import 'package:printing/printing.dart';
 import '../controllers/pos_controller.dart';
 import '../models/pos_order.dart';
 import '../services/esc_pos_printer_service.dart';
+import '../utils/payment_method_utils.dart';
 import '../utils/pos_ticket_printer.dart';
+import '../widgets/order_details_dialog.dart';
 import '../services/database_service.dart';
 
 class PosStaffPaidOrdersScreen extends StatefulWidget {
@@ -30,59 +32,110 @@ class _PosStaffPaidOrdersScreenState extends State<PosStaffPaidOrdersScreen> {
   List<PosOrder> _filteredOrders = [];
   bool _loading = true;
   final TextEditingController _searchController = TextEditingController();
+  StreamSubscription<int>? _ordersSub;
 
   @override
   void initState() {
     super.initState();
     _load();
+    // Reload when orders change elsewhere
+    _ordersSub = pos.ordersRevision.listen((_) {
+      if (!mounted) return;
+      _load();
+    });
+  }
+
+  @override
+  void dispose() {
+    _ordersSub?.cancel();
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
+    if (!mounted) return;
+    // Mark loading state early. Guard subsequent updates to avoid
+    // calling setState after dispose when async work completes.
     setState(() => _loading = true);
     try {
       await pos.loadOrdersToday();
     } catch (_) {}
+
+    if (!mounted) return;
+
     final all = pos.ordersToday;
-    _filteredOrders = all
-        .where(
-          (o) =>
-              o.paymentStatus == 'paid' || o.paymentStatus == 'partially_paid',
-        )
-        .where(
-          (o) =>
-              o.createdAt.year == _selectedDate.year &&
-              o.createdAt.month == _selectedDate.month &&
-              o.createdAt.day == _selectedDate.day,
-        )
-        .toList();
-    setState(() => _loading = false);
+    final startOfDay = DateTime(
+      _selectedDate.year,
+      _selectedDate.month,
+      _selectedDate.day,
+      0,
+      0,
+      0,
+    );
+    final endOfDay = DateTime(
+      _selectedDate.year,
+      _selectedDate.month,
+      _selectedDate.day,
+      23,
+      59,
+      59,
+      999,
+    );
+
+    final filtered = all
+        .where((o) =>
+            o.paymentStatus == 'paid' || o.paymentStatus == 'partially_paid')
+        .where((o) {
+      final created = o.createdAt.toLocal();
+      return !created.isBefore(startOfDay) && !created.isAfter(endOfDay);
+    }).toList();
+
+    if (!mounted) return;
+    setState(() {
+      _filteredOrders = filtered;
+      _loading = false;
+    });
   }
 
   String _formatPaidAmount(PosOrder order) {
-    if (order.paymentSplit == null || order.paymentSplit!.isEmpty) {
-      return order.totalPrice.toStringAsFixed(2);
-    }
-    try {
-      final parts = jsonDecode(order.paymentSplit!) as List<dynamic>;
-      double sum = 0;
-      for (final p in parts) {
-        if (p is Map && p['amount'] != null) {
-          sum += (p['amount'] as num).toDouble();
-        }
-      }
-      return sum.toStringAsFixed(2);
-    } catch (_) {
-      return order.totalPrice.toStringAsFixed(2);
-    }
+    return pos.paidAmountForOrder(order).toStringAsFixed(2);
   }
 
   String _paymentMethodLabel(String? method) => switch (method) {
     'cash' => 'Espèces',
     'card' => 'Carte',
     'split' => 'Split',
+    'offert' => 'Offert',
     null => '—',
-    _ => method,
+    _ => paymentMethodLabel(method),
   };
+
+  bool _hasOffertPayment(PosOrder order) =>
+      isOfferedPaymentMethod(order.paymentMethod) ||
+      hasOfferedSplitPayment(order.paymentSplit);
+
+  Widget _statusBadge({
+    required String label,
+    required Color textColor,
+    required Color backgroundColor,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: textColor,
+          fontSize: 9,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.3,
+        ),
+      ),
+    );
+  }
 
   // ── channel badge ────────────────────────────────────────────────────────
   Widget _channelBadge(String? channel) {
@@ -137,25 +190,82 @@ class _PosStaffPaidOrdersScreenState extends State<PosStaffPaidOrdersScreen> {
   Future<void> _printCustomerTicket(PosOrder order) async {
     try {
       final items = await DatabaseService.getPosOrderItems(order.id);
+      debugPrint('Printing: retrieved ${items.length} items for order ${order.id}');
+      if (items.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Aucun article trouvé pour cette commande')),
+          );
+        }
+        return;
+      }
+
       final directPrinted = await EscPosPrinterService.instance
           .tryPrintCustomerTicket(order, items);
       if (directPrinted) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Ticket envoye directement a l\'imprimante'),
+              content: Text('Ticket envoyé directement à l\'imprimante'),
             ),
           );
         }
         return;
       }
+
+      debugPrint('ESC/POS print not available or failed, falling back to PDF for order ${order.id}');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Impression ESC/POS indisponible, génération du PDF...')),
+        );
+      }
+
       final pdfData = await buildCustomerBillPdf(order, items);
-      await Printing.layoutPdf(onLayout: (_) async => pdfData);
-    } catch (e) {
+      try {
+        await Printing.layoutPdf(onLayout: (_) async => pdfData);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Aperçu PDF ouvert (ou envoyé à l\'imprimante).')),
+          );
+        }
+      } catch (pdfErr) {
+        debugPrint('PDF printing failed: $pdfErr');
+        try {
+          final tmp = Directory.systemTemp;
+          final file = File('${tmp.path}/ticket_order_${order.id}.pdf');
+          await file.writeAsBytes(pdfData);
+          debugPrint('Saved PDF ticket to ${file.path}');
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Échec impression PDF: $pdfErr. PDF sauvegardé: ${file.path}')),
+            );
+          }
+          try {
+            if (Platform.isMacOS) {
+              await Process.run('open', [file.path]);
+            } else if (Platform.isLinux) {
+              await Process.run('xdg-open', [file.path]);
+            } else if (Platform.isWindows) {
+              await Process.run('start', [file.path], runInShell: true);
+            }
+          } catch (_) {
+            // Opening the file is optional; ignore errors on unsupported platforms
+          }
+        } catch (saveErr) {
+          debugPrint('Saving PDF fallback failed: $saveErr');
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Échec impression PDF: $pdfErr. Erreur sauvegarde PDF: $saveErr')),
+            );
+          }
+        }
+      }
+    } catch (e, st) {
+      debugPrint('Unexpected error printing ticket: $e\n$st');
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Erreur impression: $e')));
+        ).showSnackBar(SnackBar(content: Text('Erreur impression inattendue: $e')));
       }
     }
   }
@@ -164,137 +274,171 @@ class _PosStaffPaidOrdersScreenState extends State<PosStaffPaidOrdersScreen> {
   Widget _orderCard(PosOrder order) {
     final isPartial = order.paymentStatus == 'partially_paid';
     final ff = _fulfillmentInfo(order.fulfillmentType);
+    final hasOffert = _hasOffertPayment(order);
 
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: _border, width: 0.8),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // ── header ───────────────────────────────────────────────────────
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-            color: _black,
-            child: Row(
-              children: [
-                const Icon(Icons.receipt_long, color: Colors.white, size: 15),
-                const SizedBox(width: 7),
-                Expanded(
-                  child: Text(
-                    '#${order.id} · ${order.customerName ?? 'Client'}',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                // payment status chip
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 3,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isPartial ? Colors.white12 : _red,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    isPartial ? 'Partiel' : 'Payé',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 9,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.3,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // ── fulfillment type banner ───────────────────────────────────────
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-            color: _bg,
-            child: Row(
-              children: [
-                Icon(ff.icon, size: 12, color: _red),
-                const SizedBox(width: 5),
-                Text(
-                  ff.label,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: _red,
-                    letterSpacing: 0.2,
-                  ),
-                ),
-                const Spacer(),
-                _channelBadge(order.channel),
-                const SizedBox(width: 5),
-                Text(
-                  order.customerPhone ?? '',
-                  style: TextStyle(fontSize: 10, color: _grey),
-                ),
-              ],
-            ),
-          ),
-
-          Divider(height: 1, thickness: 0.6, color: _border),
-
-          // ── body ─────────────────────────────────────────────────────────
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-            child: Column(
-              children: [
-                _infoRow('Total', '${order.totalPrice.toStringAsFixed(2)} Dhs'),
-                const SizedBox(height: 3),
-                _infoRow('Payé', '${_formatPaidAmount(order)} Dhs'),
-                const SizedBox(height: 3),
-                _infoRow('Méthode', _paymentMethodLabel(order.paymentMethod)),
-                const SizedBox(height: 3),
-                _infoRow(
-                  'Heure',
-                  '${order.createdAt.hour.toString().padLeft(2, '0')}:'
-                      '${order.createdAt.minute.toString().padLeft(2, '0')}',
-                ),
-              ],
-            ),
-          ),
-
-          Divider(height: 1, thickness: 0.6, color: _border),
-
-          // ── footer ───────────────────────────────────────────────────────
-          InkWell(
-            onTap: () => _printCustomerTicket(order),
-            child: Container(
-              height: 34,
-              alignment: Alignment.center,
+    return InkWell(
+      onTap: () => showOrderDetailsDialog(context, order),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: _border, width: 0.8),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── header ───────────────────────────────────────────────────────
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+              color: _black,
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
-                  Icon(Icons.print, size: 13, color: _red),
-                  SizedBox(width: 5),
-                  Text(
-                    'Imprimer ticket',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: _red,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(Icons.receipt_long, color: Colors.white, size: 15),
+                  const SizedBox(width: 7),
+                  Expanded(
+                    child: Text(
+                      '#${order.id} · ${order.customerName ?? 'Client'}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Flexible(
+                    child: Wrap(
+                      spacing: 5,
+                      runSpacing: 4,
+                      alignment: WrapAlignment.end,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        _statusBadge(
+                          label: isPartial ? 'Partiel' : 'Payé',
+                          textColor: Colors.white,
+                          backgroundColor: isPartial ? Colors.white12 : _red,
+                        ),
+                        if (order.hasDiscount && order.discountAmount > 0)
+                          _statusBadge(
+                            label: 'Remise',
+                            textColor: Colors.green,
+                            backgroundColor: Colors.green.withOpacity(0.18),
+                          ),
+                        if (hasOffert)
+                          _statusBadge(
+                            label: 'Offerts',
+                            textColor: Colors.teal.shade700,
+                            backgroundColor: Colors.teal.withOpacity(0.18),
+                          ),
+                      ],
                     ),
                   ),
                 ],
               ),
             ),
-          ),
-        ],
+
+            // ── fulfillment type banner ───────────────────────────────────────
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+              color: _bg,
+              child: Row(
+                children: [
+                  Icon(ff.icon, size: 12, color: _red),
+                  const SizedBox(width: 5),
+                  Text(
+                    ff.label,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: _red,
+                      letterSpacing: 0.2,
+                    ),
+                  ),
+                  const Spacer(),
+                  _channelBadge(order.channel),
+                  const SizedBox(width: 5),
+                  Text(
+                    order.customerPhone ?? '',
+                    style: TextStyle(fontSize: 10, color: _grey),
+                  ),
+                ],
+              ),
+            ),
+
+            Divider(height: 1, thickness: 0.6, color: _border),
+
+            // ── body ─────────────────────────────────────────────────────────
+            Flexible(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                child: SingleChildScrollView(
+                  physics: const ClampingScrollPhysics(),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _infoRow(
+                        'Total',
+                        '${order.totalPrice.toStringAsFixed(2)} Dhs',
+                      ),
+                      const SizedBox(height: 3),
+                      _infoRow('Payé', '${_formatPaidAmount(order)} Dhs'),
+                      const SizedBox(height: 3),
+                      if (order.hasDiscount && order.discountAmount > 0) ...[
+                        _infoRow(
+                          'Remise',
+                          '-${order.discountAmount.toStringAsFixed(2)} Dhs',
+                        ),
+                        const SizedBox(height: 3),
+                      ],
+                      if (hasOffert) ...[
+                        _infoRow('Offerts', 'Oui'),
+                        const SizedBox(height: 3),
+                      ],
+                      _infoRow('Méthode', _paymentMethodLabel(order.paymentMethod)),
+                      const SizedBox(height: 3),
+                      _infoRow(
+                        'Heure',
+                        '${order.createdAt.hour.toString().padLeft(2, '0')}:'
+                            '${order.createdAt.minute.toString().padLeft(2, '0')}',
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            Divider(height: 1, thickness: 0.6, color: _border),
+
+            // ── footer ───────────────────────────────────────────────────────
+            InkWell(
+              onTap: () => _printCustomerTicket(order),
+              child: Container(
+                height: 34,
+                alignment: Alignment.center,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: const [
+                    Icon(Icons.print, size: 13, color: _red),
+                    SizedBox(width: 5),
+                    Text(
+                      'Imprimer ticket',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: _red,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -437,7 +581,7 @@ class _PosStaffPaidOrdersScreenState extends State<PosStaffPaidOrdersScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
 
             // ── grid ─────────────────────────────────────────────────────
             if (_loading)
@@ -464,7 +608,8 @@ class _PosStaffPaidOrdersScreenState extends State<PosStaffPaidOrdersScreen> {
                           crossAxisCount: 6,
                           crossAxisSpacing: 10,
                           mainAxisSpacing: 10,
-                          childAspectRatio: 1.05,
+                          // lower aspect ratio => taller tiles to avoid vertical overflow
+                          childAspectRatio: 0.9,
                         ),
                     itemCount: _filteredOrders.length,
                     itemBuilder: (_, i) => _orderCard(_filteredOrders[i]),

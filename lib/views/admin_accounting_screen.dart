@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/auth_controller.dart';
@@ -8,7 +7,6 @@ import '../models/user.dart';
 import '../services/app_settings_service.dart';
 import '../services/database_service.dart';
 import '../theme/app_colors.dart';
-import '../utils/app_logger.dart';
 import '../utils/payment_method_utils.dart';
 import '../utils/order_display_labels.dart';
 import '../widgets/admin_shell.dart';
@@ -101,26 +99,22 @@ class _AdminAccountingScreenState extends State<AdminAccountingScreen> {
         }
         totalRevenue += order.totalPrice;
 
-        // ✅ Gérer les paiements split (multiples)
-        if (order.paymentMethod == 'split' &&
-            order.paymentSplit != null &&
-            order.paymentSplit!.isNotEmpty) {
-          try {
-            final List<dynamic> payments = jsonDecode(order.paymentSplit!);
-            for (final payment in payments) {
-              final method = payment['payment_method'] as String?;
-              final amount = (payment['amount'] as num).toDouble();
-
-              if (isCashPaymentMethod(method)) {
-                totalCashRevenue += amount;
-              } else if (isTpePaymentMethod(method)) {
-                totalTpeRevenue += amount;
-              } else if (isEnComptePaymentMethod(method)) {
-                totalEnCompteRevenue += amount;
-              }
+        final payments = parseSplitPaymentEntries(order.paymentSplit);
+        if (payments.isNotEmpty) {
+          for (final payment in payments) {
+            final method = payment['payment_method'] as String?;
+            final amount = (payment['amount'] as num?)?.toDouble() ?? 0.0;
+            if (isOfferedPaymentMethod(method)) {
+              continue;
             }
-          } catch (e) {
-            appLogger.e('❌ Erreur parsing paymentSplit: $e');
+
+            if (isCashPaymentMethod(method)) {
+              totalCashRevenue += amount;
+            } else if (isTpePaymentMethod(method)) {
+              totalTpeRevenue += amount;
+            } else if (isEnComptePaymentMethod(method)) {
+              totalEnCompteRevenue += amount;
+            }
           }
         } else if (isCashPaymentMethod(order.paymentMethod)) {
           totalCashRevenue += order.totalPrice;
@@ -176,25 +170,22 @@ class _AdminAccountingScreenState extends State<AdminAccountingScreen> {
         double tpeAmount = 0;
         double enCompteAmount = 0;
 
-        if (order.paymentMethod == 'split' &&
-            order.paymentSplit != null &&
-            order.paymentSplit!.isNotEmpty) {
-          try {
-            final List<dynamic> payments = jsonDecode(order.paymentSplit!);
-            for (final payment in payments) {
-              final method = payment['payment_method'] as String?;
-              final amt = (payment['amount'] as num).toDouble();
-
-              if (isCashPaymentMethod(method)) {
-                cashAmount += amt;
-              } else if (isTpePaymentMethod(method)) {
-                tpeAmount += amt;
-              } else if (isEnComptePaymentMethod(method)) {
-                enCompteAmount += amt;
-              }
+        final payments = parseSplitPaymentEntries(order.paymentSplit);
+        if (payments.isNotEmpty) {
+          for (final payment in payments) {
+            final method = payment['payment_method'] as String?;
+            final amt = (payment['amount'] as num?)?.toDouble() ?? 0.0;
+            if (isOfferedPaymentMethod(method)) {
+              continue;
             }
-          } catch (e) {
-            appLogger.e('❌ Erreur parsing paymentSplit: $e');
+
+            if (isCashPaymentMethod(method)) {
+              cashAmount += amt;
+            } else if (isTpePaymentMethod(method)) {
+              tpeAmount += amt;
+            } else if (isEnComptePaymentMethod(method)) {
+              enCompteAmount += amt;
+            }
           }
         } else {
           // Paiement simple

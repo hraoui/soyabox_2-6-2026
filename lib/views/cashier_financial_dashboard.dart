@@ -1,9 +1,10 @@
-import 'dart:convert';
 import 'package:caisse_1/controllers/auth_controller.dart';
 import 'package:caisse_1/models/user.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
+import 'dart:async';
+import '../controllers/pos_controller.dart';
 // import 'package:pdf/pdf.dart';
 // import 'package:pdf/widgets.dart' as pw;
 // import 'package:printing/printing.dart';
@@ -75,6 +76,7 @@ class _CashierFinancialDashboardState extends State<CashierFinancialDashboard>
   final int _ordersPageSize = 50;
   int _displayedOrdersCount = 0;
   final ScrollController _ordersScrollController = ScrollController();
+  StreamSubscription<int>? _ordersSub;
 
   // ── Tab labels ──────────────────────────────────────────────────────────────
   static const _tabs = [
@@ -90,10 +92,20 @@ class _CashierFinancialDashboardState extends State<CashierFinancialDashboard>
     _tabController = TabController(length: 4, vsync: this);
     _ordersScrollController.addListener(_onOrdersScroll);
     _loadData();
+    // Listen for global orders changes (soft-deletes, updates)
+    try {
+      final pos = Get.find<PosController>();
+      _ordersSub = pos.ordersRevision.listen((_) {
+        if (!mounted) return;
+        _hasCache = false; // force reload
+        _loadData(forceRefresh: true);
+      });
+    } catch (_) {}
   }
 
   @override
   void dispose() {
+    _ordersSub?.cancel();
     _tabController.dispose();
     _ordersScrollController.dispose();
     super.dispose();
@@ -227,21 +239,30 @@ class _CashierFinancialDashboardState extends State<CashierFinancialDashboard>
   }
 
   void _updatePaymentMethodStats(_ServerStats stats, PosOrder order) {
-    if (order.paymentMethod == 'split' && order.paymentSplit != null && order.paymentSplit!.isNotEmpty) {
-      try {
-        final List<dynamic> payments = jsonDecode(order.paymentSplit!);
-        for (final p in payments) {
-          final method = p['payment_method'] as String?;
-          final amount = (p['amount'] as num).toDouble();
-          if (isTpePaymentMethod(method))       stats.tpeTotal      += amount;
-          else if (isCashPaymentMethod(method)) stats.cashTotal     += amount;
-          else if (isEnComptePaymentMethod(method)) stats.enCompteTotal += amount;
+    final payments = parseSplitPaymentEntries(order.paymentSplit);
+    if (payments.isNotEmpty) {
+      for (final payment in payments) {
+        final method = payment['payment_method'] as String?;
+        final amount = (payment['amount'] as num?)?.toDouble() ?? 0.0;
+        if (isOfferedPaymentMethod(method)) {
+          continue;
         }
-      } catch (_) {}
+        if (isTpePaymentMethod(method)) {
+          stats.tpeTotal += amount;
+        } else if (isCashPaymentMethod(method)) {
+          stats.cashTotal += amount;
+        } else if (isEnComptePaymentMethod(method)) {
+          stats.enCompteTotal += amount;
+        }
+      }
     } else {
-      if (isTpePaymentMethod(order.paymentMethod))       stats.tpeTotal      += order.totalPrice;
-      else if (isCashPaymentMethod(order.paymentMethod)) stats.cashTotal     += order.totalPrice;
-      else if (isEnComptePaymentMethod(order.paymentMethod)) stats.enCompteTotal += order.totalPrice;
+      if (isTpePaymentMethod(order.paymentMethod)) {
+        stats.tpeTotal += order.totalPrice;
+      } else if (isCashPaymentMethod(order.paymentMethod)) {
+        stats.cashTotal += order.totalPrice;
+      } else if (isEnComptePaymentMethod(order.paymentMethod)) {
+        stats.enCompteTotal += order.totalPrice;
+      }
     }
   }
 

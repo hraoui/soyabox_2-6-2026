@@ -536,9 +536,21 @@ class DatabaseService {
 
   static Future<List<PosOrder>> getPosOrders({
     bool retryOnCorruption = true,
+    /// If true, include orders that were soft-deleted (status == 'deleted').
+    /// Default: false (exclude deleted orders from results).
+    bool includeDeleted = false,
   }) async {
     try {
-      return await _isar.posOrders.where().sortByCreatedAtDesc().findAll();
+      if (includeDeleted) {
+        return await _isar.posOrders.where().sortByCreatedAtDesc().findAll();
+      }
+        // By default, exclude soft-deleted orders (status == 'deleted')
+        return await _isar.posOrders
+          .filter()
+          .not()
+          .statusEqualTo('deleted')
+          .sortByCreatedAtDesc()
+          .findAll();
     } catch (e) {
       // Handle corrupted records
       if (e is RangeError ||
@@ -582,9 +594,12 @@ class DatabaseService {
     DateTime end,
   ) async {
     try {
-      return await _isar.posOrders
+        // By default exclude soft-deleted orders
+        return await _isar.posOrders
           .filter()
           .createdAtBetween(start, end)
+          .not()
+          .statusEqualTo('deleted')
           .sortByCreatedAtDesc()
           .findAll();
     } catch (e) {
@@ -602,9 +617,11 @@ class DatabaseService {
 
   static Future<List<PosOrder>> getPosOrdersByChannel(String channel) async {
     try {
-      return await _isar.posOrders
+        return await _isar.posOrders
           .filter()
           .channelEqualTo(channel, caseSensitive: false)
+          .not()
+          .statusEqualTo('deleted')
           .sortByCreatedAtDesc()
           .findAll();
     } catch (e) {
@@ -822,10 +839,12 @@ class DatabaseService {
     final start = DateTime(now.year, now.month, now.day);
     final end = start.add(const Duration(days: 1));
     final orders = await _isar.posOrders
-        .filter()
-        .staffIdEqualTo(staffId)
-        .createdAtBetween(start, end)
-        .findAll();
+      .filter()
+      .staffIdEqualTo(staffId)
+      .createdAtBetween(start, end)
+      .not()
+      .statusEqualTo('deleted')
+      .findAll();
     return orders.fold<double>(0.0, (sum, o) => sum + o.totalPrice);
   }
 

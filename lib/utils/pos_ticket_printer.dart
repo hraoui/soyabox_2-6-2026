@@ -7,9 +7,309 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import '../models/pos_order.dart';
 import '../models/pos_order_item.dart';
+import '../services/database_service.dart';
 import '../services/app_settings_service.dart';
 import 'order_item_grouping.dart';
 import 'payment_method_utils.dart';
+
+class _TicketProductLine {
+  final String name;
+  final int quantity;
+  final double unitPrice;
+  final double lineTotal;
+  final bool offered;
+  final String? note;
+
+  _TicketProductLine({
+    required this.name,
+    required this.quantity,
+    required this.unitPrice,
+    required this.lineTotal,
+    this.offered = false,
+    this.note,
+  });
+}
+
+class _OfferedTicketSummary {
+  final int quantity;
+  final double value;
+
+  const _OfferedTicketSummary({required this.quantity, required this.value});
+}
+
+List<_TicketProductLine> _resolveTicketProductLines(PosOrderItem item) {
+  var offeredQty = 0;
+  String? offeredByName;
+
+  if (item.partialPaymentHistory != null &&
+      item.partialPaymentHistory!.isNotEmpty) {
+    try {
+      final decoded = jsonDecode(item.partialPaymentHistory!);
+      if (decoded is List) {
+        for (final raw in decoded) {
+          if (raw is Map) {
+            // Check new format: is_offered flag
+            final isOffered = raw['is_offered'] == true;
+            if (isOffered) {
+              final qty = raw['quantity_paid'];
+              if (qty is num) {
+                offeredQty += qty.toInt();
+              }
+              // Get the name of who offered it
+              final staffName = raw['offered_by_staff_name']?.toString();
+              if (staffName != null && offeredByName == null) {
+                offeredByName = staffName;
+              }
+            } else {
+              // Fallback to old format: check payment_methods
+              final paymentMethods = raw['payment_methods'];
+              if (paymentMethods is List) {
+                final hasOffer = paymentMethods.any((payment) {
+                  if (payment is Map) {
+                    final method = payment['method']?.toString();
+                    return normalizePaymentMethod(method) ==
+                        paymentMethodOffert;
+                  }
+                  return false;
+                });
+                if (hasOffer) {
+                  final qty = raw['quantity_paid'];
+                  if (qty is num) {
+                    offeredQty += qty.toInt();
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    } catch (_) {
+      offeredQty = 0;
+    }
+  }
+
+  offeredQty = offeredQty.clamp(0, item.quantity);
+  final remainingQty = item.quantity - offeredQty;
+  final rows = <_TicketProductLine>[];
+
+  if (remainingQty > 0) {
+    rows.add(
+      _TicketProductLine(
+        name: item.productName,
+        quantity: remainingQty,
+        unitPrice: item.unitPrice,
+        lineTotal: item.unitPrice * remainingQty,
+        offered: false,
+        note: item.itemNote,
+      ),
+    );
+  }
+
+  if (offeredQty > 0) {
+    rows.add(
+      _TicketProductLine(
+        name: item.productName,
+        quantity: offeredQty,
+        unitPrice: item.unitPrice,
+        lineTotal: 0.0,
+        offered: true,
+        note: 'Offert${offeredByName != null ? ' par $offeredByName' : ''}',
+      ),
+    );
+  }
+
+  if (rows.isEmpty) {
+    rows.add(
+      _TicketProductLine(
+        name: item.productName,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        lineTotal: item.unitPrice * item.quantity,
+        offered: false,
+        note: item.itemNote,
+      ),
+    );
+  }
+
+  return rows;
+}
+
+_OfferedTicketSummary _summarizeOfferedProducts(List<PosOrderItem> items) {
+  var quantity = 0;
+  var value = 0.0;
+
+  for (final item in items) {
+    for (final line in _resolveTicketProductLines(item)) {
+      if (!line.offered) {
+        continue;
+      }
+      quantity += line.quantity;
+      value += line.quantity * line.unitPrice;
+    }
+  }
+
+  return _OfferedTicketSummary(quantity: quantity, value: value);
+}
+
+pw.Widget _buildOfferedBadgeWidget({String? label}) {
+  return pw.Container(
+    padding: const pw.EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+    decoration: pw.BoxDecoration(
+      border: pw.Border.all(color: PdfColors.green, width: 0.7),
+      borderRadius: pw.BorderRadius.circular(3),
+    ),
+    child: pw.Text(
+      (label ?? 'OFFERT').toUpperCase(),
+      style: pw.TextStyle(
+        fontSize: 8,
+        fontWeight: pw.FontWeight.bold,
+        color: PdfColors.green,
+      ),
+    ),
+  );
+}
+
+List<pw.Widget> _buildOfferedSummaryWidgets(
+  List<PosOrderItem> items, {
+  required String Function(double) money,
+}) {
+  final summary = _summarizeOfferedProducts(items);
+  if (summary.quantity <= 0) {
+    return const [];
+  }
+
+  return [
+    pw.Container(
+      width: double.infinity,
+      margin: const pw.EdgeInsets.only(bottom: 4),
+      padding: const pw.EdgeInsets.all(6),
+      decoration: pw.BoxDecoration(
+        border: pw.Border.all(color: PdfColors.green, width: 0.7),
+        borderRadius: pw.BorderRadius.circular(4),
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Text(
+            'OFFERT',
+            style: pw.TextStyle(
+              fontSize: 10,
+              fontWeight: pw.FontWeight.bold,
+              color: PdfColors.green,
+            ),
+          ),
+          pw.SizedBox(height: 3),
+          pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+            children: [
+              pw.Text(
+                'Produits offerts:',
+                style: const pw.TextStyle(fontSize: 9),
+              ),
+              pw.Text(
+                summary.quantity.toString(),
+                style: pw.TextStyle(
+                  fontSize: 9,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+            children: [
+              pw.Text(
+                'Valeur offerte:',
+                style: const pw.TextStyle(fontSize: 9),
+              ),
+              pw.Text(
+                money(summary.value),
+                style: pw.TextStyle(
+                  fontSize: 9,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    ),
+  ];
+}
+
+List<pw.Widget> _buildSimpleCustomerTicketItems(
+  List<PosOrderItem> items, {
+  required String Function(double) money,
+}) {
+  final widgets = <pw.Widget>[];
+
+  for (final it in items) {
+    final lines = _resolveTicketProductLines(it);
+    for (final line in lines) {
+      final displayQty = line.offered
+          ? '${line.quantity} GRATUIT'
+          : '${line.quantity} x';
+      final displayPrice = line.offered ? 'OFFERT' : money(line.lineTotal);
+
+      widgets.add(
+        pw.Row(
+          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+          children: [
+            pw.Expanded(
+              child: pw.Text(
+                '$displayQty ${cleanOrderItemProductName(line.name)}',
+                style: line.offered
+                    ? pw.TextStyle(
+                        fontSize: 10,
+                        fontWeight: pw.FontWeight.bold,
+                        color: PdfColors.green,
+                      )
+                    : pw.TextStyle(fontSize: 10),
+              ),
+            ),
+            pw.SizedBox(width: 8),
+            pw.Text(
+              displayPrice,
+              style: line.offered
+                  ? pw.TextStyle(
+                      fontSize: 10,
+                      fontWeight: pw.FontWeight.bold,
+                      color: PdfColors.green,
+                    )
+                  : pw.TextStyle(fontSize: 10),
+              textAlign: pw.TextAlign.right,
+            ),
+          ],
+        ),
+      );
+      if (line.offered) {
+        widgets.add(
+          pw.Padding(
+            padding: const pw.EdgeInsets.only(left: 12, top: 2),
+            child: _buildOfferedBadgeWidget(),
+          ),
+        );
+      }
+      if (line.note != null && line.note!.isNotEmpty) {
+        widgets.add(
+          pw.Padding(
+            padding: const pw.EdgeInsets.only(left: 12, top: 2),
+            child: pw.Text(
+              line.note!,
+              style: pw.TextStyle(
+                fontSize: 9,
+                color: line.offered ? PdfColors.green : PdfColors.black,
+              ),
+            ),
+          ),
+        );
+      }
+      widgets.add(pw.SizedBox(height: 3));
+    }
+  }
+
+  return widgets;
+}
 
 List<pw.Widget> _buildTicketItemWidgets(
   List<PosOrderItem> items, {
@@ -53,57 +353,67 @@ List<pw.Widget> _buildTicketItemWidgets(
       );
 
       for (final it in courseItems) {
-        final note = it.itemNote?.trim();
-        widgets.add(
-          pw.Padding(
-            padding: pw.EdgeInsets.only(bottom: 4),
-            child: pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.start,
-              children: [
-                if (includePrices)
-                  pw.Row(
-                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: pw.CrossAxisAlignment.start,
-                    children: [
-                      pw.Expanded(
-                        child: pw.Text(
-                          '${it.quantity} x ${cleanOrderItemProductName(it.productName)}',
+        final lines = _resolveTicketProductLines(it);
+        for (final line in lines) {
+          widgets.add(
+            pw.Padding(
+              padding: pw.EdgeInsets.only(bottom: 4),
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  if (includePrices)
+                    pw.Row(
+                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Expanded(
+                          child: pw.Text(
+                            '${line.quantity} x ${cleanOrderItemProductName(line.name)}',
+                          ),
                         ),
-                      ),
-                      pw.SizedBox(width: 8),
-                      pw.Text(money!(it.unitPrice * it.quantity)),
-                    ],
-                  )
-                else
-                  pw.Row(
-                    crossAxisAlignment: pw.CrossAxisAlignment.start,
-                    children: [
-                      pw.SizedBox(
-                        width: 32,
-                        child: pw.Text(
-                          '${it.quantity}x',
-                          style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                        pw.SizedBox(width: 8),
+                        pw.Text(money!(line.lineTotal)),
+                      ],
+                    )
+                  else
+                    pw.Row(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.SizedBox(
+                          width: 32,
+                          child: pw.Text(
+                            '${line.quantity}x',
+                            style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                          ),
                         ),
-                      ),
-                      pw.Expanded(
-                        child: pw.Text(
-                          cleanOrderItemProductName(it.productName),
+                        pw.Expanded(
+                          child: pw.Text(cleanOrderItemProductName(line.name)),
                         ),
-                      ),
-                    ],
-                  ),
-                if (note != null && note.isNotEmpty)
-                  pw.Padding(
-                    padding: pw.EdgeInsets.only(left: 12, top: 2),
-                    child: pw.Text(
-                      'Note: $note',
-                      style: pw.TextStyle(fontSize: 9),
+                      ],
                     ),
-                  ),
-              ],
+                  if (line.offered)
+                    pw.Padding(
+                      padding: pw.EdgeInsets.only(left: 12, top: 2),
+                      child: _buildOfferedBadgeWidget(),
+                    ),
+                  if (line.note != null && line.note!.isNotEmpty)
+                    pw.Padding(
+                      padding: pw.EdgeInsets.only(left: 12, top: 2),
+                      child: pw.Text(
+                        line.note!,
+                        style: pw.TextStyle(
+                          fontSize: 9,
+                          color: line.offered
+                              ? PdfColors.green
+                              : PdfColors.black,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
-          ),
-        );
+          );
+        }
       }
     });
   });
@@ -112,34 +422,7 @@ List<pw.Widget> _buildTicketItemWidgets(
 }
 
 List<Map<String, dynamic>> _extractPaymentEntries(PosOrder order) {
-  final entries = <Map<String, dynamic>>[];
-  final rawSplit = order.paymentSplit;
-  if (rawSplit != null && rawSplit.isNotEmpty) {
-    try {
-      final decoded = jsonDecode(rawSplit);
-      if (decoded is List) {
-        for (final raw in decoded) {
-          if (raw is! Map) continue;
-          final rawAmount = raw['amount'] ?? raw['montant'] ?? 0;
-          final amount = rawAmount is num
-              ? rawAmount.toDouble()
-              : double.tryParse(rawAmount.toString().replaceAll(',', '.')) ??
-                    0.0;
-          final method = (raw['payment_method'] ?? raw['method'] ?? '')
-              .toString()
-              .trim();
-          if (amount <= 0 && method.isEmpty) continue;
-          entries.add({
-            'payment_method': normalizePaymentMethod(method),
-            'amount': amount,
-            'timestamp': (raw['timestamp'] ?? '').toString(),
-          });
-        }
-      }
-    } catch (_) {
-      // Ignore malformed payloads and fall back below when possible.
-    }
-  }
+  final entries = parseSplitPaymentEntries(order.paymentSplit);
 
   if (entries.isEmpty &&
       order.paymentStatus.trim().toLowerCase() == 'paid' &&
@@ -156,6 +439,10 @@ List<Map<String, dynamic>> _extractPaymentEntries(PosOrder order) {
 
 double _calculatePaymentTotal(List<Map<String, dynamic>> entries) {
   return entries.fold<double>(0.0, (sum, entry) {
+    final method = normalizePaymentMethod(entry['payment_method']?.toString());
+    if (method == paymentMethodOffert) {
+      return sum;
+    }
     final amount = entry['amount'];
     if (amount is num) {
       return sum + amount.toDouble();
@@ -328,22 +615,21 @@ Future<Uint8List> buildKitchenTicketPdf(
   final regularFont = await PdfGoogleFonts.notoSansRegular();
   final boldFont = await PdfGoogleFonts.notoSansBold();
   final doc = pw.Document();
-  final pageFormat = format ?? PdfPageFormat.roll80.copyWith(
-    marginTop: 6,
-    marginBottom: 6,
-    marginLeft: 6,
-    marginRight: 6,
-  );
+  final pageFormat =
+      format ??
+      PdfPageFormat.roll80.copyWith(
+        marginTop: 6,
+        marginBottom: 6,
+        marginLeft: 6,
+        marginRight: 6,
+      );
   final logoImage = await _loadLogoImage();
   final orderTime = _formatOrderTime(order.createdAt);
 
   doc.addPage(
     pw.Page(
       pageFormat: pageFormat,
-      theme: pw.ThemeData.withFont(
-        base: regularFont,
-        bold: boldFont,
-      ),
+      theme: pw.ThemeData.withFont(base: regularFont, bold: boldFont),
       build: (context) {
         return pw.Column(
           crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -423,6 +709,10 @@ Future<Uint8List> buildKitchenTicketPdf(
             pw.Divider(color: PdfColors.grey500),
             // Détails produits
             ..._buildTicketItemWidgets(items, includePrices: false),
+            ..._buildOfferedSummaryWidgets(
+              items,
+              money: AppSettingsService.instance.formatAmount,
+            ),
             pw.Divider(color: PdfColors.grey500),
             pw.Center(
               child: pw.Text(
@@ -454,12 +744,14 @@ Future<Uint8List> buildCustomerBillPdf(
   final regularFont = await PdfGoogleFonts.notoSansRegular();
   final boldFont = await PdfGoogleFonts.notoSansBold();
   final doc = pw.Document();
-  final pageFormat = format ?? PdfPageFormat.roll80.copyWith(
-    marginTop: 6,
-    marginBottom: 6,
-    marginLeft: 6,
-    marginRight: 6,
-  );
+  final pageFormat =
+      format ??
+      PdfPageFormat.roll80.copyWith(
+        marginTop: 6,
+        marginBottom: 6,
+        marginLeft: 6,
+        marginRight: 6,
+      );
   final logoImage = await _loadLogoImage();
   final money = AppSettingsService.instance.formatAmount;
   final orderTime = _formatOrderTime(order.createdAt);
@@ -492,10 +784,7 @@ Future<Uint8List> buildCustomerBillPdf(
   doc.addPage(
     pw.Page(
       pageFormat: pageFormat,
-      theme: pw.ThemeData.withFont(
-        base: regularFont,
-        bold: boldFont,
-      ),
+      theme: pw.ThemeData.withFont(base: regularFont, bold: boldFont),
       build: (context) {
         return pw.Column(
           crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -577,12 +866,9 @@ Future<Uint8List> buildCustomerBillPdf(
                 style: pw.TextStyle(fontSize: 9),
               ),
             pw.Divider(color: PdfColors.grey500),
-            // Détails produits
-            ..._buildTicketItemWidgets(
-              items,
-              includePrices: true,
-              money: money,
-            ),
+            // Détails produits - version simplifiée pour client
+            ..._buildSimpleCustomerTicketItems(items, money: money),
+            ..._buildOfferedSummaryWidgets(items, money: money),
             pw.Divider(color: PdfColors.grey500),
             // Totaux
             pw.Row(
@@ -610,7 +896,7 @@ Future<Uint8List> buildCustomerBillPdf(
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               children: [
                 pw.Text(
-                  'TOTAL',
+                  'TOTAL À PAYER',
                   style: pw.TextStyle(
                     fontWeight: pw.FontWeight.bold,
                     fontSize: 12,
@@ -667,12 +953,14 @@ Future<Uint8List> buildKitchenAndCustomerTicketsPdf(
 }) async {
   final regularFont = await PdfGoogleFonts.notoSansRegular();
   final boldFont = await PdfGoogleFonts.notoSansBold();
-  final pageFormat = format ?? PdfPageFormat.roll80.copyWith(
-    marginTop: 6,
-    marginBottom: 6,
-    marginLeft: 6,
-    marginRight: 6,
-  );
+  final pageFormat =
+      format ??
+      PdfPageFormat.roll80.copyWith(
+        marginTop: 6,
+        marginBottom: 6,
+        marginLeft: 6,
+        marginRight: 6,
+      );
   final doc = pw.Document();
   final logoImage = await _loadLogoImage();
   final money = AppSettingsService.instance.formatAmount;
@@ -748,10 +1036,7 @@ Future<Uint8List> buildKitchenAndCustomerTicketsPdf(
   doc.addPage(
     pw.Page(
       pageFormat: pageFormat,
-      theme: pw.ThemeData.withFont(
-        base: regularFont,
-        bold: boldFont,
-      ),
+      theme: pw.ThemeData.withFont(base: regularFont, bold: boldFont),
       build: (context) {
         return pw.Column(
           crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -800,6 +1085,7 @@ Future<Uint8List> buildKitchenAndCustomerTicketsPdf(
               ),
             pw.Divider(color: PdfColors.grey500),
             ..._buildTicketItemWidgets(items, includePrices: false),
+            ..._buildOfferedSummaryWidgets(items, money: money),
             pw.Divider(color: PdfColors.grey500),
             pw.Center(
               child: pw.Text(
@@ -871,11 +1157,9 @@ Future<Uint8List> buildKitchenAndCustomerTicketsPdf(
                 style: pw.TextStyle(fontSize: 9),
               ),
             pw.Divider(color: PdfColors.grey500),
-            ..._buildTicketItemWidgets(
-              items,
-              includePrices: true,
-              money: money,
-            ),
+            // Détails produits - version simplifiée pour client
+            ..._buildSimpleCustomerTicketItems(items, money: money),
+            ..._buildOfferedSummaryWidgets(items, money: money),
             pw.Divider(color: PdfColors.grey500),
             pw.Row(
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
@@ -902,7 +1186,7 @@ Future<Uint8List> buildKitchenAndCustomerTicketsPdf(
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               children: [
                 pw.Text(
-                  'TOTAL',
+                  'TOTAL À PAYER',
                   style: pw.TextStyle(
                     fontWeight: pw.FontWeight.bold,
                     fontSize: 12,
@@ -1010,14 +1294,8 @@ Future<Uint8List> buildDailyReportPdf(Map<String, dynamic> reportData) async {
   final totalRevenue = (summary['total_revenue'] as num?)?.toDouble() ?? 0.0;
   final totalOrders = summary['total_orders'] as int? ?? 0;
 
-  // Modes de paiement
-  final paymentMethods =
-      summary['payment_methods'] as Map<String, dynamic>? ?? {};
-  final cashAmount = (paymentMethods['cash'] as num?)?.toDouble() ?? 0.0;
-  final tpeAmount = (paymentMethods['tpe'] as num?)?.toDouble() ?? 0.0;
-  final enCompteAmount =
-      (paymentMethods['en_compte'] as num?)?.toDouble() ?? 0.0;
-  final otherAmount = (paymentMethods['other'] as num?)?.toDouble() ?? 0.0;
+    // Modes de paiement (cartographie dynamique)
+    final paymentMethods = summary['payment_methods'] as Map<String, dynamic>? ?? {};
 
   // Types de commande
   final orderTypes = summary['order_types'] as Map<String, dynamic>? ?? {};
@@ -1027,15 +1305,16 @@ Future<Uint8List> buildDailyReportPdf(Map<String, dynamic> reportData) async {
 
   // Statistiques par serveur et livreur
   final staffBreakdown = summary['staff_breakdown'] as List<dynamic>? ?? [];
-  final deliveryBreakdown = summary['delivery_breakdown'] as List<dynamic>? ?? [];
+  final deliveryBreakdown =
+      summary['delivery_breakdown'] as List<dynamic>? ?? [];
+  final totalDiscounts = (summary['total_discounts'] as num?)?.toDouble() ?? 0.0;
+  final totalOfferedQuantity = summary['total_offered_quantity'] as int? ?? 0;
+  final totalOfferedValue = (summary['total_offered_value'] as num?)?.toDouble() ?? 0.0;
 
   doc.addPage(
     pw.Page(
       pageFormat: pageFormat,
-      theme: pw.ThemeData.withFont(
-        base: regularFont,
-        bold: boldFont,
-      ),
+      theme: pw.ThemeData.withFont(base: regularFont, bold: boldFont),
       build: (context) {
         return pw.Column(
           crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -1062,10 +1341,7 @@ Future<Uint8List> buildDailyReportPdf(Map<String, dynamic> reportData) async {
                     ),
                   ),
                   pw.SizedBox(height: 4),
-                  pw.Text(
-                    'Date : $dateStr',
-                    style: pw.TextStyle(fontSize: 11),
-                  ),
+                  pw.Text('Date : $dateStr', style: pw.TextStyle(fontSize: 11)),
                 ],
               ),
             ),
@@ -1077,30 +1353,27 @@ Future<Uint8List> buildDailyReportPdf(Map<String, dynamic> reportData) async {
               '${totalRevenue.toStringAsFixed(2)} Dhs',
             ),
             _buildReportRow('Nombre total de commandes:', '$totalOrders'),
+            _buildReportRow('Total remises:', '${totalDiscounts.toStringAsFixed(2)} Dhs'),
+            _buildReportRow('Total produits offerts:', '$totalOfferedQuantity'),
+            _buildReportRow('Valeur offerts:', '${totalOfferedValue.toStringAsFixed(2)} Dhs'),
             pw.SizedBox(height: 8),
 
             // Modes de paiement
-            pw.Text(
-              'Modes de paiement:',
-              style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-            ),
-            if (cashAmount > 0)
-              _buildReportRow(
-                '   Cash:',
-                '${cashAmount.toStringAsFixed(2)} Dhs',
+            if (paymentMethods.isNotEmpty) ...[
+              pw.Text(
+                'Modes de paiement:',
+                style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
               ),
-            if (tpeAmount > 0)
-              _buildReportRow('   TPE:', '${tpeAmount.toStringAsFixed(2)} Dhs'),
-            if (enCompteAmount > 0)
-              _buildReportRow(
-                '   En compte:',
-                '${enCompteAmount.toStringAsFixed(2)} Dhs',
-              ),
-            if (otherAmount > 0)
-              _buildReportRow(
-                '   Autre:',
-                '${otherAmount.toStringAsFixed(2)} Dhs',
-              ),
+              pw.SizedBox(height: 4),
+              ...paymentMethods.entries.map((entry) {
+                final methodKey = entry.key.toString();
+                final amount = (entry.value as num?)?.toDouble() ?? 0.0;
+                return _buildReportRow(
+                  '   ${paymentMethodLabel(methodKey)}:',
+                  '${amount.toStringAsFixed(2)} Dhs',
+                );
+              }).toList(),
+            ],
             pw.SizedBox(height: 8),
 
             // Types de commande
@@ -1125,8 +1398,10 @@ Future<Uint8List> buildDailyReportPdf(Map<String, dynamic> reportData) async {
               ...staffBreakdown.map((staff) {
                 final staffMap = staff as Map<String, dynamic>;
                 final staffId = staffMap['staff_id'] as int? ?? 0;
-                final staffNameRaw = (staffMap['staff_name'] as String?)?.trim();
-                final staffName = staffNameRaw != null && staffNameRaw.isNotEmpty
+                final staffNameRaw = (staffMap['staff_name'] as String?)
+                    ?.trim();
+                final staffName =
+                    staffNameRaw != null && staffNameRaw.isNotEmpty
                     ? staffNameRaw
                     : 'Serveur #$staffId';
                 final ordersCount = staffMap['orders_count'] as int? ?? 0;
@@ -1181,14 +1456,20 @@ Future<Uint8List> buildDailyReportPdf(Map<String, dynamic> reportData) async {
               ),
               ...deliveryBreakdown.map((delivery) {
                 final deliveryMap = delivery as Map<String, dynamic>;
-                final deliveryStaffId = deliveryMap['delivery_staff_id'] as int? ?? 0;
-                final deliveryStaffNameRaw = (deliveryMap['delivery_staff_name'] as String?)?.trim();
-                final deliveryStaffName = deliveryStaffNameRaw != null && deliveryStaffNameRaw.isNotEmpty
+                final deliveryStaffId =
+                    deliveryMap['delivery_staff_id'] as int? ?? 0;
+                final deliveryStaffNameRaw =
+                    (deliveryMap['delivery_staff_name'] as String?)?.trim();
+                final deliveryStaffName =
+                    deliveryStaffNameRaw != null &&
+                        deliveryStaffNameRaw.isNotEmpty
                     ? deliveryStaffNameRaw
                     : 'Livreur #$deliveryStaffId';
-                final deliveryCount = deliveryMap['delivery_count'] as int? ?? 0;
+                final deliveryCount =
+                    deliveryMap['delivery_count'] as int? ?? 0;
                 final deliveryRevenue =
-                    (deliveryMap['delivery_revenue'] as num?)?.toDouble() ?? 0.0;
+                    (deliveryMap['delivery_revenue'] as num?)?.toDouble() ??
+                    0.0;
 
                 return pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -1238,4 +1519,125 @@ pw.Widget _buildReportRow(String label, String value) {
       ),
     ],
   );
+}
+
+/// Build a daily report PDF for a given restaurant and date by fetching
+/// orders and items from the database and aggregating metrics.
+Future<Uint8List> buildDailyReportForRestaurantDate(
+  int restaurantId,
+  DateTime date,
+) async {
+  // Load orders and filter by exact restaurant + day range
+  final allOrders = await DatabaseService.getPosOrders();
+  final startOfDay = DateTime(date.year, date.month, date.day, 0, 0, 0);
+  final endOfDay = DateTime(date.year, date.month, date.day, 23, 59, 59, 999);
+
+  final filtered = allOrders.where((order) {
+    if (order.restaurantId != restaurantId) return false;
+    final created = order.createdAt.toLocal();
+    return !created.isBefore(startOfDay) && !created.isAfter(endOfDay);
+  }).toList();
+
+  final dateStr = "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+
+  double totalRevenue = 0.0;
+  int totalOrders = filtered.length;
+  double totalDiscounts = 0.0;
+
+  final paymentMethods = <String, double>{};
+  final orderTypes = <String, int>{};
+  final staffMap = <int, Map<String, dynamic>>{};
+  final deliveryMap = <int, Map<String, dynamic>>{};
+
+  var totalOfferedQuantity = 0;
+  var totalOfferedValue = 0.0;
+
+  for (final order in filtered) {
+    // Sum totals
+    totalRevenue += order.totalPrice;
+    totalDiscounts += order.discountAmount;
+
+    // Payment breakdown (respect split payments). Include all methods (offert included)
+    final splitTotals = splitPaymentTotalsByMethod(order.paymentSplit, includeOffert: true);
+    if (splitTotals.isNotEmpty) {
+      splitTotals.forEach((method, amount) {
+        final key = method.isEmpty ? 'other' : method;
+        paymentMethods[key] = (paymentMethods[key] ?? 0.0) + amount;
+      });
+    } else {
+      final norm = normalizePaymentMethod(order.paymentMethod);
+      final methodKey = norm.isEmpty ? 'other' : norm;
+      paymentMethods[methodKey] = (paymentMethods[methodKey] ?? 0.0) + order.totalPrice;
+    }
+
+    // Order types
+    final typeKey = order.fulfillmentType.trim().toLowerCase();
+    orderTypes[typeKey] = (orderTypes[typeKey] ?? 0) + 1;
+
+    // Server / staff breakdown
+    final staffKey = order.staffId;
+    final staffEntry = staffMap[staffKey] ?? {
+      'staff_id': staffKey,
+      'staff_name': null,
+      'orders_count': 0,
+      'total_revenue': 0.0,
+      'payment_methods': <String, double>{},
+    };
+    staffEntry['orders_count'] = (staffEntry['orders_count'] as int) + 1;
+    staffEntry['total_revenue'] = (staffEntry['total_revenue'] as double) + order.totalPrice;
+    // Add staff-level payment split totals
+    if (splitTotals.isNotEmpty) {
+      splitTotals.forEach((method, amount) {
+        final pm = staffEntry['payment_methods'] as Map<String, double>;
+        final key = method.isEmpty ? 'other' : method;
+        pm[key] = (pm[key] ?? 0.0) + amount;
+      });
+    } else {
+      final norm = normalizePaymentMethod(order.paymentMethod);
+      final methodKey = norm.isEmpty ? 'other' : norm;
+      final pm = staffEntry['payment_methods'] as Map<String, double>;
+      pm[methodKey] = (pm[methodKey] ?? 0.0) + order.totalPrice;
+    }
+    staffMap[staffKey] = staffEntry;
+
+    // Delivery breakdown
+    if (order.deliveryLivreurId != null && order.deliveryLivreurId! > 0) {
+      final dId = order.deliveryLivreurId!;
+      final dEntry = deliveryMap[dId] ?? {
+        'delivery_staff_id': dId,
+        'delivery_staff_name': order.deliveryLivreurName,
+        'delivery_count': 0,
+        'delivery_revenue': 0.0,
+      };
+      dEntry['delivery_count'] = (dEntry['delivery_count'] as int) + 1;
+      dEntry['delivery_revenue'] = (dEntry['delivery_revenue'] as double) + order.totalPrice;
+      deliveryMap[dId] = dEntry;
+    }
+
+    // Offered items summary (per order)
+    final items = await DatabaseService.getPosOrderItems(order.id);
+    final offeredSummary = _summarizeOfferedProducts(items);
+    totalOfferedQuantity += offeredSummary.quantity;
+    totalOfferedValue += offeredSummary.value;
+  }
+
+  // Build summary map
+  final summary = <String, dynamic>{
+    'total_revenue': totalRevenue,
+    'total_orders': totalOrders,
+    'total_discounts': totalDiscounts,
+    'total_offered_quantity': totalOfferedQuantity,
+    'total_offered_value': totalOfferedValue,
+    'payment_methods': paymentMethods,
+    'order_types': orderTypes,
+    'staff_breakdown': staffMap.values.toList(),
+    'delivery_breakdown': deliveryMap.values.toList(),
+  };
+
+  final reportData = {
+    'date': dateStr,
+    'summary': summary,
+  };
+
+  return buildDailyReportPdf(reportData);
 }

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:isar/isar.dart';
 
 part 'pos_order_item.g.dart';
@@ -70,6 +72,84 @@ class PosOrderItem {
   /// Check if item is unpaid
   bool isUnpaid() => paymentStatus == 'unpaid';
 
+  /// Check if item is offered (gratuit)
+  bool isOffered() => paymentStatus == 'offered';
+
+  int getCoveredQuantity() {
+    if (partialPaymentHistory == null || partialPaymentHistory!.isEmpty) {
+      if (isOffered()) {
+        return quantity;
+      }
+      if (unitPrice <= 0) {
+        return 0;
+      }
+      return (paidAmount / unitPrice).round().clamp(0, quantity).toInt();
+    }
+
+    try {
+      final decoded = jsonDecode(partialPaymentHistory!);
+      if (decoded is List) {
+        final covered = decoded.fold<int>(0, (sum, entry) {
+          if (entry is Map && entry['quantity_paid'] is num) {
+            return sum + (entry['quantity_paid'] as num).toInt();
+          }
+          return sum;
+        });
+        return covered.clamp(0, quantity).toInt();
+      }
+    } catch (_) {
+      // Fallback to paidAmount below.
+    }
+
+    if (unitPrice <= 0) {
+      return quantity;
+    }
+    return (paidAmount / unitPrice).round().clamp(0, quantity).toInt();
+  }
+
+  int getRemainingQuantity() {
+    return (quantity - getCoveredQuantity()).clamp(0, quantity).toInt();
+  }
+
+  /// Get the total price to display for this item (free when offered)
+  double getDisplayTotalPrice() => isOffered() ? 0.0 : getTotalPrice();
+
+  /// Get the unit price to display for this item (free when offered)
+  double getDisplayUnitPrice() => isOffered() ? 0.0 : unitPrice;
+
   /// Get remaining amount to pay
-  double getRemainingAmount() => getTotalPrice() - paidAmount;
+  double getRemainingAmount() {
+    if (isOffered()) {
+      return 0.0;
+    }
+
+    if (partialPaymentHistory != null && partialPaymentHistory!.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(partialPaymentHistory!);
+        if (decoded is List) {
+          double coveredAmount = 0.0;
+          for (final raw in decoded) {
+            if (raw is! Map) continue;
+            final qty = (raw['quantity_paid'] as num?)?.toDouble() ?? 0.0;
+            final amountPaid = raw['amount_paid'];
+            final isOffered = raw['is_offered'] == true;
+            if (isOffered) {
+              coveredAmount += qty * unitPrice;
+            } else if (amountPaid is num) {
+              coveredAmount += amountPaid.toDouble();
+            } else {
+              coveredAmount += qty * unitPrice;
+            }
+          }
+          return (getTotalPrice() - coveredAmount)
+              .clamp(0.0, getTotalPrice())
+              .toDouble();
+        }
+      } catch (_) {
+        // Fallback below.
+      }
+    }
+
+    return (getTotalPrice() - paidAmount).clamp(0.0, getTotalPrice()).toDouble();
+  }
 }

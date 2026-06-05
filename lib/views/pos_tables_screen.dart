@@ -1,6 +1,5 @@
 // ignore_for_file: deprecated_member_use
 
-import 'dart:convert';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -15,6 +14,7 @@ import '../models/restaurant.dart';
 import '../models/user.dart';
 import '../services/database_service.dart';
 import '../utils/order_item_grouping.dart';
+import '../utils/payment_method_utils.dart';
 import '../theme/sushi_design.dart';
 import '../utils/order_display_labels.dart';
 import '../utils/order_item_dedup.dart';
@@ -1157,40 +1157,14 @@ class _PosTablesScreenState extends State<PosTablesScreen> {
   }
 
   List<Map<String, dynamic>> _parsePaymentSplit(String paymentSplit) {
-    final List<Map<String, dynamic>> payments = [];
-    final cleaned = paymentSplit.trim();
-    if (cleaned.isEmpty) return payments;
-
-    try {
-      // Essayer de parser comme JSON valide (format jsonEncode)
-      final decoded = jsonDecode(cleaned);
-      if (decoded is List) {
-        for (final item in decoded) {
-          if (item is Map) {
-            payments.add({
-              'method': item['method']?.toString() ?? '',
-              'amount': double.tryParse(item['amount'].toString()) ?? 0.0,
-            });
-          }
-        }
-      }
-    } catch (e) {
-      // Fallback: format ancien style Dart toString()
-      try {
-        final regex = RegExp(r'\{method:\s*(\w+),\s*amount:\s*([\d.]+)\}');
-        final matches = regex.allMatches(cleaned);
-        for (final match in matches) {
-          payments.add({
-            'method': match.group(1),
-            'amount': double.tryParse(match.group(2) ?? '0') ?? 0.0,
-          });
-        }
-      } catch (e2) {
-        print('❌ [PARSE] Erreur parsing paymentSplit: $e2');
-      }
-    }
-
-    return payments;
+    return parseSplitPaymentEntries(paymentSplit)
+        .map(
+          (entry) => {
+            'method': entry['payment_method']?.toString() ?? '',
+            'amount': (entry['amount'] as num?)?.toDouble() ?? 0.0,
+          },
+        )
+        .toList();
   }
 
   Widget _simplePaymentRow(String method, double amount) {

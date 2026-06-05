@@ -178,6 +178,8 @@ class PosController extends GetxController {
 
   final List<PosOrder> _ordersToday = [];
   List<PosOrder> get ordersToday => List<PosOrder>.unmodifiable(_ordersToday);
+  /// Increment this reactive value when orders change so UI can react
+  final RxInt ordersRevision = 0.obs;
 
   // Filters
   String _ordersFilter = 'all'; // all | pending | confirmed | cancelled
@@ -2292,6 +2294,10 @@ class PosController extends GetxController {
       ..clear()
       ..addAll(filtered);
     update();
+    // Notify listeners that orders list has changed
+    try {
+      ordersRevision.value++;
+    } catch (_) {}
   }
 
   void setOrdersFilter(String value) {
@@ -2504,8 +2510,12 @@ class PosController extends GetxController {
       update();
       return;
     }
+    // Soft-delete locally: mark status so UI and reports exclude it
+    order.status = 'deleted';
+    order.updatedAt = DateTime.now();
+    await DatabaseService.updatePosOrder(order);
+    // Enqueue remote delete to backend (if sync enabled)
     await SyncQueueService.instance.enqueueOrderDelete(order.id);
-    await DatabaseService.deletePosOrder(order.id);
     if (order.tableNumber != null) {
       await markTableFree(order.tableNumber!);
     }
@@ -2812,6 +2822,107 @@ class PosController extends GetxController {
     }
   }
 
+  double paidAmountForOrder(PosOrder order) {
+    final paidAmount = sumSplitPaymentAmount(order.paymentSplit);
+
+    if (paidAmount <= 0 &&
+        order.paymentStatus.trim().toLowerCase() == 'paid' &&
+        hasRecordedPaymentMethod(order.paymentMethod)) {
+      return order.totalPrice;
+    }
+
+    return paidAmount;
+  }
+
+  double discountBaseTotalForOrder(PosOrder order) {
+    if (order.originalTotal > 0) return order.originalTotal;
+    if (order.discountAmount > 0) {
+      return order.totalPrice + order.discountAmount;
+    }
+    return order.totalPrice;
+  }
+
+  Future<bool> applyOrderDiscount(
+    PosOrder order, {
+    required double discountAmount,
+  }) async {
+    _error = null;
+
+    if (!canModifyOrders) {
+      _error = 'Remise réservée aux administrateurs';
+      update();
+      return false;
+    }
+
+    final status = order.status.trim().toLowerCase();
+    if (status == 'cancelled' || status == 'canceled') {
+      _error = 'Impossible d\'appliquer une remise sur une commande annulée';
+      update();
+      return false;
+    }
+
+    final paymentStatus = order.paymentStatus.trim().toLowerCase();
+    if (paymentStatus == 'paid') {
+      _error = 'Impossible de modifier la remise d\'une commande déjà payée';
+      update();
+      return false;
+    }
+
+    final baseTotal = discountBaseTotalForOrder(order);
+    if (baseTotal <= 0) {
+      _error = 'Total de commande invalide';
+      update();
+      return false;
+    }
+
+    if (discountAmount.isNaN || discountAmount.isInfinite) {
+      _error = 'Montant de remise invalide';
+      update();
+      return false;
+    }
+
+    if (discountAmount >= baseTotal) {
+      _error = 'La remise doit être inférieure au sous-total';
+      update();
+      return false;
+    }
+
+    final normalizedDiscount = discountAmount.clamp(0.0, baseTotal).toDouble();
+    final newTotal = (baseTotal - normalizedDiscount).clamp(0.0, baseTotal);
+    final alreadyPaid = paidAmountForOrder(order);
+
+    if (alreadyPaid > 0 && newTotal + 0.01 < alreadyPaid) {
+      _error =
+          'La remise dépasse le reste à payer. Montant déjà encaissé: ${AppSettingsService.instance.formatAmount(alreadyPaid)}';
+      update();
+      return false;
+    }
+
+    order.originalTotal = baseTotal;
+    order.discountAmount = normalizedDiscount;
+    order.hasDiscount = normalizedDiscount > 0.01;
+    order.totalPrice = newTotal.toDouble();
+    order.updatedAt = DateTime.now();
+
+    await DatabaseService.updatePosOrder(order);
+    await _enqueueOrderSyncById(order.id);
+
+    if (Get.isRegistered<SyncController>()) {
+      final sync = Get.find<SyncController>();
+      if (sync.isOnline) {
+        unawaited(SyncQueueService.instance.flushQueue());
+      }
+    }
+
+    await loadOrdersToday();
+    update();
+
+    appLogger.i(
+      '🏷️ [DISCOUNT] Commande #${order.id}: base=$baseTotal, remise=$normalizedDiscount, total=${order.totalPrice}',
+    );
+    return true;
+  }
+
   /// Mark order as paid with split payment (multiple payment methods)
   Future<void> markOrderAsPaidWithSplit(
     PosOrder order,
@@ -2880,16 +2991,25 @@ class PosController extends GetxController {
     Map<int, int> itemQuantities,
     List<Map<String, dynamic>> paymentEntries,
   ) async {
-    // Permission check
-    if (!isAdminEditor && !canAccessOrder(order)) {
-      _error = 'Vous ne pouvez payer que vos propres commandes';
-      update();
-      return;
-    }
-
     appLogger.i(
       '🔍 [PARTIAL PAYMENT] order=${order.id} start itemQuantities=${itemQuantities.keys.toList()} entries=$paymentEntries',
     );
+    
+    // Check if trying to offer items (offert) - admin only
+    final hasOffertPayment = paymentEntries.any(
+      (e) => normalizePaymentMethod((e['method'] as String?) ?? '') == paymentMethodOffert,
+    );
+
+    final isAuthAdmin = Get.isRegistered<AuthController>()
+        ? ['admin', 'superadmin'].contains(
+            Get.find<AuthController>().currentRole?.trim().toLowerCase(),
+          )
+        : false;
+
+    if (hasOffertPayment && !isAdminEditor && !isAuthAdmin) {
+      throw Exception('Offerts réservés aux administrateurs');
+    }
+
     if (itemQuantities.isEmpty) {
       throw Exception('Aucun article sélectionné');
     }
@@ -2941,13 +3061,32 @@ class PosController extends GetxController {
     }
     order.paymentSplit = jsonEncode(existingOrderPayments);
 
+    // ✅ Les offerts sont INDEPENDANTS de la remise
+    // Offert = article gratuit (prix = 0)
+    // Remise = réduction appliquée à la commande (montant ou %)
+    // Les offerts réduisent simplement le totalPrice SANS toucher à discountAmount
+    final offeredAmount = paymentEntries.fold<double>(0.0, (sum, e) {
+      final method = normalizePaymentMethod((e['method'] as String?) ?? '');
+      final amount = (e['amount'] as num?)?.toDouble() ?? 0.0;
+      return method == paymentMethodOffert ? sum + amount : sum;
+    });
+    if (offeredAmount > 0) {
+      if (order.originalTotal <= 0) {
+        order.originalTotal = order.totalPrice;
+      }
+      // Soustraire les offerts du total DIRECTEMENT (pas via discountAmount)
+      order.totalPrice = (order.totalPrice - offeredAmount).clamp(0.0, double.infinity);
+      appLogger.d(
+        '✅ [OFFERED] offeredAmount=$offeredAmount, newTotal=${order.totalPrice}, discountAmount=${order.discountAmount} (unchanged)',
+      );
+    }
+
     // Update each selected item: add partial payment entry, update paidAmount/status
     int getRemainingQuantity(PosOrderItem item) {
-      if (item.unitPrice <= 0) {
-        return item.quantity;
+      if (item.paymentStatus == 'offered') {
+        return 0;
       }
-      final paidQty = (item.paidAmount / item.unitPrice).round();
-      return (item.quantity - paidQty).clamp(0, item.quantity);
+      return item.getRemainingQuantity();
     }
 
     for (final it in selectedItems) {
@@ -2967,12 +3106,19 @@ class PosController extends GetxController {
       final amountToMark = it.unitPrice * qtyToMark;
 
       // Build partial payment entry for the item
+      final isOfferingThisItem = paymentEntries.every(
+        (e) => normalizePaymentMethod((e['method'] as String?) ?? '') == paymentMethodOffert,
+      );
+      
       final itemPayment = {
         'item_id': it.id,
         'product_id': it.productId,
         'product_name': it.productName,
         'quantity_paid': qtyToMark,
-        'amount_paid': amountToMark,
+        'amount_paid': isOfferingThisItem ? 0.0 : amountToMark,
+        'is_offered': isOfferingThisItem,
+        'offered_by_staff_id': isOfferingThisItem ? activeStaffId : null,
+        'offered_by_staff_name': isOfferingThisItem ? (_activeStaff?.name ?? 'Admin') : null,
         'payment_methods': paymentEntries
             .map((e) => {'method': e['method'], 'amount': e['amount']})
             .toList(),
@@ -2992,22 +3138,39 @@ class PosController extends GetxController {
       history.add(itemPayment);
       it.partialPaymentHistory = jsonEncode(history);
 
-      // Update paid amount and status
-      it.paidAmount = it.paidAmount + amountToMark;
-      final itemTotal = it.unitPrice * it.quantity;
-      if (it.paidAmount >= itemTotal - 0.01) {
-        it.paymentStatus = 'paid';
-      } else if (it.paidAmount > 0) {
-        it.paymentStatus = 'partially_paid';
+      if (!isOfferingThisItem) {
+        it.paidAmount = it.paidAmount + amountToMark;
       }
 
+      final coveredQty = history.fold<int>(0, (sum, entry) {
+        if (entry is Map && entry['quantity_paid'] is num) {
+          return sum + (entry['quantity_paid'] as num).toInt();
+        }
+        return sum;
+      }).clamp(0, it.quantity);
+
+      if (coveredQty >= it.quantity) {
+        it.paymentStatus = (isOfferingThisItem && it.paidAmount == 0.0)
+            ? 'offered'
+            : 'paid';
+      } else if (coveredQty > 0) {
+        it.paymentStatus = 'partially_paid';
+      } else {
+        it.paymentStatus = 'unpaid';
+      }
+
+      appLogger.i(
+        '🔎 [PARTIAL PAYMENT] item=${it.id} updated paidAmount=${it.paidAmount} paymentStatus=${it.paymentStatus} partialHistory=${it.partialPaymentHistory}',
+      );
       await DatabaseService.updatePosOrderItem(it);
     }
 
-    // If all items on the order are now paid, mark order as paid.
+    // If all items on the order are now paid or offered, mark order as paid.
     // Otherwise preserve partial payment state on the order.
     final refreshedItems = await DatabaseService.getPosOrderItems(order.id);
-    final allPaid = refreshedItems.every((it) => it.paymentStatus == 'paid');
+    final allPaid = refreshedItems.every(
+      (it) => it.paymentStatus == 'paid' || it.paymentStatus == 'offered',
+    );
     if (allPaid) {
       appLogger.i(
         '🔍 [PARTIAL PAYMENT] order=${order.id} all items paid, marking order as paid',

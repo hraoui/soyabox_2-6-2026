@@ -956,4 +956,57 @@ class AuthController extends GetxController {
     _isLoading.value = false;
   }
 }
+
+Future<bool> loginCashierWithBadge(String badgeCode) async {
+  _isLoading.value = true;
+  try {
+    final normalizedBadge = badgeCode.trim();
+    if (normalizedBadge.isEmpty) throw Exception('Code badge vide');
+
+    // Chercher par badge dans la base locale
+    User? user = await DatabaseService.getUserByBadgeCode(normalizedBadge);
+
+    // Essayer en ligne si pas trouvé localement
+    if (user == null) {
+      final onlineResult = await _tryOnlineBadgeLogin(normalizedBadge);
+      if (onlineResult != null) user = onlineResult.user;
+    }
+
+    if (user == null) throw Exception('Badge non reconnu');
+
+    final role = user.role.trim().toLowerCase();
+    if (role != 'cashier') {
+      throw Exception('Accès réservé aux caissiers');
+    }
+    if (!user.isActive) throw Exception('Compte désactivé');
+    if (!_isUserAllowedForCurrentRestaurant(user)) {
+      throw Exception('Accès refusé : autre restaurant.');
+    }
+
+    await _completePinLogin(user: user, pin: normalizedBadge);
+    return true;
+  } catch (e, stackTrace) {
+    appLogger.e('Badge cashier login error', error: e, stackTrace: stackTrace);
+    rethrow;
+  } finally {
+    _isLoading.value = false;
+  }
+}
+
+Future<_PinLoginResult?> _tryOnlineBadgeLogin(String badgeCode) async {
+  try {
+    final response = await Get.find<ApiClient>().postData('/api/login-badge', {
+      'badge_code': badgeCode,
+    });
+    if (response.statusCode != 200 && response.statusCode != 201) return null;
+    final body = response.body;
+    if (body is! Map) return null;
+    final remoteUserData = _extractUserMap(body, identifier: badgeCode);
+    if (remoteUserData.isEmpty) return null;
+    final user = await _upsertUserFromRemotePin(pin: badgeCode, data: remoteUserData);
+    return _PinLoginResult(user: user, token: _extractToken(body));
+  } catch (_) {
+    return null;
+  }
+}
 }

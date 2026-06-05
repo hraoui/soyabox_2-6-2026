@@ -1,3 +1,5 @@
+import '../utils/payment_method_utils.dart';
+
 /// Represents a single payment entry in a split payment scenario
 class PaymentSplitEntry {
   final String paymentMethod; // cash, tpe, en_compte, other
@@ -21,10 +23,25 @@ class PaymentSplitEntry {
 
   /// Create from JSON
   factory PaymentSplitEntry.fromJson(Map<String, dynamic> json) {
+    final rawMethod = (json['payment_method'] ?? json['method'] ?? '')
+        .toString()
+        .trim();
+    final normalizedMethod = normalizePaymentMethod(rawMethod);
+    final rawAmount = json['amount'] ?? json['montant'] ?? 0;
+    final amount = rawAmount is num
+        ? rawAmount.toDouble()
+        : double.tryParse(rawAmount.toString().replaceAll(',', '.')) ?? 0.0;
+    final rawTimestamp = json['timestamp'] ?? json['created_at'];
+    final parsedTimestamp = rawTimestamp is String && rawTimestamp.trim().isNotEmpty
+        ? DateTime.tryParse(rawTimestamp)
+        : null;
+
     return PaymentSplitEntry(
-      paymentMethod: json['payment_method'] as String,
-      amount: (json['amount'] as num).toDouble(),
-      timestamp: DateTime.parse(json['timestamp'] as String),
+      paymentMethod: normalizedMethod.isEmpty
+          ? (rawMethod.isEmpty ? paymentMethodOther : rawMethod)
+          : normalizedMethod,
+      amount: amount,
+      timestamp: parsedTimestamp ?? DateTime.now(),
     );
   }
 

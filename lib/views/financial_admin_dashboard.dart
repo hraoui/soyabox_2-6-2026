@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:caisse_1/controllers/auth_controller.dart';
 import 'package:caisse_1/controllers/pos_controller.dart';
 import 'package:flutter/material.dart';
@@ -73,7 +72,7 @@ class _FinancialAdminDashboardState extends State<FinancialAdminDashboard>
   List<User> _servers = [];
 
   // Filter state
-  String _selectedFilter = 'Toutes'; // 'Toutes', 'POS', 'Web/API', 'En attente', 'Payées', 'Annulées'
+  String _selectedFilter = 'Toutes'; // 'Toutes', 'POS', 'API', 'Payées', 'Non payées'
 
   // Pagination for orders
   final int _ordersPageSize = 50;
@@ -94,21 +93,30 @@ class _FinancialAdminDashboardState extends State<FinancialAdminDashboard>
       constraints: const BoxConstraints(maxWidth: 260),
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
       decoration: BoxDecoration(
-          color: const Color(0xFFF2F2F2), borderRadius: BorderRadius.circular(8)),
+        color: const Color(0xFFF2F2F2),
+        borderRadius: BorderRadius.circular(8),
+      ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, size: 13, color: SushiColors.inkMid),
           const SizedBox(width: 5),
           Flexible(
-            child: Text(text, maxLines: 1, overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: fontSize, color: SushiColors.ink, fontWeight: FontWeight.w500)),
+            child: Text(
+              text,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: fontSize,
+                color: SushiColors.ink,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
           ),
         ],
       ),
     );
   }
-
 
   Future<void> _showOrderDetails(PosOrder order) async {
     // Use shared dialog widget
@@ -161,7 +169,7 @@ class _FinancialAdminDashboardState extends State<FinancialAdminDashboard>
           if (order.restaurantId == null) return true;
           return order.restaurantId == restaurantId;
         }).toList();
-        
+
         appLogger.d(
           '🏪 Financial Dashboard - Filtered by restaurant $restaurantId: '
           '${allOrders.length} orders',
@@ -276,13 +284,13 @@ class _FinancialAdminDashboardState extends State<FinancialAdminDashboard>
         // 1. order.isGlovoDelivery == true OR
         // 2. At least one item has priceType == 'glovo'
         bool isGlovoOrder = order.isGlovoDelivery;
-        
+
         // If not marked as Glovo at order level, check items
         if (!isGlovoOrder) {
           try {
             final items = await DatabaseService.getPosOrderItems(order.id);
-            isGlovoOrder = items.any((item) => 
-              item.priceType?.toLowerCase() == 'glovo'
+            isGlovoOrder = items.any(
+              (item) => item.priceType?.toLowerCase() == 'glovo',
             );
           } catch (e) {
             // If we can't fetch items, skip this check
@@ -377,25 +385,22 @@ class _FinancialAdminDashboardState extends State<FinancialAdminDashboard>
   }
 
   void _updatePaymentMethodStats(_ServerStats stats, PosOrder order) {
-    if (order.paymentMethod == 'split' &&
-        order.paymentSplit != null &&
-        order.paymentSplit!.isNotEmpty) {
-      try {
-        final List<dynamic> payments = jsonDecode(order.paymentSplit!);
-        for (final payment in payments) {
-          final method = payment['payment_method'] as String?;
-          final amount = (payment['amount'] as num).toDouble();
-
-          if (isTpePaymentMethod(method)) {
-            stats.tpeTotal += amount;
-          } else if (isCashPaymentMethod(method)) {
-            stats.cashTotal += amount;
-          } else if (isEnComptePaymentMethod(method)) {
-            stats.enCompteTotal += amount;
-          }
+    final payments = parseSplitPaymentEntries(order.paymentSplit);
+    if (payments.isNotEmpty) {
+      for (final payment in payments) {
+        final method = payment['payment_method'] as String?;
+        final amount = (payment['amount'] as num?)?.toDouble() ?? 0.0;
+        if (isOfferedPaymentMethod(method)) {
+          continue;
         }
-      } catch (e) {
-        // Ignore parsing errors
+
+        if (isTpePaymentMethod(method)) {
+          stats.tpeTotal += amount;
+        } else if (isCashPaymentMethod(method)) {
+          stats.cashTotal += amount;
+        } else if (isEnComptePaymentMethod(method)) {
+          stats.enCompteTotal += amount;
+        }
       }
     } else {
       if (isTpePaymentMethod(order.paymentMethod)) {
@@ -452,14 +457,12 @@ class _FinancialAdminDashboardState extends State<FinancialAdminDashboard>
         switch (_selectedFilter) {
           case 'POS':
             return channel == 'pos';
-          case 'Web/API':
+          case 'API':
             return channel != 'pos';
-          case 'En attente':
-            return paymentStatus != 'paid' && paymentStatus != 'cancelled' && paymentStatus != 'canceled';
           case 'Payées':
             return paymentStatus == 'paid';
-          case 'Annulées':
-            return status == 'cancelled' || status == 'canceled';
+          case 'Non payées':
+            return paymentStatus != 'paid';
           default:
             return true;
         }
@@ -1310,17 +1313,10 @@ class _FinancialAdminDashboardState extends State<FinancialAdminDashboard>
                   child: Row(
                     children: [
                       _filterChip('Toutes', Icons.list),
-                      _filterChip(
-                        OrderDisplayLabels.channelLabel('pos'),
-                        Icons.store,
-                      ),
-                      _filterChip(
-                        OrderDisplayLabels.channelLabel('web'),
-                        Icons.cloud,
-                      ),
-                      _filterChip('En attente', Icons.pending),
                       _filterChip('Payées', Icons.payment),
-                      _filterChip('Annulées', Icons.cancel),
+                      _filterChip('Non payées', Icons.pending),
+                      _filterChip('POS', Icons.store),
+                      _filterChip('API', Icons.cloud),
                     ],
                   ),
                 ),
@@ -1335,7 +1331,11 @@ class _FinancialAdminDashboardState extends State<FinancialAdminDashboard>
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.filter_list_off, size: 64, color: Colors.grey[400]),
+                      Icon(
+                        Icons.filter_list_off,
+                        size: 64,
+                        color: Colors.grey[400],
+                      ),
                       const SizedBox(height: SushiSpace.sm),
                       Text(
                         'Aucune commande pour ce filtre',
@@ -1344,7 +1344,8 @@ class _FinancialAdminDashboardState extends State<FinancialAdminDashboard>
                       if (_selectedFilter != 'Toutes') ...[
                         const SizedBox(height: SushiSpace.xs),
                         TextButton.icon(
-                          onPressed: () => setState(() => _selectedFilter = 'Toutes'),
+                          onPressed: () =>
+                              setState(() => _selectedFilter = 'Toutes'),
                           icon: const Icon(Icons.clear, size: 18),
                           label: const Text('Réinitialiser le filtre'),
                         ),
@@ -1354,8 +1355,8 @@ class _FinancialAdminDashboardState extends State<FinancialAdminDashboard>
                 )
               : ListView.builder(
                   controller: _ordersScrollController,
-                  itemCount: _getFilteredOrders().length < _displayedOrdersCount 
-                      ? _getFilteredOrders().length 
+                  itemCount: _getFilteredOrders().length < _displayedOrdersCount
+                      ? _getFilteredOrders().length
                       : _displayedOrdersCount,
                   itemBuilder: (context, index) {
                     final filteredOrders = _getFilteredOrders();
@@ -1490,6 +1491,23 @@ class _FinancialAdminDashboardState extends State<FinancialAdminDashboard>
             'Client: ${order.customerName ?? 'N/A'} | Tél: ${order.customerPhone ?? 'N/A'}',
             style: const TextStyle(fontSize: 12),
           ),
+          if (order.hasDiscount && order.discountAmount > 0) ...[
+            const SizedBox(height: SushiSpace.xs),
+            Wrap(
+              spacing: SushiSpace.sm,
+              runSpacing: 4,
+              children: [
+                _simpleMeta(
+                  Icons.calculate_outlined,
+                  'Sous-total: ${AppSettingsService.instance.formatAmount(order.originalTotal > 0 ? order.originalTotal : order.totalPrice + order.discountAmount)}',
+                ),
+                _simpleMeta(
+                  Icons.percent,
+                  'Remise: -${AppSettingsService.instance.formatAmount(order.discountAmount)}',
+                ),
+              ],
+            ),
+          ],
           // ✅ Afficher les infos de livraison si c'est une commande de livraison
           if (order.fulfillmentType == 'delivery') ...[
             const SizedBox(height: SushiSpace.xs),
@@ -1592,6 +1610,17 @@ class _FinancialAdminDashboardState extends State<FinancialAdminDashboard>
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
               if (order.status != 'cancelled') ...[
+                if (order.paymentStatus != 'paid')
+                  TextButton.icon(
+                    onPressed: () => _showPaymentDialog(order),
+                    icon: const Icon(Icons.percent, size: 16),
+                    label: Text(
+                      order.hasDiscount ? 'Modifier remise' : 'Remise',
+                    ),
+                    style: TextButton.styleFrom(
+                      foregroundColor: SushiColors.teal,
+                    ),
+                  ),
                 // ✅ Bouton Payer - Seulement si non payé
                 if (order.paymentStatus != 'paid')
                   TextButton.icon(
@@ -1630,7 +1659,10 @@ class _FinancialAdminDashboardState extends State<FinancialAdminDashboard>
                   label: const Text('Voir'),
                   style: TextButton.styleFrom(
                     foregroundColor: SushiColors.teal,
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     minimumSize: Size.zero,
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
@@ -1669,10 +1701,10 @@ class _FinancialAdminDashboardState extends State<FinancialAdminDashboard>
   Future<void> _editOrder(PosOrder order) async {
     try {
       final posController = Get.find<PosController>();
-      
+
       // ✅ Charger la commande pour édition (admin check is now in loadOrderForEdit)
       await posController.loadOrderForEdit(order);
-      
+
       if (posController.error != null) {
         Get.snackbar(
           'Erreur',
@@ -1683,7 +1715,7 @@ class _FinancialAdminDashboardState extends State<FinancialAdminDashboard>
         );
         return;
       }
-      
+
       // Rediriger vers l'écran POS pour édition
       Get.toNamed('/pos-order');
     } catch (e) {

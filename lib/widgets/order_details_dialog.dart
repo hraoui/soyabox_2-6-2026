@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import '../models/pos_order.dart';
 import '../models/pos_order_item.dart';
@@ -7,6 +9,7 @@ import '../services/database_service.dart';
 import '../utils/order_display_labels.dart';
 import '../utils/order_item_dedup.dart';
 import '../utils/order_item_grouping.dart';
+import '../utils/payment_method_utils.dart';
 import '../theme/sushi_design.dart';
 import '../services/app_settings_service.dart';
 
@@ -203,6 +206,84 @@ Widget _meta(BuildContext context, IconData icon, String value) {
   );
 }
 
+List<String> _getItemPaymentTags(PosOrderItem item) {
+  final tags = <String>[];
+  final money = AppSettingsService.instance.formatAmount;
+
+  if (item.isFullyPaid()) {
+    tags.add('Payé');
+  } else if (item.isPartiallyPaid()) {
+    tags.add('Partiel');
+  } else if (item.isOffered()) {
+    tags.add('Gratuit');
+  }
+
+  if (item.partialPaymentHistory != null && item.partialPaymentHistory!.isNotEmpty) {
+    try {
+      final decoded = jsonDecode(item.partialPaymentHistory!);
+      if (decoded is List) {
+        var offertQty = 0;
+        double offertAmount = 0.0;
+        String? offeredByName;
+        
+        for (final raw in decoded) {
+          if (raw is Map) {
+            // Check new format: is_offered flag
+            final isOffered = raw['is_offered'] == true;
+            if (isOffered) {
+              final quantityPaid = raw['quantity_paid'];
+              final qty = quantityPaid is num ? quantityPaid.toInt() : 0;
+              offertQty += qty;
+              
+              final amountPaid = raw['amount_paid'];
+              if (amountPaid is num) {
+                offertAmount += amountPaid.toDouble();
+              }
+              
+              offeredByName = raw['offered_by_staff_name']?.toString();
+            } else {
+              // Fallback to old format: check payment_methods
+              final methods = raw['payment_methods'];
+              if (methods is List) {
+                final hasOffert = methods.any((payment) {
+                  if (payment is Map) {
+                    return normalizePaymentMethod(payment['method']?.toString()) == paymentMethodOffert;
+                  }
+                  return false;
+                });
+                if (hasOffert) {
+                  final quantityPaid = raw['quantity_paid'];
+                  final qty = quantityPaid is num ? quantityPaid.toInt() : 0;
+                  offertQty += qty;
+                  
+                  final amountPaid = raw['amount_paid'];
+                  if (amountPaid is num) {
+                    offertAmount += amountPaid.toDouble();
+                  }
+                }
+              }
+            }
+          }
+        }
+        
+        if (offertQty > 0) {
+          final offertTag = offeredByName != null 
+            ? 'Offert par $offeredByName' 
+            : 'Offert x$offertQty';
+          tags.add(offertTag);
+          if (offertAmount > 0) {
+            tags.add('- ${money(offertAmount)}');
+          }
+        }
+      }
+    } catch (_) {
+      // Ignore malformed history
+    }
+  }
+
+  return tags;
+}
+
 Widget _itemTile(PosOrderItem it) {
   String? serviceCourseLabel = it.serviceCourseLabel?.trim().isNotEmpty == true
       ? it.serviceCourseLabel!.trim()
@@ -241,13 +322,91 @@ Widget _itemTile(PosOrderItem it) {
   final hasNote = itemNote?.isNotEmpty ?? false;
   final hasServiceCourse = serviceCourseLabel != null;
   final hasGroup = groupLabel != null;
+  final paymentTags = _getItemPaymentTags(it);
 
   return Container(
     width: double.infinity,
     margin: const EdgeInsets.only(bottom: 8),
     padding: const EdgeInsets.all(12),
     decoration: BoxDecoration(color: SushiColors.surface, borderRadius: BorderRadius.circular(8)),
-    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Expanded(child: Text('${it.quantity}× ${it.productName}', style: const TextStyle(fontWeight: FontWeight.w700))), Text(AppSettingsService.instance.formatAmount(it.unitPrice * it.quantity), style: const TextStyle(fontWeight: FontWeight.w800))]), const SizedBox(height: 6), Wrap(spacing: 8, runSpacing: 6, children: [if (hasServiceCourse) Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4), decoration: BoxDecoration(color: SushiColors.teal.withAlpha(20), borderRadius: BorderRadius.circular(6)), child: Text(serviceCourseLabel, style: const TextStyle(fontSize: 11, color: SushiColors.teal))), if (hasGroup) Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4), decoration: BoxDecoration(color: SushiColors.orange.withAlpha(20), borderRadius: BorderRadius.circular(6)), child: Text(groupLabel, style: const TextStyle(fontSize: 11, color: SushiColors.orange))), if (hasNote) Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4), decoration: BoxDecoration(color: SushiColors.green.withAlpha(20), borderRadius: BorderRadius.circular(6)), child: Text(itemNote!, style: const TextStyle(fontSize: 11, color: SushiColors.green)))])]),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Text(
+                '${it.quantity}× ${it.productName}',
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+            ),
+            Text(
+              AppSettingsService.instance.formatAmount(
+                it.isOffered() ? 0.0 : it.unitPrice * it.quantity,
+              ),
+              style: const TextStyle(fontWeight: FontWeight.w800),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        Wrap(
+          spacing: 8,
+          runSpacing: 6,
+          children: [
+            if (hasServiceCourse)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                decoration: BoxDecoration(
+                  color: SushiColors.teal.withAlpha(20),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  serviceCourseLabel,
+                  style: const TextStyle(fontSize: 11, color: SushiColors.teal),
+                ),
+              ),
+            if (hasGroup)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                decoration: BoxDecoration(
+                  color: SushiColors.orange.withAlpha(20),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  groupLabel,
+                  style: const TextStyle(fontSize: 11, color: SushiColors.orange),
+                ),
+              ),
+            if (hasNote)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                decoration: BoxDecoration(
+                  color: SushiColors.green.withAlpha(20),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  itemNote!,
+                  style: const TextStyle(fontSize: 11, color: SushiColors.green),
+                ),
+              ),
+            ...paymentTags.map(
+              (tag) => Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withAlpha(20),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  tag,
+                  style: const TextStyle(fontSize: 11, color: Colors.blue),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    ),
   );
 }
 

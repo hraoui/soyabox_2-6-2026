@@ -1,12 +1,136 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:printing/printing.dart';
 import '../controllers/auth_controller.dart';
 import '../controllers/cash_register_controller.dart';
 import '../services/app_settings_service.dart';
 import '../services/database_service.dart';
+import '../utils/pos_ticket_printer.dart';
+import '../services/esc_pos_printer_service.dart';
+import '../utils/payment_method_utils.dart';
 
-class CashierSimpleFinancialScreen extends StatelessWidget {
+class CashierSimpleFinancialScreen extends StatefulWidget {
   const CashierSimpleFinancialScreen({super.key});
+
+  @override
+  State<CashierSimpleFinancialScreen> createState() => _CashierSimpleFinancialScreenState();
+}
+
+class _CashierSimpleFinancialScreenState extends State<CashierSimpleFinancialScreen> {
+  bool _isPrinting = false;
+
+  Future<void> _printDailyReport(int restaurantId) async {
+    setState(() => _isPrinting = true);
+    try {
+      final today = DateTime.now();
+
+      // Build report data (reuse pos_ticket_printer helper)
+      final pdfBytes = await buildDailyReportForRestaurantDate(restaurantId, today);
+
+      // Try ESC/POS first
+      final reportData = await DatabaseService.getPosOrders().then((allOrders) async {
+        final dateStr = "${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}";
+        final filtered = allOrders.where((o) => o.restaurantId == restaurantId && o.createdAt.toIso8601String().split('T')[0] == dateStr).toList();
+        double totalRevenue = 0.0;
+        int totalOrders = filtered.length;
+        double totalDiscounts = 0.0;
+        final paymentMethods = <String, double>{};
+        final orderTypes = <String, int>{};
+        final staffBreakdown = <Map<String, dynamic>>[];
+        final deliveryBreakdown = <Map<String, dynamic>>[];
+        var totalOfferedQuantity = 0;
+        var totalOfferedValue = 0.0;
+
+        for (final order in filtered) {
+          totalRevenue += order.totalPrice;
+          totalDiscounts += order.discountAmount;
+          final splitTotals = splitPaymentTotalsByMethod(order.paymentSplit, includeOffert: false);
+          if (splitTotals.isNotEmpty) {
+            splitTotals.forEach((method, amount) { paymentMethods[method] = (paymentMethods[method] ?? 0.0) + amount; });
+          } else {
+            final norm = normalizePaymentMethod(order.paymentMethod);
+            final methodKey = norm.isEmpty ? 'other' : norm;
+            paymentMethods[methodKey] = (paymentMethods[methodKey] ?? 0.0) + order.totalPrice;
+          }
+          final typeKey = order.fulfillmentType.trim().toLowerCase();
+          orderTypes[typeKey] = (orderTypes[typeKey] ?? 0) + 1;
+          final items = await DatabaseService.getPosOrderItems(order.id);
+          // Compute offered quantities/values from partialPaymentHistory similar to ticket utils
+          for (final it in items) {
+            if (it.partialPaymentHistory != null && it.partialPaymentHistory!.isNotEmpty) {
+              try {
+                final decoded = jsonDecode(it.partialPaymentHistory!);
+                if (decoded is List) {
+                  for (final raw in decoded) {
+                    if (raw is Map) {
+                      final isOffered = raw['is_offered'] == true;
+                      if (isOffered) {
+                        final qty = raw['quantity_paid'];
+                        if (qty is num) {
+                          totalOfferedQuantity += qty.toInt();
+                          totalOfferedValue += (qty.toInt() * it.unitPrice);
+                        }
+                      } else {
+                        final methods = raw['payment_methods'];
+                        if (methods is List) {
+                          final hasOffert = methods.any((payment) {
+                            if (payment is Map) {
+                              return normalizePaymentMethod(payment['method']?.toString()) == paymentMethodOffert;
+                            }
+                            return false;
+                          });
+                          if (hasOffert) {
+                            final qty = raw['quantity_paid'];
+                            if (qty is num) {
+                              totalOfferedQuantity += qty.toInt();
+                              totalOfferedValue += (qty.toInt() * it.unitPrice);
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              } catch (_) {}
+            }
+          }
+          // minimal staff/delivery summaries
+          staffBreakdown.add({'staff_id': order.staffId, 'staff_name': null, 'orders_count': 1, 'total_revenue': order.totalPrice, 'payment_methods': paymentMethods});
+          if (order.deliveryLivreurId != null && order.deliveryLivreurId! > 0) {
+            deliveryBreakdown.add({'delivery_staff_id': order.deliveryLivreurId, 'delivery_staff_name': order.deliveryLivreurName, 'delivery_count': 1, 'delivery_revenue': order.totalPrice});
+          }
+        }
+
+        return {
+          'date': dateStr,
+          'summary': {
+            'total_revenue': totalRevenue,
+            'total_orders': totalOrders,
+            'total_discounts': totalDiscounts,
+            'total_offered_quantity': totalOfferedQuantity,
+            'total_offered_value': totalOfferedValue,
+            'payment_methods': paymentMethods,
+            'order_types': orderTypes,
+            'staff_breakdown': staffBreakdown,
+            'delivery_breakdown': deliveryBreakdown,
+          }
+        };
+      });
+
+      final printed = await EscPosPrinterService.instance.tryPrintDailyReport(reportData);
+      if (printed) {
+        if (mounted) Get.snackbar('Succès', 'Rapport journalier envoyé à l\'imprimante');
+      } else {
+        // fallback to PDF print
+        await Printing.layoutPdf(onLayout: (_) => pdfBytes);
+      }
+    } catch (e) {
+      if (mounted) Get.snackbar('Erreur', 'Impossible d\'imprimer le rapport: $e');
+    } finally {
+      if (mounted) setState(() => _isPrinting = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -247,6 +371,11 @@ class CashierSimpleFinancialScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6FA),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _isPrinting ? null : () => _printDailyReport(authController.currentUser!.restaurantId!),
+        label: _isPrinting ? const Text('Impression...') : const Text('Imprimer rapport'),
+        icon: const Icon(Icons.print),
+      ),
       body: CustomScrollView(
         slivers: [
           SliverAppBar(

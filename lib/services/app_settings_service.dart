@@ -115,7 +115,10 @@ class AppSettingsService {
   }
 
   String formatAmount(double amount) {
-    return '${amount.toStringAsFixed(2)} $displayCurrencySymbol';
+    // Avoid displaying negative zero (e.g. -0.00) due to floating point
+    // small negative results: treat very small values as zero for display.
+    final displayValue = (amount.abs() < 0.005) ? 0.0 : amount;
+    return '${displayValue.toStringAsFixed(2)} $displayCurrencySymbol';
   }
 
   Future<void> _load() async {

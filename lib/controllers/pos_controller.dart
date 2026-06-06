@@ -133,6 +133,8 @@ class PosController extends GetxController {
   String? get deliveryLivreurName => _deliveryLivreurName;
   String? _deliveryLivreurPhone;
   String? get deliveryLivreurPhone => _deliveryLivreurPhone;
+  String? _glovoOrderNumber;
+  String? get glovoOrderNumber => _glovoOrderNumber;
   String? _note;
   String? get note => _note;
 
@@ -178,6 +180,7 @@ class PosController extends GetxController {
 
   final List<PosOrder> _ordersToday = [];
   List<PosOrder> get ordersToday => List<PosOrder>.unmodifiable(_ordersToday);
+
   /// Increment this reactive value when orders change so UI can react
   final RxInt ordersRevision = 0.obs;
 
@@ -283,6 +286,7 @@ class PosController extends GetxController {
     _deliveryLivreurId = null;
     _deliveryLivreurName = null;
     _deliveryLivreurPhone = null;
+    _glovoOrderNumber = null;
     _note = null;
     _selectedCustomer = null;
     _isCreatingNewCustomer = false;
@@ -411,6 +415,7 @@ class PosController extends GetxController {
       customerName: order.customerName,
       customerPhone: order.customerPhone,
       deliveryAddress: order.deliveryAddress,
+      glovoOrderNumber: order.glovoOrderNumber,
       tableNumber: order.tableNumber,
       note: order.note,
       rewardId: order.rewardId,
@@ -1324,6 +1329,7 @@ class PosController extends GetxController {
     _deliveryLivreurId = null;
     _deliveryLivreurName = null;
     _deliveryLivreurPhone = null;
+    _glovoOrderNumber = null;
     _note = null;
     _paymentMethod = null;
     _editingOrderId = null;
@@ -1358,6 +1364,14 @@ class PosController extends GetxController {
     if (_fulfillmentType != 'on_site') {
       _tableNumber = null;
     }
+    if (_fulfillmentType != 'delivery') {
+      _deliveryAddress = null;
+      _deliveryLivreurId = null;
+      _deliveryLivreurName = null;
+      _deliveryLivreurPhone = null;
+      _isGlovoDelivery = false;
+      _glovoOrderNumber = null;
+    }
     update();
   }
 
@@ -1386,6 +1400,7 @@ class PosController extends GetxController {
     _deliveryLivreurId = null;
     _deliveryLivreurName = null;
     _deliveryLivreurPhone = null;
+    _glovoOrderNumber = null;
     _note = null;
     _paymentMethod = null;
     _isGlovoDelivery = false;
@@ -1445,6 +1460,22 @@ class PosController extends GetxController {
     _customerName = name?.trim().isEmpty == true ? null : name?.trim();
     _customerPhone = phone?.trim().isEmpty == true ? null : phone?.trim();
     _deliveryAddress = address?.trim().isEmpty == true ? null : address?.trim();
+    update();
+  }
+
+  void setGlovoOrderNumber(String? value) {
+    if (isEditingExistingOrder && !canEditCurrentOrderConfiguration) {
+      return;
+    }
+    if (_fulfillmentType != 'delivery') {
+      _glovoOrderNumber = null;
+      update();
+      return;
+    }
+    final normalized = value?.trim();
+    _glovoOrderNumber = normalized == null || normalized.isEmpty
+        ? null
+        : normalized;
     update();
   }
 
@@ -1516,6 +1547,9 @@ class PosController extends GetxController {
       return;
     }
     _isGlovoDelivery = value;
+    if (!value) {
+      _glovoOrderNumber = null;
+    }
 
     // Update cart items with Glovo price type if enabled
     if (value) {
@@ -1732,19 +1766,6 @@ class PosController extends GetxController {
         update();
         return null;
       }
-      if (_fulfillmentType == 'delivery' &&
-          ((_customerName == null || _customerName!.isEmpty) &&
-              (_customerPhone == null || _customerPhone!.isEmpty))) {
-        _error = 'Nom ou téléphone obligatoire pour livraison';
-        update();
-        return null;
-      }
-      if (_fulfillmentType == 'delivery' &&
-          (_deliveryAddress == null || _deliveryAddress!.isEmpty)) {
-        _error = 'Adresse obligatoire pour livraison';
-        update();
-        return null;
-      }
       if (_cart.isEmpty) {
         _error = 'Panier vide';
         update();
@@ -1833,10 +1854,21 @@ class PosController extends GetxController {
           ..paymentMethod = _paymentMethod
           ..customerName = _customerName ?? customerName
           ..customerPhone = _customerPhone ?? customerPhone
-          ..deliveryAddress = _deliveryAddress ?? deliveryAddress
-          ..deliveryLivreurId = _deliveryLivreurId
-          ..deliveryLivreurName = _deliveryLivreurName
-          ..deliveryLivreurPhone = _deliveryLivreurPhone
+          ..deliveryAddress = _fulfillmentType == 'delivery'
+              ? (_deliveryAddress ?? deliveryAddress)
+              : null
+          ..glovoOrderNumber = _fulfillmentType == 'delivery'
+              ? _glovoOrderNumber
+              : null
+          ..deliveryLivreurId = _fulfillmentType == 'delivery'
+              ? _deliveryLivreurId
+              : null
+          ..deliveryLivreurName = _fulfillmentType == 'delivery'
+              ? _deliveryLivreurName
+              : null
+          ..deliveryLivreurPhone = _fulfillmentType == 'delivery'
+              ? _deliveryLivreurPhone
+              : null
           ..tableNumber = _tableNumber
           ..note = _note ?? note
           ..updatedAt = DateTime.now();
@@ -1877,10 +1909,21 @@ class PosController extends GetxController {
           paymentMethod: _paymentMethod ?? 'cod', // ✅ Valeur par défaut si null
           customerName: _customerName ?? customerName,
           customerPhone: _customerPhone ?? customerPhone,
-          deliveryAddress: _deliveryAddress ?? deliveryAddress,
-          deliveryLivreurId: _deliveryLivreurId,
-          deliveryLivreurName: _deliveryLivreurName,
-          deliveryLivreurPhone: _deliveryLivreurPhone,
+          deliveryAddress: _fulfillmentType == 'delivery'
+              ? (_deliveryAddress ?? deliveryAddress)
+              : null,
+          glovoOrderNumber: _fulfillmentType == 'delivery'
+              ? _glovoOrderNumber
+              : null,
+          deliveryLivreurId: _fulfillmentType == 'delivery'
+              ? _deliveryLivreurId
+              : null,
+          deliveryLivreurName: _fulfillmentType == 'delivery'
+              ? _deliveryLivreurName
+              : null,
+          deliveryLivreurPhone: _fulfillmentType == 'delivery'
+              ? _deliveryLivreurPhone
+              : null,
           tableNumber: _tableNumber,
           note: _note ?? note,
           createdAt: DateTime.now(),
@@ -2078,7 +2121,9 @@ class PosController extends GetxController {
       end = DateTime(start.year, start.month, start.day, endHour, 59, 59);
     }
 
-    final orders = await DatabaseService.getPosOrders();
+    List<PosOrder> orders = await DatabaseService.getPosOrders();
+    // Dédupliquer les commandes POS locales/rapatriées pour éviter les doublons
+    orders = await DatabaseService.dedupePosOrders(orders);
     final authUser = Get.isRegistered<AuthController>()
         ? Get.find<AuthController>().currentUser
         : null;
@@ -2994,10 +3039,12 @@ class PosController extends GetxController {
     appLogger.i(
       '🔍 [PARTIAL PAYMENT] order=${order.id} start itemQuantities=${itemQuantities.keys.toList()} entries=$paymentEntries',
     );
-    
+
     // Check if trying to offer items (offert) - admin only
     final hasOffertPayment = paymentEntries.any(
-      (e) => normalizePaymentMethod((e['method'] as String?) ?? '') == paymentMethodOffert,
+      (e) =>
+          normalizePaymentMethod((e['method'] as String?) ?? '') ==
+          paymentMethodOffert,
     );
 
     final isAuthAdmin = Get.isRegistered<AuthController>()
@@ -3075,7 +3122,10 @@ class PosController extends GetxController {
         order.originalTotal = order.totalPrice;
       }
       // Soustraire les offerts du total DIRECTEMENT (pas via discountAmount)
-      order.totalPrice = (order.totalPrice - offeredAmount).clamp(0.0, double.infinity);
+      order.totalPrice = (order.totalPrice - offeredAmount).clamp(
+        0.0,
+        double.infinity,
+      );
       appLogger.d(
         '✅ [OFFERED] offeredAmount=$offeredAmount, newTotal=${order.totalPrice}, discountAmount=${order.discountAmount} (unchanged)',
       );
@@ -3107,9 +3157,11 @@ class PosController extends GetxController {
 
       // Build partial payment entry for the item
       final isOfferingThisItem = paymentEntries.every(
-        (e) => normalizePaymentMethod((e['method'] as String?) ?? '') == paymentMethodOffert,
+        (e) =>
+            normalizePaymentMethod((e['method'] as String?) ?? '') ==
+            paymentMethodOffert,
       );
-      
+
       final itemPayment = {
         'item_id': it.id,
         'product_id': it.productId,
@@ -3118,7 +3170,9 @@ class PosController extends GetxController {
         'amount_paid': isOfferingThisItem ? 0.0 : amountToMark,
         'is_offered': isOfferingThisItem,
         'offered_by_staff_id': isOfferingThisItem ? activeStaffId : null,
-        'offered_by_staff_name': isOfferingThisItem ? (_activeStaff?.name ?? 'Admin') : null,
+        'offered_by_staff_name': isOfferingThisItem
+            ? (_activeStaff?.name ?? 'Admin')
+            : null,
         'payment_methods': paymentEntries
             .map((e) => {'method': e['method'], 'amount': e['amount']})
             .toList(),
@@ -3142,12 +3196,14 @@ class PosController extends GetxController {
         it.paidAmount = it.paidAmount + amountToMark;
       }
 
-      final coveredQty = history.fold<int>(0, (sum, entry) {
-        if (entry is Map && entry['quantity_paid'] is num) {
-          return sum + (entry['quantity_paid'] as num).toInt();
-        }
-        return sum;
-      }).clamp(0, it.quantity);
+      final coveredQty = history
+          .fold<int>(0, (sum, entry) {
+            if (entry is Map && entry['quantity_paid'] is num) {
+              return sum + (entry['quantity_paid'] as num).toInt();
+            }
+            return sum;
+          })
+          .clamp(0, it.quantity);
 
       if (coveredQty >= it.quantity) {
         it.paymentStatus = (isOfferingThisItem && it.paidAmount == 0.0)
@@ -3297,6 +3353,7 @@ class PosController extends GetxController {
     _customerName = currentOrder.customerName;
     _customerPhone = currentOrder.customerPhone;
     _deliveryAddress = currentOrder.deliveryAddress;
+    _glovoOrderNumber = currentOrder.glovoOrderNumber;
     _note = currentOrder.note;
     _paymentMethod = currentOrder.paymentMethod;
     _isGlovoDelivery =
@@ -3371,19 +3428,6 @@ class PosController extends GetxController {
       update();
       return false;
     }
-    if ((fulfillmentType == 'pickup' || fulfillmentType == 'delivery') &&
-        ((normalizedName == null || normalizedName.isEmpty) ||
-            (normalizedPhone == null || normalizedPhone.isEmpty))) {
-      _error = 'Nom et telephone obligatoires';
-      update();
-      return false;
-    }
-    if (fulfillmentType == 'delivery' &&
-        (normalizedAddress == null || normalizedAddress.isEmpty)) {
-      _error = 'Adresse obligatoire pour livraison';
-      update();
-      return false;
-    }
 
     final oldTable = order.tableNumber;
     final oldType = order.fulfillmentType;
@@ -3405,6 +3449,21 @@ class PosController extends GetxController {
             normalizedAddress.isNotEmpty
         ? normalizedAddress
         : null;
+    order.glovoOrderNumber = fulfillmentType == 'delivery'
+        ? order.glovoOrderNumber
+        : null;
+    order.deliveryLivreurId = fulfillmentType == 'delivery'
+        ? order.deliveryLivreurId
+        : null;
+    order.deliveryLivreurName = fulfillmentType == 'delivery'
+        ? order.deliveryLivreurName
+        : null;
+    order.deliveryLivreurPhone = fulfillmentType == 'delivery'
+        ? order.deliveryLivreurPhone
+        : null;
+    order.isGlovoDelivery = fulfillmentType == 'delivery'
+        ? order.isGlovoDelivery
+        : false;
     order.updatedAt = DateTime.now();
 
     await DatabaseService.updatePosOrder(order);

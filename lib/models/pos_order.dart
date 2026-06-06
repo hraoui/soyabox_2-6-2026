@@ -50,6 +50,7 @@ class PosOrder {
   String? customerPhone;
 
   String? deliveryAddress;
+  String? glovoOrderNumber;
   int? deliveryLivreurId;
   String? deliveryLivreurName;
   String? deliveryLivreurPhone;
@@ -92,6 +93,7 @@ class PosOrder {
     this.customerName,
     this.customerPhone,
     this.deliveryAddress,
+    this.glovoOrderNumber,
     this.deliveryLivreurId,
     this.deliveryLivreurName,
     this.deliveryLivreurPhone,

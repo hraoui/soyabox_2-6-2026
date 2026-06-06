@@ -84,10 +84,8 @@ class _UnifiedPaymentDialogState extends State<UnifiedPaymentDialog> {
       }
     }
 
-    _remainingAmount = (order.totalPrice - alreadyPaid).clamp(
-      0.0,
-      order.totalPrice,
-    );
+    final diff = order.totalPrice - alreadyPaid;
+    _remainingAmount = diff > 0.0 ? diff : 0.0;
     _amountInput = '';
     _amountController.text = '';
   }

@@ -496,6 +496,24 @@ class DatabaseService {
         await _isar.posOrderItems.put(item);
       }
 
+      // If the order total is missing (<= 0) but items were provided,
+      // compute the total from the items and persist it.
+      final itemsSum = items.fold<double>(
+        0.0,
+        (s, it) => s + (it.unitPrice * it.quantity),
+      );
+      if ((order.totalPrice <= 0.0001 || order.totalPrice.isNaN) &&
+          itemsSum > 0.0001) {
+        order.totalPrice = itemsSum;
+        order.originalTotal = order.originalTotal <= 0.0001
+            ? itemsSum
+            : order.originalTotal;
+        await _isar.posOrders.put(order);
+        appLogger.w(
+          '🔧 [DB] createPosOrderWithItems: corrected total for order id=$savedId -> $itemsSum',
+        );
+      }
+
       return savedId;
     });
   }
@@ -545,12 +563,10 @@ class DatabaseService {
         return await _isar.posOrders.where().sortByCreatedAtDesc().findAll();
       }
         // By default, exclude soft-deleted orders (status == 'deleted')
-        return await _isar.posOrders
-          .filter()
-          .not()
-          .statusEqualTo('deleted')
-          .sortByCreatedAtDesc()
-          .findAll();
+        // Use a safe where() query then filter in memory to avoid Isar filter issues
+        final all = await _isar.posOrders.where().sortByCreatedAtDesc().findAll();
+        final filtered = all.where((o) => o.status != 'deleted').toList();
+        return await dedupePosOrders(filtered);
     } catch (e) {
       // Handle corrupted records
       if (e is RangeError ||
@@ -595,35 +611,41 @@ class DatabaseService {
   ) async {
     try {
         // By default exclude soft-deleted orders
-        return await _isar.posOrders
-          .filter()
+        final results = await _isar.posOrders
+          .where()
           .createdAtBetween(start, end)
-          .not()
-          .statusEqualTo('deleted')
           .sortByCreatedAtDesc()
           .findAll();
+        final filtered = results.where((o) => o.status != 'deleted').toList();
+        return await dedupePosOrders(filtered);
     } catch (e) {
-      if (e is RangeError ||
-          (e.toString().contains('RangeError') ||
-              e.toString().contains('Utf8Decoder'))) {
-        appLogger.e(
-          '⚠️ [DB] PosOrder collection corruption detected in getPosOrdersByDateRange: $e',
-        );
+      // Fallback: if Isar throws for the range query, read all and filter in memory
+      appLogger.w('⚠️ [DB] getPosOrdersByDateRange failed with: $e — falling back to in-memory filter');
+      try {
+        final all = await _isar.posOrders.where().findAll();
+        final filtered = all.where((o) {
+          final dt = o.createdAt;
+          final inRange = !dt.isBefore(start) && dt.isBefore(end);
+          return inRange && o.status != 'deleted';
+        }).toList();
+        return await dedupePosOrders(filtered);
+      } catch (e2) {
+        appLogger.e('❌ [DB] Fallback in-memory filtering failed: $e2');
         return [];
       }
-      rethrow;
     }
   }
 
   static Future<List<PosOrder>> getPosOrdersByChannel(String channel) async {
     try {
-        return await _isar.posOrders
-          .filter()
-          .channelEqualTo(channel, caseSensitive: false)
-          .not()
-          .statusEqualTo('deleted')
+        // Use indexed where() for channel then filter out deleted orders in memory
+        final results = await _isar.posOrders
+          .where()
+          .channelEqualTo(channel)
           .sortByCreatedAtDesc()
           .findAll();
+        final filtered = results.where((o) => o.status != 'deleted').toList();
+        return await dedupePosOrders(filtered);
     } catch (e) {
       if (e is RangeError ||
           (e.toString().contains('RangeError') ||
@@ -684,8 +706,8 @@ class DatabaseService {
     var query = _isar.posOrders
         .filter()
         .channelEqualTo(channel, caseSensitive: false)
-        .createdAtBetween(start, end)
-        .totalPriceBetween(lowerTotal, upperTotal);
+      .createdAtBetween(start, end)
+      .totalPriceBetween(lowerTotal, upperTotal);
 
     if (normalizedTable != null && normalizedTable.isNotEmpty) {
       query = query.tableNumberEqualTo(normalizedTable);
@@ -694,7 +716,34 @@ class DatabaseService {
       query = query.fulfillmentTypeEqualTo(normalizedFulfillment);
     }
 
-    final results = await query.findAll();
+    List<PosOrder> results;
+    try {
+      results = await query.findAll();
+    } catch (e) {
+      appLogger.w('⚠️ [DB] findSimilarLocalPosOrder Isar query failed: $e — using in-memory fallback');
+      try {
+        final candidates = await _isar.posOrders
+            .filter()
+            .channelEqualTo(channel, caseSensitive: false)
+            .findAll();
+        results = candidates.where((order) {
+          final dt = order.createdAt;
+          final inRange = !dt.isBefore(start) && !dt.isAfter(end);
+          final withinTotal = order.totalPrice >= lowerTotal && order.totalPrice <= upperTotal;
+          if (!inRange || !withinTotal) return false;
+          if (normalizedTable != null && normalizedTable.isNotEmpty) {
+            if ((order.tableNumber ?? '').trim() != normalizedTable) return false;
+          }
+          if (normalizedFulfillment != null && normalizedFulfillment.isNotEmpty) {
+            if ((order.fulfillmentType ?? '').trim() != normalizedFulfillment) return false;
+          }
+          return true;
+        }).toList();
+      } catch (e2) {
+        appLogger.e('❌ [DB] findSimilarLocalPosOrder fallback failed: $e2');
+        return null;
+      }
+    }
 
     PosOrder? bestMatch;
     Duration? bestDelta;
@@ -754,6 +803,157 @@ class DatabaseService {
 
   static Future<List<PosOrderItem>> getAllPosOrderItems() async {
     return await _isar.posOrderItems.where().findAll();
+  }
+
+  /// Déduplique les commandes POS potentiellement dupliquées (copies "synced")
+  ///
+  /// Règle heuristique : pour les commandes `channel=='pos'`, si deux commandes
+  /// ont une signature proche (même total, même table/phone et créées dans
+  /// un intervalle court), on garde une seule entrée. On privilégie :
+  ///  - la commande contenant des items (préserve contenu local)
+  ///  - la commande locale (sourceLocalId == id)
+  ///  - la commande non marquée `isFromApi`
+  ///  - en dernier recours la plus ancienne
+  static Future<List<PosOrder>> dedupePosOrders(
+    List<PosOrder> orders, {
+    Duration timeTolerance = const Duration(seconds: 30),
+    double totalTolerance = 0.01,
+  }) async {
+    if (orders.isEmpty) return [];
+
+    // Work on a copy sorted by createdAt asc to prefer older records when equal
+    final sorted = List<PosOrder>.from(orders)
+      ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+
+    final List<PosOrder> result = [];
+
+    for (final order in sorted) {
+      // Non-POS orders are not deduplicated here
+      if (order.channel.trim().toLowerCase() != 'pos') {
+        result.add(order);
+        continue;
+      }
+
+      var duplicateFound = false;
+
+      for (var i = 0; i < result.length; i++) {
+        final existing = result[i];
+        if (existing.channel.trim().toLowerCase() != 'pos') continue;
+
+        // Time tolerance
+        final delta = existing.createdAt.isAfter(order.createdAt)
+            ? existing.createdAt.difference(order.createdAt)
+            : order.createdAt.difference(existing.createdAt);
+        if (delta > timeTolerance) continue;
+
+        // Total price tolerance
+        final totalDiff = (existing.totalPrice - order.totalPrice).abs();
+        if (totalDiff > totalTolerance) continue;
+
+        // Fulfillment must match
+        if (existing.fulfillmentType.trim().toLowerCase() !=
+          order.fulfillmentType.trim().toLowerCase()) continue;
+
+        // Table number or phone match heuristic
+        final existingTable = (existing.tableNumber ?? '').trim();
+        final orderTable = (order.tableNumber ?? '').trim();
+        var tableMatches = false;
+        if (existingTable.isEmpty && orderTable.isEmpty) {
+          tableMatches = true;
+        } else if (existingTable.isNotEmpty && orderTable.isNotEmpty) {
+          tableMatches = existingTable == orderTable;
+        }
+
+        if (!tableMatches) {
+          final existingPhone = (existing.customerPhone ?? '')
+              .trim()
+              .replaceAll(RegExp(r'[^0-9+]'), '');
+          final orderPhone = (order.customerPhone ?? '')
+              .trim()
+              .replaceAll(RegExp(r'[^0-9+]'), '');
+          if (existingPhone.isEmpty || orderPhone.isEmpty ||
+              existingPhone != orderPhone) {
+            continue;
+          }
+        }
+
+        // Potential duplicate found -> decide which to keep
+        final existingItems = await getPosOrderItems(existing.id);
+        final orderItems = await getPosOrderItems(order.id);
+        final existingHasItems = existingItems.isNotEmpty;
+        final orderHasItems = orderItems.isNotEmpty;
+
+        PosOrder keep = existing;
+        if (existingHasItems && !orderHasItems) {
+          keep = existing;
+        } else if (!existingHasItems && orderHasItems) {
+          keep = order;
+        } else if (existing.sourceLocalId != null &&
+            existing.sourceLocalId == existing.id &&
+            !(order.sourceLocalId != null && order.sourceLocalId == order.id)) {
+          keep = existing;
+        } else if (order.sourceLocalId != null &&
+            order.sourceLocalId == order.id &&
+            !(existing.sourceLocalId != null && existing.sourceLocalId == existing.id)) {
+          keep = order;
+        } else if (existing.isFromApi != order.isFromApi) {
+          // Prefer local (isFromApi == false)
+          keep = existing.isFromApi ? order : existing;
+        } else {
+          // Fallback to older one
+          keep = existing.createdAt.isBefore(order.createdAt)
+              ? existing
+              : order;
+        }
+
+        if (keep.id == existing.id) {
+          // existing remains, skip adding 'order'
+          duplicateFound = true;
+          break;
+        } else {
+          // replace existing with order
+          result.removeAt(i);
+          result.add(order);
+          duplicateFound = true;
+          break;
+        }
+      }
+
+      if (!duplicateFound) {
+        result.add(order);
+      }
+    }
+
+    // Return sorted desc (matching other queries)
+    // As a safety net: if any order has a missing/zero total, compute it from
+    // its items and persist the correction so the UI shows the right totals.
+    var corrected = 0;
+    for (var i = 0; i < result.length; i++) {
+      final o = result[i];
+      if (o.totalPrice.isNaN || o.totalPrice <= 0.0001) {
+        final items = await getPosOrderItems(o.id);
+        final sum = items.fold<double>(0.0, (s, it) => s + (it.unitPrice * it.quantity));
+        if (sum > 0.0001) {
+          o.totalPrice = sum;
+          if (o.originalTotal.isNaN || o.originalTotal <= 0.0001) {
+            o.originalTotal = sum;
+          }
+          try {
+            await updatePosOrder(o);
+            corrected += 1;
+            appLogger.i('🔧 [DB] Corrected total for order #${o.id}: $sum');
+          } catch (e) {
+            appLogger.w('⚠️ [DB] Failed to persist corrected total for order #${o.id}: $e');
+          }
+        }
+      }
+    }
+    if (corrected > 0) {
+      appLogger.i('🔧 [DB] Corrected $corrected zero totals during dedupePosOrders');
+    }
+
+    result.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return result;
   }
 
   static Future<int> updatePosOrderItem(PosOrderItem item) async {
@@ -838,14 +1038,25 @@ class DatabaseService {
     final now = DateTime.now();
     final start = DateTime(now.year, now.month, now.day);
     final end = start.add(const Duration(days: 1));
-    final orders = await _isar.posOrders
-      .filter()
-      .staffIdEqualTo(staffId)
-      .createdAtBetween(start, end)
-      .not()
-      .statusEqualTo('deleted')
-      .findAll();
-    return orders.fold<double>(0.0, (sum, o) => sum + o.totalPrice);
+    try {
+      final results = await _isar.posOrders.where().createdAtBetween(start, end).findAll();
+      final orders = results.where((o) => o.status != 'deleted' && (o.staffId == staffId || o.paidByStaffId == staffId)).toList();
+      return orders.fold<double>(0.0, (sum, o) => sum + o.totalPrice);
+    } catch (e) {
+      appLogger.w('⚠️ [DB] getStaffDailySales Isar range query failed: $e — falling back to in-memory filter');
+      try {
+        final all = await _isar.posOrders.where().findAll();
+        final orders = all.where((o) {
+          final dt = o.createdAt;
+          final inRange = !dt.isBefore(start) && dt.isBefore(end);
+          return inRange && o.status != 'deleted' && (o.staffId == staffId || o.paidByStaffId == staffId);
+        }).toList();
+        return orders.fold<double>(0.0, (sum, o) => sum + o.totalPrice);
+      } catch (e2) {
+        appLogger.e('❌ [DB] getStaffDailySales fallback failed: $e2');
+        return 0.0;
+      }
+    }
   }
 
   // POS Tables
@@ -1291,15 +1502,19 @@ class DatabaseService {
 
       return filteredOrders..sort((a, b) => b.createdAt.compareTo(a.createdAt));
     } catch (e) {
-      if (e is RangeError ||
-          (e.toString().contains('RangeError') ||
-              e.toString().contains('Utf8Decoder'))) {
-        appLogger.e(
-          '⚠️ [DB] PosOrder collection corruption detected in getPosOrdersByStaffAndDate: $e',
-        );
+      appLogger.w('⚠️ [DB] getPosOrdersByStaffAndDate failed: $e — falling back to in-memory filter');
+      try {
+        final allOrders = await _isar.posOrders.where().findAll();
+        final filteredOrders = allOrders.where((order) {
+          final dt = order.createdAt;
+          final inRange = !dt.isBefore(startOfDay) && dt.isBefore(endOfDay);
+          return inRange && (order.staffId == staffId || order.paidByStaffId == staffId) && order.status != 'cancelled';
+        }).toList();
+        return filteredOrders..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      } catch (e2) {
+        appLogger.e('❌ [DB] getPosOrdersByStaffAndDate fallback failed: $e2');
         return [];
       }
-      rethrow;
     }
   }
 }

@@ -1101,6 +1101,12 @@ class ApiOrderPullService {
     final createdAt = _asDate(raw['created_at']);
     final updatedAt = _asDate(raw['updated_at'] ?? raw['created_at']);
     final remoteTableNumber = _asNullableString(raw['table_number']);
+    final glovoOrderNumber = _firstNonEmptyString([
+      _asTrimmedString(raw['glovo_order_number']),
+      _asTrimmedString(raw['glovoOrderNumber']),
+      _asTrimmedString(raw['glovo_number']),
+      _asTrimmedString(raw['glovoNumber']),
+    ]);
     final incomingChannel = _normalizeChannel(
       _firstNonEmptyString([
         _asTrimmedString(raw['channel']),
@@ -1247,6 +1253,7 @@ class ApiOrderPullService {
           customerName: customerName,
           customerPhone: customerPhone,
           deliveryAddress: _asNullableString(raw['delivery_address']),
+          glovoOrderNumber: glovoOrderNumber,
           tableNumber: remoteTableNumber,
           note: _asNullableString(raw['note']),
           rewardId: _asInt(raw['reward_id']),
@@ -1371,6 +1378,9 @@ class ApiOrderPullService {
     order.customerName = customerName;
     order.customerPhone = customerPhone;
     order.deliveryAddress = _asNullableString(raw['delivery_address']);
+    order.glovoOrderNumber = glovoOrderNumber.trim().isNotEmpty
+        ? glovoOrderNumber
+        : existingOrder?.glovoOrderNumber;
     // Mapper livreur_id depuis la réponse backend
     order.deliveryLivreurId = _asInt(raw['livreur_id']);
     // Mapper user_id depuis la réponse backend
@@ -1407,10 +1417,12 @@ class ApiOrderPullService {
 
     // 🔧 MERGE STRATEGY: Preserve local items if backend has none
     final items = _extractOrderItems(raw);
-    
+
     if (items.isEmpty && !created) {
       // Backend returned no items for existing order - PRESERVE LOCAL ITEMS
-      final existingItems = await DatabaseService.getPosOrderItems(localOrderId);
+      final existingItems = await DatabaseService.getPosOrderItems(
+        localOrderId,
+      );
       appLogger.w(
         '⚠️ [API MERGE] Backend returned 0 items for updated order #$localOrderId (remote=$remoteOrderId). '
         'Preserving ${existingItems.length} local items to prevent data loss.',
@@ -1424,7 +1436,7 @@ class ApiOrderPullService {
           '(will replace with ${items.length} backend items)',
         );
       }
-      
+
       // Create new items from backend
       appLogger.i(
         '📦 [API] Creating ${items.length} items for local order #$localOrderId (remote=$remoteOrderId)',
@@ -1448,6 +1460,27 @@ class ApiOrderPullService {
         await DatabaseService.createPosOrderItem(orderItem);
       }
       appLogger.i('✅ [API] Items created for order #$localOrderId');
+    
+    // Ensure order.totalPrice is set: if backend didn't provide a total but
+    // items were created, compute the sum from the extracted items and
+    // persist the corrected total.
+    try {
+      final itemsSum = items.fold<double>(
+        0.0,
+        (s, it) => s + (it.unitPrice * it.quantity),
+      );
+      if (itemsSum > 0.0001 && (order.totalPrice.isNaN || order.totalPrice <= 0.0001)) {
+        order.id = localOrderId;
+        order.totalPrice = itemsSum;
+        if (order.originalTotal.isNaN || order.originalTotal <= 0.0001) {
+          order.originalTotal = itemsSum;
+        }
+        await DatabaseService.updatePosOrder(order);
+        appLogger.i('🔧 [API] Corrected total for local order #$localOrderId from items sum: $itemsSum');
+      }
+    } catch (e) {
+      appLogger.w('⚠️ [API] Failed to compute/persist items total for order #$localOrderId: $e');
+    }
     }
 
     return _UpsertRemoteOrderResult(localId: localOrderId, created: created);
@@ -1780,7 +1813,9 @@ class ApiOrderPullService {
       appLogger.d('📦 [API] Items keys in raw: ${raw.keys.join(', ')}');
     } else {
       // Debug: show all keys and check if any might contain items
-      appLogger.d('📦 [API] No items found in response. Raw keys: ${raw.keys.join(', ')}');
+      appLogger.d(
+        '📦 [API] No items found in response. Raw keys: ${raw.keys.join(', ')}',
+      );
       // Check for nested structures
       for (final key in raw.keys) {
         final value = raw[key];

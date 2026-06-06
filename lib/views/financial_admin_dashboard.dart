@@ -162,6 +162,9 @@ class _FinancialAdminDashboardState extends State<FinancialAdminDashboard>
         endOfDay,
       );
 
+      // Dédupliquer les commandes POS potentiellement dupliquées
+      allOrders = await DatabaseService.dedupePosOrders(allOrders);
+
       // ✅ Filtrer par restaurant si un restaurant est défini
       if (restaurantId != null) {
         allOrders = allOrders.where((order) {
@@ -451,7 +454,6 @@ class _FinancialAdminDashboardState extends State<FinancialAdminDashboard>
     } else {
       filteredOrders = _allOrders.where((order) {
         final channel = order.channel.toLowerCase();
-        final status = order.status.trim().toLowerCase();
         final paymentStatus = order.paymentStatus.trim().toLowerCase();
 
         switch (_selectedFilter) {

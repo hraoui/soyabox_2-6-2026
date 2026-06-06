@@ -30,17 +30,28 @@ class IsarOrderLocalDatabase implements OrderLocalDatabase {
   }) async {
     try {
       // Query Isar for orders in the date range
-      var query = _isar.posOrders
-          .filter()
-          .restaurantIdEqualTo(restaurantId)
-          .createdAtBetween(startDate, endDate);
+      var orders = <PosOrder>[];
+      try {
+        // Query Isar for orders in the date range
+        var query = _isar.posOrders
+            .filter()
+            .restaurantIdEqualTo(restaurantId)
+            .createdAtBetween(startDate, endDate);
 
-      // Apply optional filters
-      if (staffId != null) {
-        query = query.and().staffIdEqualTo(staffId);
+        // Apply optional filters
+        if (staffId != null) {
+          query = query.and().staffIdEqualTo(staffId);
+        }
+
+        orders = await query.findAll();
+      } catch (e) {
+        // Fallback to in-memory filtering if Isar range query fails
+        final all = await _isar.posOrders.filter().restaurantIdEqualTo(restaurantId).findAll();
+        orders = all.where((o) {
+          final dt = o.createdAt;
+          return !dt.isBefore(startDate) && dt.isBefore(endDate);
+        }).toList();
       }
-
-      final orders = await query.findAll();
 
       // Convert to LocalOrder models
       final localOrders = <LocalOrder>[];

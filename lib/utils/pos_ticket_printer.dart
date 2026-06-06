@@ -473,10 +473,8 @@ List<pw.Widget> _buildPaymentSummaryWidgets(
 }) {
   final entries = _extractPaymentEntries(order);
   final paidAmount = _calculatePaymentTotal(entries);
-  final remainingAmount = (order.totalPrice - paidAmount).clamp(
-    0.0,
-    order.totalPrice,
-  );
+  final diff = order.totalPrice - paidAmount;
+  final remainingAmount = diff > 0.0 ? diff : 0.0;
   final hasPaymentHistory =
       entries.isNotEmpty ||
       order.paymentStatus.trim().toLowerCase() != 'pending';
@@ -665,6 +663,12 @@ Future<Uint8List> buildKitchenTicketPdf(
               'Type: ${_fulfillmentLabel(order.fulfillmentType)}',
               style: pw.TextStyle(fontSize: 10),
             ),
+            if (order.glovoOrderNumber != null &&
+                order.glovoOrderNumber!.trim().isNotEmpty)
+              pw.Text(
+                'Numéro Glovo: ${order.glovoOrderNumber}',
+                style: pw.TextStyle(fontSize: 10),
+              ),
             if (order.tableNumber != null && order.tableNumber!.isNotEmpty)
               pw.Text(
                 'Table: ${order.tableNumber}',
@@ -799,6 +803,12 @@ Future<Uint8List> buildCustomerBillPdf(
               'Type: ${_fulfillmentLabel(order.fulfillmentType)}',
               style: pw.TextStyle(fontSize: 10),
             ),
+            if (order.glovoOrderNumber != null &&
+                order.glovoOrderNumber!.trim().isNotEmpty)
+              pw.Text(
+                'Numéro Glovo: ${order.glovoOrderNumber}',
+                style: pw.TextStyle(fontSize: 10),
+              ),
             if (order.tableNumber != null && order.tableNumber!.isNotEmpty)
               pw.Text(
                 'Table: ${order.tableNumber}',
@@ -986,6 +996,12 @@ Future<Uint8List> buildKitchenAndCustomerTicketsPdf(
               'Type: ${_fulfillmentLabel(order.fulfillmentType)}',
               style: pw.TextStyle(fontSize: 10),
             ),
+            if (order.glovoOrderNumber != null &&
+                order.glovoOrderNumber!.trim().isNotEmpty)
+              pw.Text(
+                'Numéro Glovo: ${order.glovoOrderNumber}',
+                style: pw.TextStyle(fontSize: 10),
+              ),
             if (order.tableNumber != null && order.tableNumber!.isNotEmpty)
               pw.Text(
                 'Table: ${order.tableNumber}',
@@ -1061,6 +1077,12 @@ Future<Uint8List> buildKitchenAndCustomerTicketsPdf(
               'Type: ${_fulfillmentLabel(order.fulfillmentType)}',
               style: pw.TextStyle(fontSize: 10),
             ),
+            if (order.glovoOrderNumber != null &&
+                order.glovoOrderNumber!.trim().isNotEmpty)
+              pw.Text(
+                'Numéro Glovo: ${order.glovoOrderNumber}',
+                style: pw.TextStyle(fontSize: 10),
+              ),
             if (order.tableNumber != null && order.tableNumber!.isNotEmpty)
               pw.Text(
                 'Table: ${order.tableNumber}',

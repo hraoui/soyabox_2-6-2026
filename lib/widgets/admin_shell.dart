@@ -273,7 +273,7 @@ class _AdminShellState extends State<AdminShell> {
                   _navItem(Icons.local_shipping_outlined, 'Livreurs', '/deliveries'),
                 _navItem(Icons.receipt_long, 'Commandes', '/admin-orders'),
                 _navItem(Icons.analytics_outlined, 'Commandes Globales', '/global-orders'), // ✅ Nouvelle entrée
-                _navItem(Icons.description, 'Rapports Journaliers', '/daily-reports'),
+                // Duplicate menu entry removed: 'Rapports Journaliers' points to '/daily-reports'
                 _navItem(Icons.inventory_2_outlined, 'Catalogue', '/catalog'),
                 _navItem(Icons.sync, 'Importer', '/import-data'),
                 _navItem(Icons.settings, 'Settings', '/settings'),

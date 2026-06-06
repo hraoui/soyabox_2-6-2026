@@ -512,6 +512,7 @@ class SyncQueueService {
         'customer_name': order.customerName,
         'customer_phone': order.customerPhone,
         'delivery_address': order.deliveryAddress,
+        'glovo_order_number': order.glovoOrderNumber,
         'table_number': order.tableNumber,
         'note': order.note,
         'reward_id': order.rewardId,
@@ -1752,10 +1753,7 @@ class SyncQueueService {
           entry.key.toString(): entry.value,
       };
       try {
-        await _writeJsonAtomically(
-          file: file,
-          content: json.encode(encoded),
-        );
+        await _writeJsonAtomically(file: file, content: json.encode(encoded));
       } catch (e, st) {
         appLogger.e(
           '❌ [USER SYNC STATE] Failed to save',

@@ -1,7 +1,11 @@
+// ignore_for_file: unused_import
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../controllers/pos_controller.dart';
+import '../services/database_service.dart';
+import '../models/pos_order.dart';
 import '../theme/sushi_design.dart';
 import '../widgets/app_card_kit.dart';
 import '../widgets/app_back_button.dart';
@@ -12,6 +16,51 @@ const _kBg      = Color(0xFFF4F5F7);
 const _kCardBg  = Colors.white;
 const _kDivider = Color(0xFFECECF0);
 const _kRadius  = 16.0;
+
+// Helper: détecte si un channel est considéré comme 'remote' (API / Web / Kiosk)
+bool _isRemoteChannelLocal(String rawChannel) {
+  final channel = rawChannel.trim().toLowerCase();
+  switch (channel) {
+    case 'api':
+    case 'web':
+    case 'website':
+    case 'site':
+    case 'online':
+    case 'mobile':
+    case 'mobile_app':
+    case 'app':
+    case 'android':
+    case 'ios':
+    case 'kiosk':
+    case 'borne':
+      return true;
+    default:
+      return false;
+  }
+}
+
+Future<int> _getPendingRemoteOrdersCount(PosController pos) async {
+  try {
+    // Ensure DB initialized (no-op if already initialized)
+    await DatabaseService.init();
+  } catch (_) {}
+
+  try {
+    final all = await DatabaseService.getPosOrders();
+    final restId = pos.restaurantId;
+    final count = all.where((o) {
+      final channel = (o.channel ?? 'pos').trim();
+      if (!_isRemoteChannelLocal(channel)) return false;
+      final status = (o.status ?? 'pending').trim().toLowerCase();
+      if (status != 'pending') return false;
+      if (restId != null && (o.restaurantId ?? 0) != restId) return false;
+      return true;
+    }).length;
+    return count;
+  } catch (e) {
+    return 0;
+  }
+}
 
 class PosStaffMenuScreen extends StatelessWidget {
   const PosStaffMenuScreen({super.key});
@@ -225,18 +274,28 @@ class PosStaffMenuScreen extends StatelessWidget {
                     Get.toNamed('/pos-tables');
                   },
                 ),
-                _MenuActionCard(
-                  icon: Icons.phone_iphone_outlined,
-                  title: 'API / Web',
-                  description: 'Traiter les commandes reçues en ligne.',
-                  emojiIcon: Icons.wifi_tethering_outlined,
-                  emojiLabel: 'Remote',
-                  accentColor: SushiColors.teal,
-                  onTap: () {
-                    pos.setOrdersFilter('all');
-                    pos.setOrdersChannelFilter('remote');
-                    pos.loadOrdersToday();
-                    Get.toNamed('/pos-orders');
+                // Remote orders card: compute pending remote orders count
+                FutureBuilder<int>(
+                  future: _getPendingRemoteOrdersCount(pos),
+                  builder: (context, snapshot) {
+                    final count = snapshot.data ?? 0;
+                    final highlight = count > 0;
+                    return _MenuActionCard(
+                      icon: Icons.phone_iphone_outlined,
+                      title: 'API / Web',
+                      description: 'Traiter les commandes reçues en ligne.',
+                      emojiIcon: Icons.wifi_tethering_outlined,
+                      emojiLabel: 'Remote',
+                      accentColor: highlight ? Colors.amber : SushiColors.teal,
+                      badgeCount: count > 0 ? count : null,
+                      highlight: highlight,
+                      onTap: () {
+                        pos.setOrdersFilter('all');
+                        pos.setOrdersChannelFilter('remote');
+                        pos.loadOrdersToday();
+                        Get.toNamed('/pos-orders');
+                      },
+                    );
                   },
                 ),
               ],
@@ -405,6 +464,8 @@ class _MenuActionCard extends StatefulWidget {
     required this.emojiLabel,
     required this.accentColor,
     required this.onTap,
+    this.badgeCount,
+    this.highlight = false,
   });
 
   final IconData icon;
@@ -414,6 +475,8 @@ class _MenuActionCard extends StatefulWidget {
   final String emojiLabel;
   final Color accentColor;
   final VoidCallback onTap;
+  final int? badgeCount;
+  final bool highlight;
 
   @override
   State<_MenuActionCard> createState() => _MenuActionCardState();
@@ -424,7 +487,8 @@ class _MenuActionCardState extends State<_MenuActionCard> {
 
   @override
   Widget build(BuildContext context) {
-    final color = widget.accentColor;
+    final baseColor = widget.highlight ? Colors.amber : widget.accentColor;
+    final color = baseColor;
 
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
@@ -435,34 +499,37 @@ class _MenuActionCardState extends State<_MenuActionCard> {
         scale: _hovered ? 1.025 : 1,
         child: GestureDetector(
           onTap: widget.onTap,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeOutCubic,
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              color: _hovered ? color.withAlpha(10) : _kCardBg,
-              borderRadius: BorderRadius.circular(_kRadius),
-              border: Border.all(
-                color: _hovered ? color.withAlpha(120) : _kDivider,
-                width: _hovered ? 1.8 : 1,
-              ),
-              boxShadow: [
-                if (_hovered)
-                  BoxShadow(
-                    color: color.withAlpha(30),
-                    blurRadius: 20,
-                    offset: const Offset(0, 6),
-                  )
-                else
-                  const BoxShadow(
-                    color: Color(0x09000000),
-                    blurRadius: 14,
-                    spreadRadius: 0,
-                    offset: Offset(0, 4),
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOutCubic,
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: _hovered ? color.withAlpha(10) : (widget.highlight ? const Color(0xFFFFF7E0) : _kCardBg),
+                  borderRadius: BorderRadius.circular(_kRadius),
+                  border: Border.all(
+                    color: _hovered ? color.withAlpha(120) : (widget.highlight ? Colors.amber.withAlpha(120) : _kDivider),
+                    width: _hovered ? 1.8 : 1,
                   ),
-              ],
-            ),
-            child: Column(
+                  boxShadow: [
+                    if (_hovered)
+                      BoxShadow(
+                        color: color.withAlpha(30),
+                        blurRadius: 20,
+                        offset: const Offset(0, 6),
+                      )
+                    else
+                      const BoxShadow(
+                        color: Color(0x09000000),
+                        blurRadius: 14,
+                        spreadRadius: 0,
+                        offset: Offset(0, 4),
+                      ),
+                  ],
+                ),
+                child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -508,6 +575,33 @@ class _MenuActionCardState extends State<_MenuActionCard> {
                     ),
                   ],
                 ),
+                // Badge overlay (top-right)
+                if (widget.badgeCount != null && widget.badgeCount! > 0)
+                  Positioned(
+                    top: -6,
+                    right: -6,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.amber.shade700,
+                        borderRadius: BorderRadius.circular(14),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.08),
+                            blurRadius: 6,
+                          ),
+                        ],
+                      ),
+                      child: Text(
+                        'Nouvelles +${widget.badgeCount}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
 
                 const SizedBox(height: 16),
 
@@ -593,8 +687,8 @@ class _MenuActionCardState extends State<_MenuActionCard> {
               ],
             ),
           ),
-        ),
+        ]),
       ),
-    );
+    ));
   }
 }

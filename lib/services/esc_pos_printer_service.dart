@@ -13,7 +13,8 @@ import '../services/app_settings_service.dart';
 import '../utils/order_item_grouping.dart';
 import '../utils/payment_method_utils.dart';
 
-const int _ticketLogoMaxWidth = 120;
+// Agrandir légèrement le logo sur les tickets clients (pour reçus/additions)
+const int _ticketLogoMaxWidth = 200;
 
 class EscPosPrinterService {
   EscPosPrinterService._();
@@ -367,12 +368,13 @@ class EscPosPrinterService {
     var bytes = <int>[];
     final orderTime = _formatOrderTime(order.createdAt);
 
+    // Cuisine: pas de logo, pas d'adresse/telephone (impression thermique)
     bytes += await _buildRestaurantHeader(
       generator,
       includeLogo: false,
       restaurantName: restaurantName,
-      restaurantAddress: restaurantAddress,
-      restaurantPhone: restaurantPhone,
+      restaurantAddress: null,
+      restaurantPhone: null,
     );
     bytes += generator.text(
       'BON CUISINE',
@@ -388,6 +390,12 @@ class EscPosPrinterService {
     bytes += generator.text(
       _escPosText('Type: ${_fulfillmentLabel(order.fulfillmentType)}'),
     );
+    if (order.glovoOrderNumber != null &&
+        order.glovoOrderNumber!.trim().isNotEmpty) {
+      bytes += generator.text(
+        _escPosText('Numéro Glovo: ${order.glovoOrderNumber}'),
+      );
+    }
     if (order.tableNumber != null && order.tableNumber!.isNotEmpty) {
       bytes += generator.text(_escPosText('Table: ${order.tableNumber}'));
     }
@@ -440,7 +448,8 @@ class EscPosPrinterService {
     final total = order.totalPrice;
     final paymentEntries = _extractPaymentEntries(order);
     final paidAmount = _calculatePaymentTotal(paymentEntries);
-    final remainingAmount = (total - paidAmount).clamp(0.0, total);
+    final diff = total - paidAmount;
+    final remainingAmount = diff > 0.0 ? diff : 0.0;
     final paymentStatus = order.paymentStatus.trim().toLowerCase();
     final hasPaymentEntries = paymentEntries.isNotEmpty;
     final isPartialPayment =
@@ -485,6 +494,12 @@ class EscPosPrinterService {
     bytes += generator.text(
       _escPosText('Type: ${_fulfillmentLabel(order.fulfillmentType)}'),
     );
+    if (order.glovoOrderNumber != null &&
+        order.glovoOrderNumber!.trim().isNotEmpty) {
+      bytes += generator.text(
+        _escPosText('Numéro Glovo: ${order.glovoOrderNumber}'),
+      );
+    }
     if (order.tableNumber != null && order.tableNumber!.isNotEmpty) {
       bytes += generator.text(_escPosText('Table: ${order.tableNumber}'));
     }

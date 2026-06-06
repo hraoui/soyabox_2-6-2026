@@ -1,5 +1,6 @@
 // ignore_for_file: unnecessary_null_comparison, use_build_context_synchronously
 import 'dart:async';
+import 'package:caisse_1/utils/order_item_grouping.dart';
 import 'package:caisse_1/widgets/item_options_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -46,6 +47,24 @@ class PosScreen extends StatefulWidget {
 
   @override
   State<PosScreen> createState() => _PosScreenState();
+}
+
+class _OrderPrintContext {
+  const _OrderPrintContext({
+    required this.order,
+    required this.items,
+    required this.staffName,
+    required this.restaurantName,
+    required this.restaurantAddress,
+    required this.restaurantPhone,
+  });
+
+  final PosOrder order;
+  final List<PosOrderItem> items;
+  final String? staffName;
+  final String? restaurantName;
+  final String? restaurantAddress;
+  final String? restaurantPhone;
 }
 
 class _ProductCard extends StatefulWidget {
@@ -368,6 +387,7 @@ class _PosScreenState extends State<PosScreen> {
   String _badgeStatus = 'Lecture badge active';
   bool _isBadgeUnlocking = false;
   bool _isSaving = false;
+  bool _isNavigatingAway = false;
 
   @override
   void initState() {
@@ -396,9 +416,21 @@ class _PosScreenState extends State<PosScreen> {
 
   Future<void> _saveOrder(PosController pos) async {
     if (_isSaving || pos.isCreatingOrder) return;
+    final wasEditing = pos.editingOrderId != null;
+    if (wasEditing && pos.cart.isEmpty) {
+      _notify(
+        'Aucun nouveau produit à enregistrer',
+        title: 'Edition',
+        type: POSSnackType.warning,
+      );
+      return;
+    }
+
     _isSaving = true;
     try {
-      final wasEditing = pos.editingOrderId != null;
+      final addedCartItems = wasEditing
+          ? List<CartItem>.from(pos.cart)
+          : <CartItem>[];
       if (!wasEditing &&
           (pos.fulfillmentType == 'pickup' ||
               pos.fulfillmentType == 'delivery')) {
@@ -446,7 +478,12 @@ class _PosScreenState extends State<PosScreen> {
           orderId: orderId,
           wasEditing: wasEditing,
           autoLock: true,
-          beforeAutoLock: () => _printKitchenTicketByOrderId(orderId),
+          beforeAutoLock: wasEditing
+              ? () => _printEditedOrderAddedItemsByOrderId(
+                  orderId,
+                  addedCartItems,
+                )
+              : () => _printKitchenAndCustomerTicketsByOrderId(orderId),
         );
       }
     } catch (e) {
@@ -493,7 +530,9 @@ class _PosScreenState extends State<PosScreen> {
         ),
         actions: [
           TextButton.icon(
-            onPressed: () => Get.offAllNamed('/pos-lock'),
+            onPressed: (_isSaving || _isNavigatingAway)
+                ? null
+                : () => _scheduleExitAfterAction(immediate: true),
             icon: const Icon(Icons.exit_to_app, size: 18),
             label: const Text('Quitter'),
             style: TextButton.styleFrom(foregroundColor: SushiColors.red),
@@ -1471,31 +1510,35 @@ class _PosScreenState extends State<PosScreen> {
           const SizedBox(height: 2),
           _actionButton(
             icon: Icons.print_outlined,
-            label: 'Imprimer le ticket',
-            onPressed: () async {
-              final currentOrderId =
-                  pos.editingOrderId ??
-                  (pos.cart.isEmpty ? _lastOrderId : null);
-              try {
-                await _saveAndPrintKitchenTicket(pos, currentOrderId);
-              } catch (e, st) {
-                debugPrint('Print button error: $e\n$st');
-                if (!mounted) return;
-                _notify(
-                  'Erreur impression : $e',
-                  title: 'Impression',
-                  type: POSSnackType.error,
-                );
-              }
-            },
+            label: pos.editingOrderId != null && !pos.isAdminEditor
+                ? 'Impression verrouillée'
+                : 'Imprimer l\'addition',
+            onPressed: pos.editingOrderId != null && !pos.isAdminEditor
+                ? null
+                : () async {
+                    final currentOrderId =
+                        pos.editingOrderId ??
+                        (pos.cart.isEmpty ? _lastOrderId : null);
+                    try {
+                      await _saveAndPrintCustomerTicket(pos, currentOrderId);
+                    } catch (e, st) {
+                      debugPrint('Print button error: $e\n$st');
+                      if (!mounted) return;
+                      _notify(
+                        'Erreur impression : $e',
+                        title: 'Impression',
+                        type: POSSnackType.error,
+                      );
+                    }
+                  },
           ),
           const SizedBox(height: 2),
           _actionButton(
             icon: Icons.exit_to_app_rounded,
             label: 'Sortir',
-            onPressed: () {
-              _scheduleExitAfterAction(immediate: true);
-            },
+            onPressed: _isSaving || pos.isCreatingOrder || _isNavigatingAway
+                ? null
+                : () => _scheduleExitAfterAction(immediate: true),
           ),
         ],
       ),
@@ -2007,6 +2050,14 @@ class _PosScreenState extends State<PosScreen> {
                                 value: locationValue,
                               ),
                               if (order.fulfillmentType == 'delivery' &&
+                                  order.glovoOrderNumber != null &&
+                                  order.glovoOrderNumber!.trim().isNotEmpty)
+                                _orderDetailsInfoCard(
+                                  icon: Icons.confirmation_number_outlined,
+                                  label: 'Numéro Glovo',
+                                  value: order.glovoOrderNumber!,
+                                ),
+                              if (order.fulfillmentType == 'delivery' &&
                                   order.status == 'confirmed')
                                 _buildDeliveryAssignmentCard(
                                   context,
@@ -2170,6 +2221,10 @@ class _PosScreenState extends State<PosScreen> {
     buffer.writeln('Table : ${order.tableNumber ?? '-'}');
     buffer.writeln('Client : ${order.customerName ?? '-'}');
     buffer.writeln('Téléphone : ${order.customerPhone ?? '-'}');
+    if (order.glovoOrderNumber != null &&
+        order.glovoOrderNumber!.trim().isNotEmpty) {
+      buffer.writeln('Numéro Glovo : ${order.glovoOrderNumber}');
+    }
     if (order.deliveryAddress != null) {
       buffer.writeln('Adresse: ${order.deliveryAddress}');
     }
@@ -2205,6 +2260,54 @@ class _PosScreenState extends State<PosScreen> {
           ],
         );
       },
+    );
+  }
+
+  Future<_OrderPrintContext?> _loadOrderPrintContext(int orderId) async {
+    final order = await DatabaseService.getPosOrderById(orderId);
+    if (order == null) {
+      return null;
+    }
+    final items = await DatabaseService.getPosOrderItems(orderId);
+    if (items.isEmpty) {
+      return null;
+    }
+
+    String? staffName;
+    try {
+      final staff = await DatabaseService.getUserById(order.staffId);
+      staffName = staff?.name;
+    } catch (_) {}
+
+    final auth = Get.isRegistered<AuthController>()
+        ? Get.find<AuthController>()
+        : null;
+    final restaurantId = order.restaurantId ?? auth?.currentUser?.restaurantId;
+    String? restaurantName;
+    String? restaurantAddress;
+    String? restaurantPhone;
+    if (restaurantId != null) {
+      try {
+        final restaurant = await DatabaseService.getRestaurantById(
+          restaurantId,
+        );
+        restaurantName = restaurant?.name;
+        restaurantAddress = restaurant?.address;
+        restaurantPhone = restaurant?.phone ?? auth?.currentUser?.phone;
+      } catch (_) {
+        restaurantPhone = auth?.currentUser?.phone;
+      }
+    } else {
+      restaurantPhone = auth?.currentUser?.phone;
+    }
+
+    return _OrderPrintContext(
+      order: order,
+      items: items,
+      staffName: staffName,
+      restaurantName: restaurantName,
+      restaurantAddress: restaurantAddress,
+      restaurantPhone: restaurantPhone,
     );
   }
 
@@ -2252,19 +2355,106 @@ class _PosScreenState extends State<PosScreen> {
   }
 
   Future<void> _printKitchenTicketByOrderId(int orderId) async {
-    final order = await DatabaseService.getPosOrderById(orderId);
-    if (order == null) {
-      throw 'Commande introuvable';
-    }
-    final items = await DatabaseService.getPosOrderItems(orderId);
-    if (items.isEmpty) {
-      throw 'Aucune ligne de commande à imprimer';
+    final context = await _loadOrderPrintContext(orderId);
+    if (context == null) {
+      throw 'Commande ou lignes introuvables';
     }
 
-    await _printKitchenTicket(order, items);
+    await _printKitchenTicket(
+      context.order,
+      context.items,
+      staffName: context.staffName,
+      restaurantAddress: context.restaurantAddress,
+      restaurantName: context.restaurantName,
+      restaurantPhone: context.restaurantPhone,
+    );
   }
 
-  Future<void> _saveAndPrintKitchenTicket(
+  List<PosOrderItem> _buildPrintedItemsFromCart(
+    int orderId,
+    List<CartItem> cartItems,
+  ) {
+    final now = DateTime.now();
+    return cartItems
+        .map((item) {
+          return PosOrderItem(
+            orderId: orderId,
+            productId: item.product.id,
+            productName: item.product.name,
+            unitPrice: item.unitPrice,
+            quantity: item.quantity,
+            priceType: item.priceType,
+            glovoBasePrice: item.basePrice,
+            groupNumber: item.groupNumber,
+            groupLabel: item.groupNumber != null
+                ? formatGuestGroupLabel(groupNumber: item.groupNumber)
+                : null,
+            itemNote: item.itemNote,
+            serviceCourseKey: item.serviceCourseKey,
+            serviceCourseLabel: item.serviceCourseLabel,
+            createdAt: now,
+          );
+        })
+        .toList(growable: false);
+  }
+
+  Future<void> _printKitchenAndCustomerTicketsByOrderId(int orderId) async {
+    final context = await _loadOrderPrintContext(orderId);
+    if (context == null) {
+      throw 'Commande ou lignes introuvables';
+    }
+
+    await _printKitchenAndCustomerTickets(
+      context.order,
+      context.items,
+      staffName: context.staffName,
+      restaurantAddress: context.restaurantAddress,
+      restaurantName: context.restaurantName,
+      restaurantPhone: context.restaurantPhone,
+    );
+  }
+
+  Future<void> _printEditedOrderAddedItemsByOrderId(
+    int orderId,
+    List<CartItem> addedCartItems,
+  ) async {
+    final context = await _loadOrderPrintContext(orderId);
+    if (context == null) {
+      throw 'Commande ou lignes introuvables';
+    }
+
+    final itemsToPrint = _buildPrintedItemsFromCart(orderId, addedCartItems);
+    if (itemsToPrint.isEmpty) {
+      return;
+    }
+
+    await _printKitchenTicket(
+      context.order,
+      itemsToPrint,
+      staffName: context.staffName,
+      restaurantAddress: context.restaurantAddress,
+      restaurantName: context.restaurantName,
+      restaurantPhone: context.restaurantPhone,
+    );
+  }
+
+  Future<void> _printCustomerBillByOrderId(int orderId) async {
+    final context = await _loadOrderPrintContext(orderId);
+    if (context == null) {
+      throw 'Commande ou lignes introuvables';
+    }
+
+    await _printCustomerBill(
+      context.order,
+      context.items,
+      staffName: context.staffName,
+      restaurantAddress: context.restaurantAddress,
+      restaurantName: context.restaurantName,
+      restaurantPhone: context.restaurantPhone,
+    );
+  }
+
+  Future<void> _saveAndPrintCustomerTicket(
     PosController pos,
     int? currentOrderId,
   ) async {
@@ -2272,9 +2462,17 @@ class _PosScreenState extends State<PosScreen> {
     _isSaving = true;
     try {
       var orderId = currentOrderId;
-      var wasNewOrder = false;
-
       if (orderId == null) {
+        if (pos.cart.isEmpty) {
+          if (mounted) {
+            _notify(
+              'Aucune commande en cours à imprimer',
+              title: 'Impression',
+              type: POSSnackType.warning,
+            );
+          }
+          return;
+        }
         if (pos.fulfillmentType == 'pickup' ||
             pos.fulfillmentType == 'delivery') {
           final customerConfirmed = await _showCustomerSelectionDialog(pos);
@@ -2293,7 +2491,6 @@ class _PosScreenState extends State<PosScreen> {
         if (orderId == null) {
           return;
         }
-        wasNewOrder = true;
         if (pos.fulfillmentType == 'on_site') {
           final table = pos.tableNumber;
           if (table != null && table.isNotEmpty) {
@@ -2318,27 +2515,17 @@ class _PosScreenState extends State<PosScreen> {
         }
       }
 
-      final savedOrderId = orderId;
-      setState(() => _lastOrderId = orderId);
+      final int savedOrderId = orderId;
+      setState(() => _lastOrderId = savedOrderId);
 
-      if (wasNewOrder) {
-        await _showPostOrderSuccessFlow(
-          pos: pos,
-          orderId: savedOrderId,
-          wasEditing: false,
-          autoLock: true,
-          beforeAutoLock: () => _autoPrintKitchenByOrderId(savedOrderId),
-        );
-        return;
-      }
-
-      await _autoPrintKitchenByOrderId(orderId);
+      await _printCustomerBillByOrderId(savedOrderId);
       if (!mounted) return;
       _notify(
-        'Ticket cuisine imprimé avec succès',
+        'Addition client imprimée avec succès',
         title: 'Impression',
         type: POSSnackType.success,
       );
+      _isNavigatingAway = true;
       pos.lock();
       Get.offAllNamed('/pos-lock');
     } finally {
@@ -2348,103 +2535,102 @@ class _PosScreenState extends State<PosScreen> {
     }
   }
 
-  Future<void> _autoPrintKitchenByOrderId(int orderId) async {
-    try {
-      final order = await DatabaseService.getPosOrderById(orderId);
-      if (order == null) return;
-      final items = await DatabaseService.getPosOrderItems(orderId);
-      if (items.isEmpty) return;
-
-      // ✅ Récupérer les données du serveur et du restaurant
-      String? staffName;
-      try {
-        final staff = await DatabaseService.getUserById(order.staffId);
-        staffName = staff?.name;
-      } catch (_) {}
-
-      final auth = Get.isRegistered<AuthController>()
-          ? Get.find<AuthController>()
-          : null;
-      final restaurantId =
-          order.restaurantId ?? auth?.currentUser?.restaurantId;
-      String? restaurantName;
-      String? restaurantAddress;
-      String? restaurantPhone;
-      if (restaurantId != null) {
-        try {
-          final restaurant = await DatabaseService.getRestaurantById(
-            restaurantId,
-          );
-          restaurantName = restaurant?.name;
-          restaurantAddress = restaurant?.address;
-          // Prefer the restaurant phone when available, else fallback to user phone
-          restaurantPhone = restaurant?.phone ?? auth?.currentUser?.phone;
-        } catch (_) {
-          // If restaurant not found, fallback to user's phone
-          restaurantPhone = auth?.currentUser?.phone;
-        }
-      } else {
-        restaurantPhone = auth?.currentUser?.phone;
-      }
-
-      await _printKitchenTicket(
-        order,
-        items,
-        staffName: staffName,
-        restaurantAddress: restaurantAddress,
-        restaurantName: restaurantName,
-        restaurantPhone: restaurantPhone,
-      );
-    } catch (_) {
-      if (!mounted) return;
-      final order = await DatabaseService.getPosOrderById(orderId);
-      if (order == null) return;
-      final items = await DatabaseService.getPosOrderItems(orderId);
-      if (items.isEmpty) return;
-
-      // ✅ Même pour l'aperçu de fallback, passer les données
-      String? staffName;
-      try {
-        final staff = await DatabaseService.getUserById(order.staffId);
-        staffName = staff?.name;
-      } catch (_) {}
-
-      final auth = Get.isRegistered<AuthController>()
-          ? Get.find<AuthController>()
-          : null;
-      final restaurantId =
-          order.restaurantId ?? auth?.currentUser?.restaurantId;
-      String? restaurantName;
-      String? restaurantAddress;
-      String? restaurantPhone;
-      if (restaurantId != null) {
-        try {
-          final restaurant = await DatabaseService.getRestaurantById(
-            restaurantId,
-          );
-          restaurantName = restaurant?.name;
-          restaurantAddress = restaurant?.address;
-          restaurantPhone = restaurant?.phone ?? auth?.currentUser?.phone;
-        } catch (_) {
-          restaurantPhone = auth?.currentUser?.phone;
-        }
-      } else {
-        restaurantPhone = auth?.currentUser?.phone;
-      }
-
-      await _showTicketPreview(
-        (format) => buildKitchenTicketPdf(
+  Future<void> _printKitchenAndCustomerTickets(
+    PosOrder order,
+    List<PosOrderItem> items, {
+    String? staffName,
+    String? restaurantAddress,
+    String? restaurantName,
+    String? restaurantPhone,
+  }) async {
+    final directPrinted = await EscPosPrinterService.instance
+        .tryPrintKitchenAndCustomerTickets(
           order,
           items,
-          format: format,
           staffName: staffName,
           restaurantAddress: restaurantAddress,
           restaurantName: restaurantName,
           restaurantPhone: restaurantPhone,
-        ),
-        title: 'Ticket cuisine (aperçu, impression indisponible)',
-      );
+        );
+    if (directPrinted) {
+      if (mounted) {
+        _notify(
+          'Tickets cuisine et client envoyés directement à l\'imprimante',
+          title: 'Impression',
+          type: POSSnackType.success,
+        );
+      }
+      return;
     }
+    await _printOrPreview(
+      builder: (format) => buildKitchenAndCustomerTicketsPdf(
+        order,
+        items,
+        format: format,
+        staffName: staffName,
+        restaurantAddress: restaurantAddress,
+        restaurantName: restaurantName,
+        restaurantPhone: restaurantPhone,
+      ),
+      fallbackTitle: 'Tickets cuisine + client (aperçu)',
+    );
+  }
+
+  Future<void> _printCustomerBill(
+    PosOrder order,
+    List<PosOrderItem> items, {
+    String? staffName,
+    String? restaurantAddress,
+    String? restaurantName,
+    String? restaurantPhone,
+  }) async {
+    final directPrinted = await EscPosPrinterService.instance
+        .tryPrintCustomerTicket(
+          order,
+          items,
+          staffName: staffName,
+          restaurantAddress: restaurantAddress,
+          restaurantName: restaurantName,
+          restaurantPhone: restaurantPhone,
+        );
+    if (directPrinted) {
+      if (mounted) {
+        _notify(
+          'Addition client envoyée directement à l\'imprimante',
+          title: 'Impression',
+          type: POSSnackType.success,
+        );
+      }
+      return;
+    }
+    await _printOrPreview(
+      builder: (format) => buildCustomerBillPdf(
+        order,
+        items,
+        format: format,
+        staffName: staffName,
+        restaurantAddress: restaurantAddress,
+        restaurantName: restaurantName,
+        restaurantPhone: restaurantPhone,
+      ),
+      fallbackTitle: 'Addition client (aperçu)',
+      onFail: () =>
+          _showTextTicket(order, items, title: 'Addition client (texte)'),
+    );
+  }
+
+  Future<void> _autoPrintKitchenByOrderId(int orderId) async {
+    final context = await _loadOrderPrintContext(orderId);
+    if (context == null) return;
+
+    await _printKitchenTicket(
+      context.order,
+      context.items,
+      staffName: context.staffName,
+      restaurantAddress: context.restaurantAddress,
+      restaurantName: context.restaurantName,
+      restaurantPhone: context.restaurantPhone,
+    );
   }
 
   bool _isMobileApi(PosOrder order) {
@@ -2452,9 +2638,11 @@ class _PosScreenState extends State<PosScreen> {
   }
 
   void _scheduleExitAfterAction({bool immediate = false}) {
+    if (_isSaving || _isNavigatingAway) return;
+    _isNavigatingAway = true;
     final delay = immediate ? Duration.zero : const Duration(seconds: 5);
     Future.delayed(delay, () {
-      if (!mounted) return;
+      if (!mounted || _isSaving) return;
       final pos = Get.find<PosController>();
       pos.lock();
       Get.offAllNamed('/pos-lock');
@@ -2842,6 +3030,7 @@ class _PosScreenState extends State<PosScreen> {
       }
 
       // Lock immediately after the post-action when requested.
+      _isNavigatingAway = true;
       await Future.delayed(const Duration(milliseconds: 500));
       if (!mounted) return;
       pos.lock();
@@ -2996,8 +3185,12 @@ class _PosScreenState extends State<PosScreen> {
       ..writeln('Commande #${order.id}')
       ..writeln('Type: ${order.fulfillmentType}')
       ..writeln('Table: ${order.tableNumber ?? '-'}')
-      ..writeln('Client: ${order.customerName ?? '-'}')
-      ..writeln('-----------------------------');
+      ..writeln('Client: ${order.customerName ?? '-'}');
+    if (order.glovoOrderNumber != null &&
+        order.glovoOrderNumber!.trim().isNotEmpty) {
+      buf.writeln('Numéro Glovo: ${order.glovoOrderNumber}');
+    }
+    buf.writeln('-----------------------------');
     for (final it in items) {
       buf.writeln(
         '${it.quantity} x ${it.productName}  ${money(it.unitPrice * it.quantity)}',
@@ -3153,9 +3346,7 @@ class _PosScreenState extends State<PosScreen> {
                           keyboardType: TextInputType.text,
                           decoration: InputDecoration(
                             labelText: 'Nom client',
-                            helperText: selectedType == 'pickup'
-                                ? 'Optionnel'
-                                : 'Optionnel (au moins un requis)',
+                            helperText: 'Optionnel',
                           ),
                         ),
                       if (selectedType == 'pickup' ||
@@ -3164,9 +3355,7 @@ class _PosScreenState extends State<PosScreen> {
                           controller: phoneController,
                           decoration: InputDecoration(
                             labelText: 'Telephone',
-                            helperText: selectedType == 'pickup'
-                                ? 'Optionnel'
-                                : 'Optionnel (au moins un requis)',
+                            helperText: 'Optionnel',
                           ),
                         ),
                       if (selectedType == 'delivery')
@@ -3175,7 +3364,7 @@ class _PosScreenState extends State<PosScreen> {
                           keyboardType: TextInputType.multiline,
                           maxLines: 2,
                           decoration: const InputDecoration(
-                            labelText: 'Adresse livraison',
+                            labelText: 'Adresse livraison (optionnel)',
                           ),
                         ),
                     ],
@@ -3482,10 +3671,12 @@ class _PosScreenState extends State<PosScreen> {
         ),
         const SizedBox(width: SushiSpace.md),
         TextButton.icon(
-          onPressed: () {
-            pos.lock();
-            Get.offAllNamed('/pos');
-          },
+          onPressed: _isSaving || _isNavigatingAway
+              ? null
+              : () {
+                  pos.lock();
+                  Get.offAllNamed('/pos');
+                },
           icon: const Icon(Icons.lock, size: 16, color: SushiColors.red),
           label: Text('Verrouiller', style: SushiTypo.h4),
           style: _lockButtonStyle(),
@@ -4609,315 +4800,287 @@ class _PosScreenState extends State<PosScreen> {
     final addressController = TextEditingController(
       text: pos.deliveryAddress ?? '',
     );
-    int? selectedLivreurId;
-    String? selectedLivreurName;
-    String? selectedLivreurPhone;
+    final glovoOrderNumberController = TextEditingController(
+      text: pos.glovoOrderNumber ?? '',
+    );
     List<Customer> searchResults = [];
     Customer? selectedCustomer;
-    final result =
-        await showDialog<bool>(
-          context: context,
-          barrierDismissible: false,
-          builder: (dialogContext) => StatefulBuilder(
-            builder: (dialogContext, setDialogState) => AlertDialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              contentPadding: EdgeInsets.zero,
-              content: Container(
-                width: 500,
-                constraints: BoxConstraints(
-                  maxHeight: MediaQuery.of(dialogContext).size.height * 0.8,
+    try {
+      final result =
+          await showDialog<bool>(
+            context: context,
+            barrierDismissible: false,
+            builder: (dialogContext) => StatefulBuilder(
+              builder: (dialogContext, setDialogState) => AlertDialog(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: SushiColors.bg,
-                        borderRadius: const BorderRadius.vertical(
-                          top: Radius.circular(16),
+                contentPadding: EdgeInsets.zero,
+                content: Container(
+                  width: 500,
+                  constraints: BoxConstraints(
+                    maxHeight: MediaQuery.of(dialogContext).size.height * 0.8,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: SushiColors.bg,
+                          borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(16),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.person_outline,
+                              color: SushiColors.red,
+                              size: 24,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Informations Client',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w700,
+                                      color: SushiColors.ink,
+                                    ),
+                                  ),
+                                  Text(
+                                    pos.fulfillmentType == 'delivery'
+                                        ? 'Livraison'
+                                        : 'À emporter',
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: SushiColors.inkMid,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.close, size: 20),
+                              onPressed: () =>
+                                  Navigator.pop(dialogContext, false),
+                            ),
+                          ],
                         ),
                       ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.person_outline,
-                            color: SushiColors.red,
-                            size: 24,
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Informations Client',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w700,
-                                    color: SushiColors.ink,
-                                  ),
-                                ),
-                                Text(
-                                  pos.fulfillmentType == 'delivery'
-                                      ? 'Livraison'
-                                      : 'À emporter',
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: SushiColors.inkMid,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.close, size: 20),
-                            onPressed: () =>
-                                Navigator.pop(dialogContext, false),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Expanded(
-                      child: SingleChildScrollView(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            TextField(
-                              controller: phoneController,
-                              keyboardType: TextInputType.phone,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                color: SushiColors.ink,
-                              ),
-                              decoration: InputDecoration(
-                                labelText: pos.fulfillmentType == 'pickup'
-                                    ? 'Téléphone (optionnel)'
-                                    : 'Téléphone *',
-                                labelStyle: const TextStyle(
-                                  fontSize: 13,
-                                  color: SushiColors.inkMid,
-                                ),
-                                prefixIcon: const Icon(
-                                  Icons.phone_outlined,
-                                  size: 20,
-                                  color: SushiColors.inkMid,
-                                ),
-                                suffixIcon: phoneController.text.isNotEmpty
-                                    ? IconButton(
-                                        icon: const Icon(Icons.clear, size: 20),
-                                        onPressed: () {
-                                          phoneController.clear();
-                                          setDialogState(() {
-                                            searchResults = [];
-                                            selectedCustomer = null;
-                                            nameController.clear();
-                                            addressController.clear();
-                                          });
-                                        },
-                                      )
-                                    : null,
-                                filled: true,
-                                fillColor: selectedCustomer != null
-                                    ? SushiColors.greenPale
-                                    : SushiColors.white,
-                                contentPadding: const EdgeInsets.all(12),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                  borderSide: BorderSide(
-                                    color: selectedCustomer != null
-                                        ? SushiColors.green
-                                        : SushiColors.divider,
-                                  ),
-                                ),
-                              ),
-                              onChanged: (value) async {
-                                if (value.trim().isEmpty) {
-                                  setDialogState(() {
-                                    searchResults = [];
-                                    selectedCustomer = null;
-                                  });
-                                  return;
-                                }
-                                final results =
-                                    await DatabaseService.searchCustomers(
-                                      value,
-                                    );
-                                setDialogState(() {
-                                  searchResults = results.take(5).toList();
-                                });
-                              },
-                            ),
-                            if (searchResults.isNotEmpty) ...[
-                              const SizedBox(height: 12),
-                              Container(
-                                constraints: const BoxConstraints(
-                                  maxHeight: 200,
-                                ),
-                                decoration: BoxDecoration(
-                                  border: Border.all(
-                                    color: SushiColors.divider,
-                                  ),
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: ListView.builder(
-                                  shrinkWrap: true,
-                                  itemCount: searchResults.length,
-                                  itemBuilder: (context, index) {
-                                    final customer = searchResults[index];
-                                    return ListTile(
-                                      dense: true,
-                                      leading: CircleAvatar(
-                                        backgroundColor: SushiColors.redPale,
-                                        child: Icon(
-                                          Icons.person,
-                                          size: 18,
-                                          color: SushiColors.red,
-                                        ),
-                                      ),
-                                      title: Text(
-                                        customer.name,
-                                        style: const TextStyle(
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                      subtitle: Text(
-                                        '${customer.phone}${customer.address != null && customer.address!.isNotEmpty ? ' • ${customer.address}' : ''}',
-                                        style: const TextStyle(fontSize: 11),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                      trailing: Text(
-                                        '${customer.orderCount} cmd',
-                                        style: const TextStyle(
-                                          fontSize: 11,
-                                          color: SushiColors.inkMid,
-                                        ),
-                                      ),
-                                      onTap: () {
-                                        setDialogState(() {
-                                          selectedCustomer = customer;
-                                          phoneController.text = customer.phone;
-                                          nameController.text = customer.name;
-                                          addressController.text =
-                                              customer.address ?? '';
-                                          searchResults = [];
-                                        });
-                                      },
-                                    );
-                                  },
-                                ),
-                              ),
-                            ],
-                            if (selectedCustomer != null &&
-                                searchResults.isEmpty) ...[
-                              const SizedBox(height: 12),
-                              Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: SushiColors.greenPale,
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(color: SushiColors.green),
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Icon(
-                                          Icons.check_circle,
-                                          size: 16,
-                                          color: SushiColors.green,
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Text(
-                                          'Client sélectionné',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w700,
-                                            color: SushiColors.green,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      selectedCustomer!.name,
-                                      style: const TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                    Text(
-                                      selectedCustomer!.phone,
-                                      style: const TextStyle(fontSize: 12),
-                                    ),
-                                    if (selectedCustomer!.address != null &&
-                                        selectedCustomer!.address!.isNotEmpty)
-                                      Text(
-                                        selectedCustomer!.address!,
-                                        style: const TextStyle(fontSize: 12),
-                                      ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                            const SizedBox(height: 12),
-                            TextField(
-                              controller: nameController,
-                              keyboardType: TextInputType.text,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                color: SushiColors.ink,
-                              ),
-                              decoration: InputDecoration(
-                                labelText: pos.fulfillmentType == 'pickup'
-                                    ? 'Nom complet (optionnel)'
-                                    : 'Nom complet *',
-                                labelStyle: const TextStyle(
-                                  fontSize: 13,
-                                  color: SushiColors.inkMid,
-                                ),
-                                prefixIcon: const Icon(
-                                  Icons.person_outline,
-                                  size: 20,
-                                  color: SushiColors.inkMid,
-                                ),
-                                filled: true,
-                                fillColor: SushiColors.white,
-                                contentPadding: const EdgeInsets.all(12),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                  borderSide: const BorderSide(
-                                    color: SushiColors.divider,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            if (pos.fulfillmentType == 'delivery')
+                      Expanded(
+                        child: SingleChildScrollView(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
                               TextField(
-                                controller: addressController,
-                                keyboardType: TextInputType.streetAddress,
-                                maxLines: 2,
+                                controller: phoneController,
+                                keyboardType: TextInputType.phone,
                                 style: const TextStyle(
                                   fontSize: 14,
                                   color: SushiColors.ink,
                                 ),
                                 decoration: InputDecoration(
-                                  labelText: 'Adresse de livraison *',
+                                  labelText: 'Téléphone (optionnel)',
                                   labelStyle: const TextStyle(
                                     fontSize: 13,
                                     color: SushiColors.inkMid,
                                   ),
                                   prefixIcon: const Icon(
-                                    Icons.location_on_outlined,
+                                    Icons.phone_outlined,
+                                    size: 20,
+                                    color: SushiColors.inkMid,
+                                  ),
+                                  suffixIcon: phoneController.text.isNotEmpty
+                                      ? IconButton(
+                                          icon: const Icon(
+                                            Icons.clear,
+                                            size: 20,
+                                          ),
+                                          onPressed: () {
+                                            phoneController.clear();
+                                            setDialogState(() {
+                                              searchResults = [];
+                                              selectedCustomer = null;
+                                              nameController.clear();
+                                              addressController.clear();
+                                            });
+                                          },
+                                        )
+                                      : null,
+                                  filled: true,
+                                  fillColor: selectedCustomer != null
+                                      ? SushiColors.greenPale
+                                      : SushiColors.white,
+                                  contentPadding: const EdgeInsets.all(12),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                    borderSide: BorderSide(
+                                      color: selectedCustomer != null
+                                          ? SushiColors.green
+                                          : SushiColors.divider,
+                                    ),
+                                  ),
+                                ),
+                                onChanged: (value) async {
+                                  if (value.trim().isEmpty) {
+                                    setDialogState(() {
+                                      searchResults = [];
+                                      selectedCustomer = null;
+                                    });
+                                    return;
+                                  }
+                                  final results =
+                                      await DatabaseService.searchCustomers(
+                                        value,
+                                      );
+                                  setDialogState(() {
+                                    searchResults = results.take(5).toList();
+                                  });
+                                },
+                              ),
+                              if (searchResults.isNotEmpty) ...[
+                                const SizedBox(height: 12),
+                                Container(
+                                  constraints: const BoxConstraints(
+                                    maxHeight: 200,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    border: Border.all(
+                                      color: SushiColors.divider,
+                                    ),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: ListView.builder(
+                                    shrinkWrap: true,
+                                    itemCount: searchResults.length,
+                                    itemBuilder: (context, index) {
+                                      final customer = searchResults[index];
+                                      return ListTile(
+                                        dense: true,
+                                        leading: CircleAvatar(
+                                          backgroundColor: SushiColors.redPale,
+                                          child: Icon(
+                                            Icons.person,
+                                            size: 18,
+                                            color: SushiColors.red,
+                                          ),
+                                        ),
+                                        title: Text(
+                                          customer.name,
+                                          style: const TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                        subtitle: Text(
+                                          '${customer.phone}${customer.address != null && customer.address!.isNotEmpty ? ' • ${customer.address}' : ''}',
+                                          style: const TextStyle(fontSize: 11),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        trailing: Text(
+                                          '${customer.orderCount} cmd',
+                                          style: const TextStyle(
+                                            fontSize: 11,
+                                            color: SushiColors.inkMid,
+                                          ),
+                                        ),
+                                        onTap: () {
+                                          setDialogState(() {
+                                            selectedCustomer = customer;
+                                            phoneController.text =
+                                                customer.phone;
+                                            nameController.text = customer.name;
+                                            addressController.text =
+                                                customer.address ?? '';
+                                            searchResults = [];
+                                          });
+                                        },
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ],
+                              if (selectedCustomer != null &&
+                                  searchResults.isEmpty) ...[
+                                const SizedBox(height: 12),
+                                Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: SushiColors.greenPale,
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
+                                      color: SushiColors.green,
+                                    ),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Icon(
+                                            Icons.check_circle,
+                                            size: 16,
+                                            color: SushiColors.green,
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            'Client sélectionné',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w700,
+                                              color: SushiColors.green,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        selectedCustomer!.name,
+                                        style: const TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      Text(
+                                        selectedCustomer!.phone,
+                                        style: const TextStyle(fontSize: 12),
+                                      ),
+                                      if (selectedCustomer!.address != null &&
+                                          selectedCustomer!.address!.isNotEmpty)
+                                        Text(
+                                          selectedCustomer!.address!,
+                                          style: const TextStyle(fontSize: 12),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                              const SizedBox(height: 12),
+                              TextField(
+                                controller: nameController,
+                                keyboardType: TextInputType.text,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  color: SushiColors.ink,
+                                ),
+                                decoration: InputDecoration(
+                                  labelText: 'Nom complet (optionnel)',
+                                  labelStyle: const TextStyle(
+                                    fontSize: 13,
+                                    color: SushiColors.inkMid,
+                                  ),
+                                  prefixIcon: const Icon(
+                                    Icons.person_outline,
                                     size: 20,
                                     color: SushiColors.inkMid,
                                   ),
@@ -4932,95 +5095,141 @@ class _PosScreenState extends State<PosScreen> {
                                   ),
                                 ),
                               ),
+                              const SizedBox(height: 12),
+                              if (pos.fulfillmentType == 'delivery')
+                                TextField(
+                                  controller: addressController,
+                                  keyboardType: TextInputType.streetAddress,
+                                  maxLines: 2,
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    color: SushiColors.ink,
+                                  ),
+                                  decoration: InputDecoration(
+                                    labelText:
+                                        'Adresse de livraison (optionnel)',
+                                    labelStyle: const TextStyle(
+                                      fontSize: 13,
+                                      color: SushiColors.inkMid,
+                                    ),
+                                    prefixIcon: const Icon(
+                                      Icons.location_on_outlined,
+                                      size: 20,
+                                      color: SushiColors.inkMid,
+                                    ),
+                                    filled: true,
+                                    fillColor: SushiColors.white,
+                                    contentPadding: const EdgeInsets.all(12),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                      borderSide: const BorderSide(
+                                        color: SushiColors.divider,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              if (pos.fulfillmentType == 'delivery' &&
+                                  pos.isGlovoDelivery) ...[
+                                const SizedBox(height: 12),
+                                TextField(
+                                  controller: glovoOrderNumberController,
+                                  keyboardType: TextInputType.text,
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    color: SushiColors.ink,
+                                  ),
+                                  decoration: InputDecoration(
+                                    labelText:
+                                        'Numéro commande Glovo (optionnel)',
+                                    labelStyle: const TextStyle(
+                                      fontSize: 13,
+                                      color: SushiColors.inkMid,
+                                    ),
+                                    prefixIcon: const Icon(
+                                      Icons.confirmation_number_outlined,
+                                      size: 20,
+                                      color: SushiColors.inkMid,
+                                    ),
+                                    filled: true,
+                                    fillColor: SushiColors.white,
+                                    contentPadding: const EdgeInsets.all(12),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                      borderSide: const BorderSide(
+                                        color: SushiColors.divider,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: SushiColors.bg,
+                          borderRadius: const BorderRadius.vertical(
+                            bottom: Radius.circular(16),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            TextButton(
+                              onPressed: () =>
+                                  Navigator.pop(dialogContext, false),
+                              child: const Text('Annuler'),
+                            ),
+                            const SizedBox(width: 12),
+                            ElevatedButton(
+                              onPressed: () {
+                                pos.setCustomerInfo(
+                                  name: nameController.text,
+                                  phone: phoneController.text,
+                                  address: addressController.text,
+                                );
+                                if (pos.fulfillmentType == 'delivery' &&
+                                    pos.isGlovoDelivery) {
+                                  pos.setGlovoOrderNumber(
+                                    glovoOrderNumberController.text,
+                                  );
+                                } else {
+                                  pos.setGlovoOrderNumber(null);
+                                }
+                                Navigator.pop(dialogContext, true);
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: SushiColors.red,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 24,
+                                  vertical: 12,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
+                              child: const Text('Valider'),
+                            ),
                           ],
                         ),
                       ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: SushiColors.bg,
-                        borderRadius: const BorderRadius.vertical(
-                          bottom: Radius.circular(16),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          TextButton(
-                            onPressed: () =>
-                                Navigator.pop(dialogContext, false),
-                            child: const Text('Annuler'),
-                          ),
-                          const SizedBox(width: 12),
-                          ElevatedButton(
-                            onPressed: () {
-                              if (pos.fulfillmentType == 'pickup') {
-                              } else if (pos.fulfillmentType == 'delivery') {
-                                if (phoneController.text.trim().isEmpty &&
-                                    nameController.text.trim().isEmpty) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                        'Nom ou téléphone obligatoire pour livraison',
-                                      ),
-                                      backgroundColor: Colors.red,
-                                    ),
-                                  );
-                                  return;
-                                }
-                              }
-                              if (pos.fulfillmentType == 'delivery' &&
-                                  addressController.text.trim().isEmpty) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      'Adresse obligatoire pour livraison',
-                                    ),
-                                    backgroundColor: Colors.red,
-                                  ),
-                                );
-                                return;
-                              }
-                              pos.setCustomerInfo(
-                                name: nameController.text,
-                                phone: phoneController.text,
-                                address: addressController.text,
-                              );
-                              if (pos.fulfillmentType == 'delivery' &&
-                                  selectedLivreurId != null) {
-                                pos.setLivreurInfo(
-                                  livreurId: selectedLivreurId,
-                                  livreurName: selectedLivreurName,
-                                  livreurPhone: selectedLivreurPhone,
-                                );
-                              }
-                              Navigator.pop(dialogContext, true);
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: SushiColors.red,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 24,
-                                vertical: 12,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                            ),
-                            child: const Text('Valider'),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
-        ) ??
-        false;
-    return result;
+          ) ??
+          false;
+      return result;
+    } finally {
+      phoneController.dispose();
+      nameController.dispose();
+      addressController.dispose();
+      glovoOrderNumberController.dispose();
+    }
   }
 }
 

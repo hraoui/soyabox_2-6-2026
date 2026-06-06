@@ -13,7 +13,6 @@ import '../services/app_settings_service.dart';
 import '../services/database_service.dart';
 import '../models/pos_order.dart';
 import '../utils/order_display_labels.dart';
-import '../theme/sushi_design.dart';
 import '../utils/payment_method_utils.dart';
 import '../utils/app_logger.dart';
 import '../widgets/order_details_dialog.dart';

@@ -23,7 +23,6 @@ import 'package:caisse_1/services/isar_order_local_database.dart';
 import 'package:caisse_1/services/notification_sound_service.dart';
 import 'package:caisse_1/services/sync_queue_service.dart';
 import 'package:caisse_1/utils/app_logger.dart';
-import 'dart:io';
 
 import 'package:get/get.dart';
 
@@ -152,13 +151,14 @@ class DependencyInjection {
       Get.put<SyncController>(SyncController(), permanent: true);
       print('✅ [DEP] SyncController created');
 
-      if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
-        // ✅ Start background sync immediately for desktop builds only
-        print('🎵 [DEP] Starting desktop-only background sync for API orders...');
+      // Start background sync immediately (no admin login required)
+      try {
+        print('🎵 [DEP] Starting background sync (no admin required)...');
         Get.find<SyncController>().startBackgroundSync();
-        print('✅ [DEP] Desktop background sync started');
-      } else {
-        print('⏭️ [DEP] Background sync skipped on non-desktop platform');
+        print('✅ [DEP] Background sync started');
+      } catch (e, st) {
+        print('⚠️ [DEP] Could not start background sync: $e');
+        appLogger.e('Could not start background sync', error: e, stackTrace: st);
       }
 
       print('🎉 [DEP] Dependency injection completed successfully!');

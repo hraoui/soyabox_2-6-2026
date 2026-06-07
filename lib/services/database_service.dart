@@ -735,7 +735,7 @@ class DatabaseService {
             if ((order.tableNumber ?? '').trim() != normalizedTable) return false;
           }
           if (normalizedFulfillment != null && normalizedFulfillment.isNotEmpty) {
-            if ((order.fulfillmentType ?? '').trim() != normalizedFulfillment) return false;
+            if ((order.fulfillmentType).trim() != normalizedFulfillment) return false;
           }
           return true;
         }).toList();
@@ -852,7 +852,9 @@ class DatabaseService {
 
         // Fulfillment must match
         if (existing.fulfillmentType.trim().toLowerCase() !=
-          order.fulfillmentType.trim().toLowerCase()) continue;
+          order.fulfillmentType.trim().toLowerCase()) {
+          continue;
+        }
 
         // Table number or phone match heuristic
         final existingTable = (existing.tableNumber ?? '').trim();

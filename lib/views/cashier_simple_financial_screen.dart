@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:printing/printing.dart';
@@ -122,8 +123,21 @@ class _CashierSimpleFinancialScreenState extends State<CashierSimpleFinancialScr
       if (printed) {
         if (mounted) Get.snackbar('Succès', 'Rapport journalier envoyé à l\'imprimante');
       } else {
-        // fallback to PDF print
-        await Printing.layoutPdf(onLayout: (_) => pdfBytes);
+        try {
+          if (Platform.isMacOS) {
+            final tmp = Directory.systemTemp;
+            final file = File('${tmp.path}/daily_report_${DateTime.now().millisecondsSinceEpoch}.pdf');
+            await file.writeAsBytes(pdfBytes);
+            if (mounted) Get.snackbar('Succès', 'PDF sauvegardé: ${file.path}');
+            try {
+              await Process.run('open', [file.path]);
+            } catch (_) {}
+          } else {
+            await Printing.layoutPdf(onLayout: (_) => pdfBytes).timeout(const Duration(seconds: 6));
+          }
+        } catch (e) {
+          if (mounted) Get.snackbar('Erreur', 'Impossible d\'imprimer le rapport: $e');
+        }
       }
     } catch (e) {
       if (mounted) Get.snackbar('Erreur', 'Impossible d\'imprimer le rapport: $e');

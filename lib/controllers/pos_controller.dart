@@ -2406,6 +2406,8 @@ class PosController extends GetxController {
     // Enqueue for sync
     await _enqueueOrderSyncById(order.id);
 
+    
+
     // Try immediate sync for remote orders
     final synced = await _syncApiOrderStatusIfNeeded(order);
 

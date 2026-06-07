@@ -5,6 +5,7 @@ import 'package:caisse_1/utils/pos_ticket_printer.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:printing/printing.dart';
+import 'dart:io';
 import '../controllers/cash_register_controller.dart';
 import '../controllers/auth_controller.dart';
 import '../services/daily_report_service.dart';
@@ -216,10 +217,27 @@ class CashRegisterStatusScreen extends StatelessWidget {
                           ],
                         ),
                       ),
-                      _CompactIconButton(
-                        icon: Icons.print_rounded,
-                        color: const Color(0xFF7C3AED),
-                        onPressed: () => _printDailyReport(),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Tooltip(
+                            message: 'Générer rapport',
+                            child: _CompactIconButton(
+                              icon: Icons.file_download_rounded,
+                              color: const Color(0xFF06B6D4),
+                              onPressed: () => _generateDailyReport(),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Tooltip(
+                            message: 'Imprimer rapport',
+                            child: _CompactIconButton(
+                              icon: Icons.print_rounded,
+                              color: const Color(0xFF7C3AED),
+                              onPressed: () => _printDailyReport(),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -411,7 +429,7 @@ class CashRegisterStatusScreen extends StatelessWidget {
       if (directPrinted) {
         Get.snackbar(
           'Succès',
-          'Rapport journalier envoyé directement à l\'imprimante',
+          'Rapport journalier imprimé directement',
           snackPosition: SnackPosition.BOTTOM,
           backgroundColor: const Color(0xFF22C55E),
           colorText: Colors.white,
@@ -435,14 +453,49 @@ class CashRegisterStatusScreen extends StatelessWidget {
       } catch (e, st) {
         debugPrint('Print failed for daily report: $e\n$st');
         Get.snackbar(
-          'Imprimante absente',
-          'Le rapport ne peut pas être imprimé. Un aperçu est affiché à la place.',
+          'Aperçu',
+          'Impression indisponible, aperçu du rapport affiché.',
           snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: const Color(0xFFEF4444),
+          backgroundColor: const Color(0xFFF59E0B),
           colorText: Colors.white,
         );
         await _showDailyReportPreview(bytes);
       }
+    } catch (e) {
+      Get.snackbar(
+        'Erreur',
+        'Impossible de générer le rapport: $e',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: const Color(0xFFEF4444),
+        colorText: Colors.white,
+      );
+    }
+  }
+
+  Future<void> _generateDailyReport() async {
+    try {
+      final authController = Get.find<AuthController>();
+      final staffId = authController.currentUser?.id ?? 0;
+      final staffName = authController.currentUser?.name ?? 'Inconnu';
+
+      final report = await DailyReportService.generateDailyReport(
+        date: DateTime.now(),
+        staffId: staffId,
+        staffName: staffName,
+        openedAt: null,
+        closedAt: null,
+      );
+
+      final bytes = await buildDailyReportPdf(report);
+      await _showDailyReportPreview(bytes);
+
+      Get.snackbar(
+        'Succès',
+        'Rapport généré (aperçu)',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: const Color(0xFF22C55E),
+        colorText: Colors.white,
+      );
     } catch (e) {
       Get.snackbar(
         'Erreur',
@@ -464,7 +517,16 @@ class CashRegisterStatusScreen extends StatelessWidget {
               icon: const Icon(Icons.print),
               onPressed: () async {
                 try {
-                  await Printing.layoutPdf(onLayout: (_) async => bytes);
+                  if (Platform.isMacOS) {
+                    final tmp = Directory.systemTemp;
+                    final file = File('${tmp.path}/daily_report_${DateTime.now().millisecondsSinceEpoch}.pdf');
+                    await file.writeAsBytes(bytes);
+                    try {
+                      await Process.run('open', [file.path]);
+                    } catch (_) {}
+                    return;
+                  }
+                  await Printing.layoutPdf(onLayout: (_) async => bytes).timeout(const Duration(seconds: 6));
                 } catch (e) {
                   Get.snackbar(
                     'Erreur d\'impression',

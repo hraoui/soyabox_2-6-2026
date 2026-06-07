@@ -222,22 +222,20 @@ class _PosStaffPaidOrdersScreenState extends State<PosStaffPaidOrdersScreen> {
       if (directPrinted) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Ticket envoyé directement à l\'imprimante'),
-            ),
+            const SnackBar(content: Text('Ticket client imprimé directement')),
           );
         }
         return;
       }
 
       debugPrint(
-        'ESC/POS print not available or failed, falling back to PDF for order ${order.id}',
+        'Impression indisponible, ouverture de l\'aperçu PDF pour la commande ${order.id}',
       );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
-              'Impression ESC/POS indisponible, génération du PDF...',
+              'Impression indisponible, ouverture de l\'aperçu PDF...',
             ),
           ),
         );
@@ -249,17 +247,47 @@ class _PosStaffPaidOrdersScreenState extends State<PosStaffPaidOrdersScreen> {
         restaurantName: restaurant?.name,
         restaurantPhone: restaurant?.phone,
       );
-      try {
-        await Printing.layoutPdf(onLayout: (_) async => pdfData);
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Aperçu PDF ouvert (ou envoyé à l\'imprimante).'),
-            ),
-          );
+      // Sur macOS, `Printing.layoutPdf` peut provoquer des comportements
+      // natifs inattendus si aucune imprimante n'est configurée. Pour éviter
+      // un plantage, on évite d'appeler `layoutPdf` sur macOS et on ouvre
+      // directement le fichier PDF en fallback.
+      if (Platform.isMacOS) {
+        try {
+          final tmp = Directory.systemTemp;
+          final file = File('${tmp.path}/ticket_order_${order.id}.pdf');
+          await file.writeAsBytes(pdfData);
+          debugPrint('Saved PDF ticket to ${file.path} (macOS fallback)');
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('PDF sauvegardé: ${file.path}'),
+              ),
+            );
+          }
+          try {
+            await Process.run('open', [file.path]);
+          } catch (_) {
+            // ignore
+          }
+          return;
+        } catch (e) {
+          debugPrint('macOS fallback save/open failed: $e');
+          // continuer vers la tentative d'aperçu standard
         }
-      } catch (pdfErr) {
-        debugPrint('PDF printing failed: $pdfErr');
+      }
+
+      try {
+        // Essayer l'aperçu via printing avec timeout pour éviter blocage
+        await Printing.layoutPdf(onLayout: (_) async => pdfData)
+            .timeout(const Duration(seconds: 6));
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Aperçu PDF ouvert.')));
+        }
+      } on Exception catch (e) {
+        debugPrint('Printing.layoutPdf error/timeout: $e');
+        // fallback: sauvegarder et ouvrir le fichier
         try {
           final tmp = Directory.systemTemp;
           final file = File('${tmp.path}/ticket_order_${order.id}.pdf');
@@ -269,7 +297,7 @@ class _PosStaffPaidOrdersScreenState extends State<PosStaffPaidOrdersScreen> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(
-                  'Échec impression PDF: $pdfErr. PDF sauvegardé: ${file.path}',
+                  'Échec impression PDF: $e. PDF sauvegardé: ${file.path}',
                 ),
               ),
             );
@@ -282,24 +310,188 @@ class _PosStaffPaidOrdersScreenState extends State<PosStaffPaidOrdersScreen> {
             } else if (Platform.isWindows) {
               await Process.run('start', [file.path], runInShell: true);
             }
-          } catch (_) {
-            // Opening the file is optional; ignore errors on unsupported platforms
-          }
+          } catch (_) {}
         } catch (saveErr) {
           debugPrint('Saving PDF fallback failed: $saveErr');
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(
-                  'Échec impression PDF: $pdfErr. Erreur sauvegarde PDF: $saveErr',
+                  'Échec impression PDF: $e. Erreur sauvegarde PDF: $saveErr',
                 ),
               ),
             );
           }
         }
+      } catch (e, st) {
+        debugPrint('Printing.layoutPdf error: $e\n$st');
+        // Même fallback en cas d'erreur inattendue
+        try {
+          final tmp = Directory.systemTemp;
+          final file = File('${tmp.path}/ticket_order_${order.id}.pdf');
+          await file.writeAsBytes(pdfData);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('PDF sauvegardé: ${file.path}'),
+              ),
+            );
+          }
+        } catch (_) {}
       }
     } catch (e, st) {
       debugPrint('Unexpected error printing ticket: $e\n$st');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur impression inattendue: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _printKitchenTicket(PosOrder order) async {
+    try {
+      final items = await DatabaseService.getPosOrderItems(order.id);
+      debugPrint(
+        'Printing kitchen: retrieved ${items.length} items for order ${order.id}',
+      );
+      if (items.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Aucun article trouvé pour cette commande'),
+            ),
+          );
+        }
+        return;
+      }
+
+      final restaurant = order.restaurantId != null
+          ? await DatabaseService.getRestaurantById(order.restaurantId!)
+          : null;
+
+      final directPrinted = await EscPosPrinterService.instance
+          .tryPrintKitchenTicket(
+            order,
+            items,
+            restaurantAddress: restaurant?.address,
+            restaurantName: restaurant?.name,
+            restaurantPhone: restaurant?.phone,
+          );
+      if (directPrinted) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Ticket cuisine imprimé directement')),
+          );
+        }
+        return;
+      }
+
+      debugPrint(
+        'Impression cuisine indisponible, ouverture de l\'aperçu PDF pour la commande ${order.id}',
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Impression cuisine indisponible, ouverture de l\'aperçu PDF...',
+            ),
+          ),
+        );
+      }
+
+      final pdfData = await buildKitchenTicketPdf(
+        order,
+        items,
+        restaurantAddress: restaurant?.address,
+        restaurantName: restaurant?.name,
+        restaurantPhone: restaurant?.phone,
+      );
+
+      if (Platform.isMacOS) {
+        try {
+          final tmp = Directory.systemTemp;
+          final file = File('${tmp.path}/ticket_kitchen_order_${order.id}.pdf');
+          await file.writeAsBytes(pdfData);
+          debugPrint('Saved kitchen PDF ticket to ${file.path} (macOS fallback)');
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('PDF sauvegardé: ${file.path}'),
+              ),
+            );
+          }
+          try {
+            await Process.run('open', [file.path]);
+          } catch (_) {}
+          return;
+        } catch (e) {
+          debugPrint('macOS fallback save/open failed: $e');
+        }
+      }
+
+      try {
+        await Printing.layoutPdf(onLayout: (_) async => pdfData)
+            .timeout(const Duration(seconds: 6));
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Aperçu PDF ouvert.')),
+          );
+        }
+      } on Exception catch (e) {
+        debugPrint('Printing.layoutPdf error/timeout (kitchen): $e');
+        try {
+          final tmp = Directory.systemTemp;
+          final file = File('${tmp.path}/ticket_kitchen_order_${order.id}.pdf');
+          await file.writeAsBytes(pdfData);
+          debugPrint('Saved kitchen PDF ticket to ${file.path}');
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  'Échec impression PDF: $e. PDF sauvegardé: ${file.path}',
+                ),
+              ),
+            );
+          }
+          try {
+            if (Platform.isMacOS) {
+              await Process.run('open', [file.path]);
+            } else if (Platform.isLinux) {
+              await Process.run('xdg-open', [file.path]);
+            } else if (Platform.isWindows) {
+              await Process.run('start', [file.path], runInShell: true);
+            }
+          } catch (_) {}
+        } catch (saveErr) {
+          debugPrint('Saving kitchen PDF fallback failed: $saveErr');
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  'Échec impression PDF: $e. Erreur sauvegarde PDF: $saveErr',
+                ),
+              ),
+            );
+          }
+        }
+      } catch (e, st) {
+        debugPrint('Printing.layoutPdf error (kitchen): $e\n$st');
+        try {
+          final tmp = Directory.systemTemp;
+          final file = File('${tmp.path}/ticket_kitchen_order_${order.id}.pdf');
+          await file.writeAsBytes(pdfData);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('PDF sauvegardé: ${file.path}'),
+              ),
+            );
+          }
+        } catch (_) {}
+      }
+    } catch (e, st) {
+      debugPrint('Unexpected error printing kitchen ticket: $e\n$st');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Erreur impression inattendue: $e')),
@@ -459,27 +651,58 @@ class _PosStaffPaidOrdersScreenState extends State<PosStaffPaidOrdersScreen> {
             Divider(height: 1, thickness: 0.6, color: _border),
 
             // ── footer ───────────────────────────────────────────────────────
-            InkWell(
-              onTap: () => _printCustomerTicket(order),
-              child: Container(
-                height: 34,
-                alignment: Alignment.center,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
-                    Icon(Icons.print, size: 13, color: _red),
-                    SizedBox(width: 5),
-                    Text(
-                      'Imprimer ticket',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: _red,
+            Row(
+              children: [
+                Expanded(
+                  child: InkWell(
+                    onTap: () => _printCustomerTicket(order),
+                    child: Container(
+                      height: 34,
+                      alignment: Alignment.center,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          Icon(Icons.print, size: 13, color: _red),
+                          SizedBox(width: 5),
+                          Text(
+                            'Imprimer ticket',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: _red,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ],
+                  ),
                 ),
-              ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: InkWell(
+                    onTap: () => _printKitchenTicket(order),
+                    child: Container(
+                      height: 34,
+                      alignment: Alignment.center,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          Icon(Icons.kitchen_outlined, size: 13, color: _red),
+                          SizedBox(width: 5),
+                          Text(
+                            'Ticket cuisine',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: _red,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -562,10 +785,6 @@ class _PosStaffPaidOrdersScreenState extends State<PosStaffPaidOrdersScreen> {
                         fillColor: Colors.white,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(
-                            color: _border,
-                            width: 0.8,
-                          ),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),

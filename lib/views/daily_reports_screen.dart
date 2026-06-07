@@ -1630,9 +1630,19 @@ class _DailyReportsScreenState extends State<DailyReportsScreen> {
                 icon: const Icon(Icons.print),
                 onPressed: () async {
                   try {
+                    if (Platform.isMacOS) {
+                      final bytes = await builder(PdfPageFormat.roll80);
+                      final tmp = Directory.systemTemp;
+                      final file = File('${tmp.path}/report_${DateTime.now().millisecondsSinceEpoch}.pdf');
+                      await file.writeAsBytes(bytes);
+                      try {
+                        await Process.run('open', [file.path]);
+                      } catch (_) {}
+                      return;
+                    }
                     await Printing.layoutPdf(
                       onLayout: (format) => builder(format),
-                    );
+                    ).timeout(const Duration(seconds: 6));
                   } catch (e) {
                     Get.snackbar(
                       'Erreur d\'impression',

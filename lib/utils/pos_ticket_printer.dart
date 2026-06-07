@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:http/http.dart' as http;
+import 'package:image/image.dart' as img;
 import 'package:printing/printing.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -12,7 +13,8 @@ import '../services/app_settings_service.dart';
 import 'order_item_grouping.dart';
 import 'payment_method_utils.dart';
 
-const double _ticketLogoHeight = 32;
+const double _ticketLogoHeight = 44;
+const double _ticketLogoWidth = 140;
 const double _ticketLogoSpacing = 4;
 
 class _TicketProductLine {
@@ -158,7 +160,7 @@ pw.Widget _buildOfferedBadgeWidget({String? label}) {
   return pw.Container(
     padding: const pw.EdgeInsets.symmetric(horizontal: 5, vertical: 2),
     decoration: pw.BoxDecoration(
-      border: pw.Border.all(color: PdfColors.green, width: 0.7),
+      border: pw.Border.all(color: PdfColors.black, width: 0.7),
       borderRadius: pw.BorderRadius.circular(3),
     ),
     child: pw.Text(
@@ -166,7 +168,7 @@ pw.Widget _buildOfferedBadgeWidget({String? label}) {
       style: pw.TextStyle(
         fontSize: 8,
         fontWeight: pw.FontWeight.bold,
-        color: PdfColors.green,
+        color: PdfColors.black,
       ),
     ),
   );
@@ -187,7 +189,7 @@ List<pw.Widget> _buildOfferedSummaryWidgets(
       margin: const pw.EdgeInsets.only(bottom: 4),
       padding: const pw.EdgeInsets.all(6),
       decoration: pw.BoxDecoration(
-        border: pw.Border.all(color: PdfColors.green, width: 0.7),
+        border: pw.Border.all(color: PdfColors.black, width: 0.7),
         borderRadius: pw.BorderRadius.circular(4),
       ),
       child: pw.Column(
@@ -198,7 +200,7 @@ List<pw.Widget> _buildOfferedSummaryWidgets(
             style: pw.TextStyle(
               fontSize: 10,
               fontWeight: pw.FontWeight.bold,
-              color: PdfColors.green,
+              color: PdfColors.black,
             ),
           ),
           pw.SizedBox(height: 3),
@@ -265,7 +267,7 @@ List<pw.Widget> _buildSimpleCustomerTicketItems(
                     ? pw.TextStyle(
                         fontSize: 10,
                         fontWeight: pw.FontWeight.bold,
-                        color: PdfColors.green,
+                        color: PdfColors.black,
                       )
                     : pw.TextStyle(fontSize: 10),
               ),
@@ -277,7 +279,7 @@ List<pw.Widget> _buildSimpleCustomerTicketItems(
                   ? pw.TextStyle(
                       fontSize: 10,
                       fontWeight: pw.FontWeight.bold,
-                      color: PdfColors.green,
+                      color: PdfColors.black,
                     )
                   : pw.TextStyle(fontSize: 10),
               textAlign: pw.TextAlign.right,
@@ -318,7 +320,7 @@ List<pw.Widget> _buildTicketItemWidgets(
           margin: pw.EdgeInsets.only(bottom: 6),
           padding: pw.EdgeInsets.symmetric(horizontal: 6, vertical: 4),
           decoration: pw.BoxDecoration(
-            border: pw.Border.all(color: PdfColors.red300, width: 0.7),
+            border: pw.Border.all(color: PdfColors.black, width: 0.7),
             borderRadius: pw.BorderRadius.circular(4),
           ),
           child: pw.Text(
@@ -392,9 +394,7 @@ List<pw.Widget> _buildTicketItemWidgets(
                         line.note!,
                         style: pw.TextStyle(
                           fontSize: 9,
-                          color: line.offered
-                              ? PdfColors.green
-                              : PdfColors.black,
+                          color: PdfColors.black,
                         ),
                       ),
                     ),
@@ -492,7 +492,7 @@ List<pw.Widget> _buildPaymentSummaryWidgets(
       width: double.infinity,
       padding: const pw.EdgeInsets.all(6),
       decoration: pw.BoxDecoration(
-        border: pw.Border.all(color: PdfColors.grey400, width: 0.7),
+        border: pw.Border.all(color: PdfColors.black, width: 0.7),
         borderRadius: pw.BorderRadius.circular(4),
       ),
       child: pw.Column(
@@ -570,7 +570,7 @@ List<pw.Widget> _buildPaymentSummaryWidgets(
                   style: pw.TextStyle(
                     fontSize: 9,
                     fontWeight: pw.FontWeight.bold,
-                    color: PdfColors.orange,
+                      color: PdfColors.black,
                   ),
                 ),
               ],
@@ -631,13 +631,6 @@ Future<Uint8List> buildKitchenTicketPdf(
         return pw.Column(
           crossAxisAlignment: pw.CrossAxisAlignment.start,
           children: [
-            ..._buildRestaurantHeaderWidgets(
-              null,
-              includeLogo: false,
-              restaurantName: restaurantName,
-              restaurantAddress: restaurantAddress,
-              restaurantPhone: restaurantPhone,
-            ),
             // Titre ticket
             pw.Center(
               child: pw.Text(
@@ -649,52 +642,37 @@ Future<Uint8List> buildKitchenTicketPdf(
               ),
             ),
             pw.SizedBox(height: 8),
-            pw.Divider(color: PdfColors.grey500),
-            // Informations commande
-            pw.Text(
-              'Commande: #${order.id}',
-              style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
-            ),
-            pw.Text(
-              'Date/Heure: $orderTime',
-              style: pw.TextStyle(fontSize: 10),
-            ),
-            pw.Text(
-              'Type: ${_fulfillmentLabel(order.fulfillmentType)}',
-              style: pw.TextStyle(fontSize: 10),
-            ),
-            if (order.glovoOrderNumber != null &&
-                order.glovoOrderNumber!.trim().isNotEmpty)
-              pw.Text(
-                'Numéro Glovo: ${order.glovoOrderNumber}',
-                style: pw.TextStyle(fontSize: 10),
-              ),
-            if (order.tableNumber != null && order.tableNumber!.isNotEmpty)
-              pw.Text(
-                'Table: ${order.tableNumber}',
-                style: pw.TextStyle(fontSize: 10),
-              ),
-            if (staffName != null)
-              pw.Text('Serveur: $staffName', style: pw.TextStyle(fontSize: 10)),
-            if (order.note != null && order.note!.trim().isNotEmpty)
-              pw.Padding(
-                padding: const pw.EdgeInsets.only(top: 4),
-                child: pw.Text(
-                  'Note: ${order.note!.trim()}',
-                  style: pw.TextStyle(
-                    fontSize: 9,
-                    fontWeight: pw.FontWeight.bold,
+            pw.Divider(color: PdfColors.black),
+            // Informations commande: uniquement numéro et date en gras
+            pw.Center(
+              child: pw.Column(
+                children: [
+                  pw.Text(
+                    'Commande: #${order.id}',
+                    style: pw.TextStyle(
+                      fontSize: 12,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
                   ),
-                ),
+                  pw.SizedBox(height: 4),
+                  pw.Text(
+                    'Date/Heure: $orderTime',
+                    style: pw.TextStyle(
+                      fontSize: 12,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                  ),
+                ],
               ),
-            pw.Divider(color: PdfColors.grey500),
+            ),
+            pw.Divider(color: PdfColors.black),
             // Détails produits
             ..._buildTicketItemWidgets(items, includePrices: false),
             ..._buildOfferedSummaryWidgets(
               items,
               money: AppSettingsService.instance.formatAmount,
             ),
-            pw.Divider(color: PdfColors.grey500),
+            pw.Divider(color: PdfColors.black),
             pw.Center(
               child: pw.Text(
                 'Total articles: ${items.fold<int>(0, (sum, item) => sum + item.quantity)}',
@@ -789,7 +767,7 @@ Future<Uint8List> buildCustomerBillPdf(
               ),
             ),
             pw.SizedBox(height: 8),
-            pw.Divider(color: PdfColors.grey500),
+            pw.Divider(color: PdfColors.black),
             // Informations commande
             pw.Text(
               'Commande: #${order.id}',
@@ -831,11 +809,11 @@ Future<Uint8List> buildCustomerBillPdf(
                 'Adresse: ${order.deliveryAddress}',
                 style: pw.TextStyle(fontSize: 9),
               ),
-            pw.Divider(color: PdfColors.grey500),
+            pw.Divider(color: PdfColors.black),
             // Détails produits - version simplifiée pour client
             ..._buildSimpleCustomerTicketItems(items, money: money),
             ..._buildOfferedSummaryWidgets(items, money: money),
-            pw.Divider(color: PdfColors.grey500),
+            pw.Divider(color: PdfColors.black),
             // Totaux
             pw.Row(
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
@@ -850,11 +828,11 @@ Future<Uint8List> buildCustomerBillPdf(
                 children: [
                   pw.Text(
                     'Remise:',
-                    style: pw.TextStyle(fontSize: 10, color: PdfColors.green),
+                    style: pw.TextStyle(fontSize: 10, color: PdfColors.black),
                   ),
                   pw.Text(
                     '-${money(discount)}',
-                    style: pw.TextStyle(fontSize: 10, color: PdfColors.green),
+                    style: pw.TextStyle(fontSize: 10, color: PdfColors.black),
                   ),
                 ],
               ),
@@ -873,7 +851,7 @@ Future<Uint8List> buildCustomerBillPdf(
                   style: pw.TextStyle(
                     fontWeight: pw.FontWeight.bold,
                     fontSize: 12,
-                    color: PdfColors.green,
+                    color: PdfColors.black,
                   ),
                 ),
               ],
@@ -883,7 +861,7 @@ Future<Uint8List> buildCustomerBillPdf(
               ...paymentSummaryWidgets,
             ],
             pw.SizedBox(height: 8),
-            pw.Divider(color: PdfColors.grey500),
+            pw.Divider(color: PdfColors.black),
             // Message de remerciement
             pw.Center(
               child: pw.Text(
@@ -891,7 +869,7 @@ Future<Uint8List> buildCustomerBillPdf(
                 style: pw.TextStyle(
                   fontSize: 11,
                   fontWeight: pw.FontWeight.bold,
-                  color: PdfColors.green,
+                  color: PdfColors.black,
                 ),
               ),
             ),
@@ -1123,11 +1101,11 @@ Future<Uint8List> buildKitchenAndCustomerTicketsPdf(
                 children: [
                   pw.Text(
                     'Remise:',
-                    style: pw.TextStyle(fontSize: 10, color: PdfColors.green),
+                    style: pw.TextStyle(fontSize: 10, color: PdfColors.black),
                   ),
                   pw.Text(
                     '-${money(discount)}',
-                    style: pw.TextStyle(fontSize: 10, color: PdfColors.green),
+                    style: pw.TextStyle(fontSize: 10, color: PdfColors.black),
                   ),
                 ],
               ),
@@ -1146,7 +1124,7 @@ Future<Uint8List> buildKitchenAndCustomerTicketsPdf(
                   style: pw.TextStyle(
                     fontWeight: pw.FontWeight.bold,
                     fontSize: 12,
-                    color: PdfColors.green,
+                    color: PdfColors.black,
                   ),
                 ),
               ],
@@ -1156,14 +1134,14 @@ Future<Uint8List> buildKitchenAndCustomerTicketsPdf(
               ...paymentSummaryWidgets,
             ],
             pw.SizedBox(height: 8),
-            pw.Divider(color: PdfColors.grey500),
+            pw.Divider(color: PdfColors.black),
             pw.Center(
               child: pw.Text(
                 'Merci pour votre visite',
                 style: pw.TextStyle(
                   fontSize: 11,
                   fontWeight: pw.FontWeight.bold,
-                  color: PdfColors.green,
+                  color: PdfColors.black,
                 ),
               ),
             ),
@@ -1198,6 +1176,7 @@ List<pw.Widget> _buildRestaurantHeaderWidgets(
     widgets.add(
       pw.Center(
         child: pw.SizedBox(
+          width: _ticketLogoWidth,
           height: _ticketLogoHeight,
           child: pw.Image(logoImage, fit: pw.BoxFit.contain),
         ),
@@ -1257,14 +1236,25 @@ Future<pw.MemoryImage?> _loadLogoImage() async {
     if (logoPath.startsWith('http://') || logoPath.startsWith('https://')) {
       final response = await http.get(Uri.parse(logoPath));
       if (response.statusCode == 200) {
-        return pw.MemoryImage(response.bodyBytes);
+        final decoded = img.decodeImage(response.bodyBytes);
+        if (decoded != null) {
+          return pw.MemoryImage(response.bodyBytes);
+        }
       }
       return null;
     }
 
-    final file = File(logoPath);
+    var resolvedPath = logoPath.trim();
+    if (resolvedPath.startsWith('file://')) {
+      resolvedPath = resolvedPath.replaceFirst('file://', '');
+    }
+    final file = File(resolvedPath);
     if (await file.exists()) {
-      return pw.MemoryImage(await file.readAsBytes());
+      final bytes = await file.readAsBytes();
+      final decoded = img.decodeImage(bytes);
+      if (decoded != null) {
+        return pw.MemoryImage(bytes);
+      }
     }
   } catch (_) {}
   return null;

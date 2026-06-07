@@ -417,7 +417,8 @@ class _PosScreenState extends State<PosScreen> {
   Future<void> _saveOrder(PosController pos) async {
     if (_isSaving || pos.isCreatingOrder) return;
     final wasEditing = pos.editingOrderId != null;
-    if (wasEditing && pos.cart.isEmpty) {
+    final cartSnapshot = List<CartItem>.from(pos.cart);
+    if (wasEditing && cartSnapshot.isEmpty) {
       _notify(
         'Aucun nouveau produit à enregistrer',
         title: 'Edition',
@@ -428,9 +429,6 @@ class _PosScreenState extends State<PosScreen> {
 
     _isSaving = true;
     try {
-      final addedCartItems = wasEditing
-          ? List<CartItem>.from(pos.cart)
-          : <CartItem>[];
       if (!wasEditing &&
           (pos.fulfillmentType == 'pickup' ||
               pos.fulfillmentType == 'delivery')) {
@@ -479,11 +477,12 @@ class _PosScreenState extends State<PosScreen> {
           wasEditing: wasEditing,
           autoLock: true,
           beforeAutoLock: wasEditing
-              ? () => _printEditedOrderAddedItemsByOrderId(
+              ? () =>
+                    _printEditedOrderAddedItemsByOrderId(orderId, cartSnapshot)
+              : () => _printKitchenAndCustomerTicketsByOrderId(
                   orderId,
-                  addedCartItems,
-                )
-              : () => _printKitchenAndCustomerTicketsByOrderId(orderId),
+                  fallbackCartItems: cartSnapshot,
+                ),
         );
       }
     } catch (e) {
@@ -715,13 +714,17 @@ class _PosScreenState extends State<PosScreen> {
                 final displayName = cat.name.startsWith('[LOCAL] ')
                     ? cat.name.substring(8)
                     : cat.name;
-                return GestureDetector(
-                  onTap: () => category.selectCategory(cat),
-                  child: _itemTab(
-                    icon: Icons.lunch_dining_outlined,
-                    title: displayName,
-                    isActive: isActive,
-                    imagePath: cat.image,
+                return Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(10),
+                    onTap: () => category.selectCategory(cat),
+                    child: _itemTab(
+                      icon: Icons.lunch_dining_outlined,
+                      title: displayName,
+                      isActive: isActive,
+                      imagePath: cat.image,
+                    ),
                   ),
                 );
               },
@@ -2263,12 +2266,21 @@ class _PosScreenState extends State<PosScreen> {
     );
   }
 
-  Future<_OrderPrintContext?> _loadOrderPrintContext(int orderId) async {
+  Future<_OrderPrintContext?> _loadOrderPrintContext(
+    int orderId, {
+    List<CartItem>? fallbackCartItems,
+  }) async {
     final order = await DatabaseService.getPosOrderById(orderId);
     if (order == null) {
       return null;
     }
-    final items = await DatabaseService.getPosOrderItems(orderId);
+    var items = await DatabaseService.getPosOrderItems(orderId);
+    if (items.isEmpty &&
+        fallbackCartItems != null &&
+        fallbackCartItems.isNotEmpty) {
+      // If the DB rows are not visible yet, rebuild the preview from the cart snapshot.
+      items = _buildPrintedItemsFromCart(orderId, fallbackCartItems);
+    }
     if (items.isEmpty) {
       return null;
     }
@@ -2319,15 +2331,28 @@ class _PosScreenState extends State<PosScreen> {
     String? restaurantName,
     String? restaurantPhone,
   }) async {
-    final directPrinted = await EscPosPrinterService.instance
-        .tryPrintKitchenTicket(
-          order,
-          items,
-          staffName: staffName,
-          restaurantAddress: restaurantAddress,
-          restaurantName: restaurantName,
-          restaurantPhone: restaurantPhone,
-        );
+    final totalQuantity = items.fold<int>(
+      0,
+      (sum, item) => sum + item.quantity,
+    );
+    debugPrint(
+      '[_printKitchenTicket] order=${order.id} items=${items.length} totalQty=$totalQuantity paymentStatus=${order.paymentStatus} channel=${order.channel}',
+    );
+    final hasKitchenPrinter = await EscPosPrinterService.instance
+        .hasConfiguredPrinter(kitchen: true);
+    final directPrinted = hasKitchenPrinter
+        ? await EscPosPrinterService.instance.tryPrintKitchenTicket(
+            order,
+            items,
+            staffName: staffName,
+            restaurantAddress: restaurantAddress,
+            restaurantName: restaurantName,
+            restaurantPhone: restaurantPhone,
+          )
+        : false;
+    debugPrint(
+      '[_printKitchenTicket] directPrinted=$directPrinted order=${order.id}',
+    );
     if (directPrinted) {
       if (mounted) {
         _notify(
@@ -2338,7 +2363,11 @@ class _PosScreenState extends State<PosScreen> {
       }
       return;
     }
+    debugPrint(
+      '[_printKitchenTicket] launching preview fallback for order=${order.id}',
+    );
     await _printOrPreview(
+      forcePreview: true,
       builder: (format) => buildKitchenTicketPdf(
         order,
         items,
@@ -2398,8 +2427,14 @@ class _PosScreenState extends State<PosScreen> {
         .toList(growable: false);
   }
 
-  Future<void> _printKitchenAndCustomerTicketsByOrderId(int orderId) async {
-    final context = await _loadOrderPrintContext(orderId);
+  Future<void> _printKitchenAndCustomerTicketsByOrderId(
+    int orderId, {
+    List<CartItem>? fallbackCartItems,
+  }) async {
+    final context = await _loadOrderPrintContext(
+      orderId,
+      fallbackCartItems: fallbackCartItems,
+    );
     if (context == null) {
       throw 'Commande ou lignes introuvables';
     }
@@ -2438,8 +2473,16 @@ class _PosScreenState extends State<PosScreen> {
     );
   }
 
-  Future<void> _printCustomerBillByOrderId(int orderId) async {
-    final context = await _loadOrderPrintContext(orderId);
+
+
+  Future<void> _printCustomerBillByOrderId(
+    int orderId, {
+    List<CartItem>? fallbackCartItems,
+  }) async {
+    final context = await _loadOrderPrintContext(
+      orderId,
+      fallbackCartItems: fallbackCartItems,
+    );
     if (context == null) {
       throw 'Commande ou lignes introuvables';
     }
@@ -2461,6 +2504,7 @@ class _PosScreenState extends State<PosScreen> {
     if (_isSaving || pos.isCreatingOrder) return;
     _isSaving = true;
     try {
+      final cartSnapshot = List<CartItem>.from(pos.cart);
       var orderId = currentOrderId;
       if (orderId == null) {
         if (pos.cart.isEmpty) {
@@ -2518,7 +2562,10 @@ class _PosScreenState extends State<PosScreen> {
       final int savedOrderId = orderId;
       setState(() => _lastOrderId = savedOrderId);
 
-      await _printCustomerBillByOrderId(savedOrderId);
+      await _printCustomerBillByOrderId(
+        savedOrderId,
+        fallbackCartItems: currentOrderId == null ? cartSnapshot : null,
+      );
       if (!mounted) return;
       _notify(
         'Addition client imprimée avec succès',
@@ -2543,15 +2590,28 @@ class _PosScreenState extends State<PosScreen> {
     String? restaurantName,
     String? restaurantPhone,
   }) async {
-    final directPrinted = await EscPosPrinterService.instance
-        .tryPrintKitchenAndCustomerTickets(
-          order,
-          items,
-          staffName: staffName,
-          restaurantAddress: restaurantAddress,
-          restaurantName: restaurantName,
-          restaurantPhone: restaurantPhone,
-        );
+    final totalQuantity = items.fold<int>(
+      0,
+      (sum, item) => sum + item.quantity,
+    );
+    debugPrint(
+      '[_printKitchenAndCustomerTickets] order=${order.id} items=${items.length} totalQty=$totalQuantity paymentStatus=${order.paymentStatus} channel=${order.channel}',
+    );
+    final hasKitchenPrinter = await EscPosPrinterService.instance
+        .hasConfiguredPrinter(kitchen: true);
+    final hasCustomerPrinter = await EscPosPrinterService.instance
+        .hasConfiguredPrinter(kitchen: false);
+    final hasAnyPrinter = hasKitchenPrinter || hasCustomerPrinter;
+    final directPrinted = hasAnyPrinter
+        ? await EscPosPrinterService.instance.tryPrintKitchenAndCustomerTickets(
+            order,
+            items,
+            staffName: staffName,
+            restaurantAddress: restaurantAddress,
+            restaurantName: restaurantName,
+            restaurantPhone: restaurantPhone,
+          )
+        : false;
     if (directPrinted) {
       if (mounted) {
         _notify(
@@ -2563,6 +2623,7 @@ class _PosScreenState extends State<PosScreen> {
       return;
     }
     await _printOrPreview(
+      forcePreview: true,
       builder: (format) => buildKitchenAndCustomerTicketsPdf(
         order,
         items,
@@ -2572,7 +2633,12 @@ class _PosScreenState extends State<PosScreen> {
         restaurantName: restaurantName,
         restaurantPhone: restaurantPhone,
       ),
-      fallbackTitle: 'Tickets cuisine + client (aperçu)',
+      fallbackTitle: 'Tickets cuisine et addition client (aperçu)',
+      onFail: () => _showTextTicket(
+        order,
+        items,
+        title: 'Tickets cuisine et addition client (texte)',
+      ),
     );
   }
 
@@ -2604,6 +2670,7 @@ class _PosScreenState extends State<PosScreen> {
       return;
     }
     await _printOrPreview(
+      forcePreview: true,
       builder: (format) => buildCustomerBillPdf(
         order,
         items,
@@ -3077,12 +3144,13 @@ class _PosScreenState extends State<PosScreen> {
     required Future<Uint8List> Function(PdfPageFormat format) builder,
     required String fallbackTitle,
     Future<void> Function()? onFail,
+    bool forcePreview = false,
   }) async {
     Future<Uint8List> safeBuilder(PdfPageFormat format) =>
         _safePdf(builder, format);
     if (!mounted) return;
     try {
-      if (Platform.isMacOS) {
+      if (Platform.isMacOS || forcePreview) {
         await _showTicketPreview(safeBuilder, title: fallbackTitle);
         return;
       }
@@ -3210,6 +3278,21 @@ class _PosScreenState extends State<PosScreen> {
     await showDialog(
       context: context,
       builder: (_) {
+        // Wrap builder to add lightweight debug logging about preview build
+        Future<Uint8List> wrappedBuilder(PdfPageFormat format) async {
+          try {
+            debugPrint('[_showTicketPreview] building PDF preview: $title');
+            final data = await builder(format);
+            debugPrint(
+              '[_showTicketPreview] PDF built (${data.length} bytes): $title',
+            );
+            return data;
+          } catch (e, st) {
+            debugPrint('[_showTicketPreview] PDF build failed: $e\n$st');
+            rethrow;
+          }
+        }
+
         return Dialog(
           child: SizedBox(
             width: 460,
@@ -3237,7 +3320,7 @@ class _PosScreenState extends State<PosScreen> {
                 const Divider(height: 1, color: SushiColors.divider),
                 Expanded(
                   child: PdfPreview(
-                    build: builder,
+                    build: wrappedBuilder,
                     allowSharing: true,
                     allowPrinting: false,
                     canChangeOrientation: false,

@@ -14,7 +14,7 @@ import '../utils/order_item_grouping.dart';
 import '../utils/payment_method_utils.dart';
 
 // Agrandir légèrement le logo sur les tickets clients (pour reçus/additions)
-const int _ticketLogoMaxWidth = 200;
+const int _ticketLogoMaxWidth = 240;
 
 class EscPosPrinterService {
   EscPosPrinterService._();
@@ -62,7 +62,11 @@ class EscPosPrinterService {
     String? restaurantName,
     String? restaurantPhone,
   }) async {
-    if (!await hasConfiguredPrinter(kitchen: true)) {
+    final configured = await hasConfiguredPrinter(kitchen: true);
+    debugPrint(
+      'EscPosPrinterService.tryPrintKitchenTicket: configuredKitchen=$configured order=${order.id}',
+    );
+    if (!configured) {
       return false;
     }
     try {

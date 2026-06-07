@@ -1,6 +1,7 @@
 // ignore_for_file: unused_element
 
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -592,6 +593,81 @@ class _PosStaffOrdersScreenState extends State<PosStaffOrdersScreen> {
                           title: 'Commande confirmée',
                           type: POSSnackType.success,
                         );
+
+                        // Pour les commandes distantes (web/api/mobile), lancer ticket cuisine
+                        final channel = order.channel.trim().toLowerCase();
+                        if (channel == 'web' || channel == 'api' || channel == 'mobile') {
+                          try {
+                            final items = await DatabaseService.getPosOrderItems(order.id);
+                            if (items.isEmpty) {
+                              _notify('Aucun article pour ticket cuisine', title: 'Impression', type: POSSnackType.warning);
+                              return;
+                            }
+                            final restaurant = order.restaurantId != null
+                                ? await DatabaseService.getRestaurantById(order.restaurantId!)
+                                : null;
+
+                            final printed = await EscPosPrinterService.instance.tryPrintKitchenTicket(
+                              order,
+                              items,
+                              staffName: pos.activeStaff?.name,
+                              restaurantAddress: restaurant?.address,
+                              restaurantName: restaurant?.name,
+                              restaurantPhone: restaurant?.phone,
+                            );
+
+                            if (printed) {
+                              _notify('Ticket cuisine imprimé', title: 'Impression', type: POSSnackType.success);
+                            } else {
+                              _notify('Impression cuisine indisponible', title: 'Impression', type: POSSnackType.warning);
+                              try {
+                                final pdfData = await buildKitchenTicketPdf(
+                                  order,
+                                  items,
+                                  restaurantAddress: restaurant?.address,
+                                  restaurantName: restaurant?.name,
+                                  restaurantPhone: restaurant?.phone,
+                                );
+                                if (Platform.isMacOS) {
+                                  final tmp = Directory.systemTemp;
+                                  final file = File('${tmp.path}/ticket_kitchen_order_${order.id}.pdf');
+                                  await file.writeAsBytes(pdfData);
+                                  _notify('PDF sauvegardé: ${file.path}', title: 'Impression', type: POSSnackType.info);
+                                  try {
+                                    await Process.run('open', [file.path]);
+                                  } catch (_) {}
+                                } else {
+                                  try {
+                                    await Printing.layoutPdf(
+                                      onLayout: (format) => buildKitchenTicketPdf(
+                                        order,
+                                        items,
+                                        format: format,
+                                        restaurantAddress: restaurant?.address,
+                                        restaurantName: restaurant?.name,
+                                        restaurantPhone: restaurant?.phone,
+                                      ),
+                                      usePrinterSettings: false,
+                                      dynamicLayout: false,
+                                    ).timeout(const Duration(seconds: 6));
+                                  } catch (e) {
+                                    debugPrint('Printing.layoutPdf error/timeout: $e');
+                                    _notify('Impression indisponible, sauvegarde du PDF en fallback', title: 'Impression', type: POSSnackType.warning);
+                                    final tmp = Directory.systemTemp;
+                                    final file = File('${tmp.path}/ticket_kitchen_order_${order.id}.pdf');
+                                    await file.writeAsBytes(pdfData);
+                                    _notify('PDF sauvegardé: ${file.path}', title: 'Impression', type: POSSnackType.info);
+                                  }
+                                }
+                              } catch (e) {
+                                debugPrint('Erreur création PDF ticket cuisine: $e');
+                              }
+                            }
+                          } catch (e, st) {
+                            debugPrint('Erreur impression ticket cuisine: $e\n$st');
+                            _notify('Erreur impression ticket cuisine', title: 'Impression', type: POSSnackType.error);
+                          }
+                        }
                       } else {
                         _notify(
                           pos.error ??
@@ -677,8 +753,6 @@ class _PosStaffOrdersScreenState extends State<PosStaffOrdersScreen> {
       }
     }
   }
-
-  // ignore: unused_element
   Future<void> _showPaymentOptions(PosController pos, PosOrder order) async {
     final scaffoldContext = context;
     double remainingAmount = order.totalPrice;
@@ -1063,7 +1137,6 @@ class _PosStaffOrdersScreenState extends State<PosStaffOrdersScreen> {
     );
   }
 
-  // ignore: unused_element
   Future<double?> _showCashPaymentDialog(
     double totalPrice, {
     double? remainingAmount,
@@ -1350,7 +1423,6 @@ class _PosStaffOrdersScreenState extends State<PosStaffOrdersScreen> {
     return confirmed == true ? enteredAmount : null;
   }
 
-  // ignore: unused_element
   Future<double?> _showAmountInputDialog(double maxAmount, String title) async {
     final dialogContext = context;
     final amountController = TextEditingController();
@@ -1487,8 +1559,6 @@ class _PosStaffOrdersScreenState extends State<PosStaffOrdersScreen> {
     );
     return result;
   }
-
-  // ignore: unused_element
   Future<bool> _showPaymentConfirmationDialog(
     PosOrder order,
     String paymentMethod,
@@ -1700,18 +1770,71 @@ class _PosStaffOrdersScreenState extends State<PosStaffOrdersScreen> {
         );
         return;
       }
-      await Printing.layoutPdf(
-        onLayout: (format) => buildCustomerBillPdf(
-          order,
-          items,
-          format: format,
-          restaurantAddress: restaurant?.address,
-          restaurantName: restaurant?.name,
-          restaurantPhone: restaurant?.phone,
-        ),
-        usePrinterSettings: false,
-        dynamicLayout: false,
-      );
+      // Eviter d'appeler `Printing.layoutPdf` directement sur macOS —
+      // sauvegarde et ouverture du PDF en fallback pour prévenir les
+      // plantages système quand aucune imprimante n'est configurée.
+      if (Platform.isMacOS) {
+        try {
+          final pdfData = await buildCustomerBillPdf(
+            order,
+            items,
+            restaurantAddress: restaurant?.address,
+            restaurantName: restaurant?.name,
+            restaurantPhone: restaurant?.phone,
+          );
+          final tmp = Directory.systemTemp;
+          final file = File('${tmp.path}/ticket_order_${order.id}.pdf');
+          await file.writeAsBytes(pdfData);
+          _notify('PDF sauvegardé: ${file.path}', title: 'Impression', type: POSSnackType.info);
+          try {
+            await Process.run('open', [file.path]);
+          } catch (_) {}
+          return;
+        } catch (e) {
+          debugPrint('macOS fallback save/open failed: $e');
+          // fallthrough: on tentera Printing.layoutPdf ensuite
+        }
+      }
+
+      try {
+        await Printing.layoutPdf(
+          onLayout: (format) => buildCustomerBillPdf(
+            order,
+            items,
+            format: format,
+            restaurantAddress: restaurant?.address,
+            restaurantName: restaurant?.name,
+            restaurantPhone: restaurant?.phone,
+          ),
+          usePrinterSettings: false,
+          dynamicLayout: false,
+        ).timeout(const Duration(seconds: 6));
+      } on Exception catch (e) {
+        debugPrint('Printing.layoutPdf error/timeout: $e');
+        _notify('Impression indisponible, sauvegarde du PDF en fallback', title: 'Impression', type: POSSnackType.warning);
+        try {
+          final pdfData = await buildCustomerBillPdf(
+            order,
+            items,
+            restaurantAddress: restaurant?.address,
+            restaurantName: restaurant?.name,
+            restaurantPhone: restaurant?.phone,
+          );
+          final tmp = Directory.systemTemp;
+          final file = File('${tmp.path}/ticket_order_${order.id}.pdf');
+          await file.writeAsBytes(pdfData);
+          _notify('PDF sauvegardé: ${file.path}', title: 'Impression', type: POSSnackType.info);
+          try {
+            await Process.run('open', [file.path]);
+          } catch (_) {}
+        } catch (saveErr) {
+          debugPrint('Saving PDF fallback failed: $saveErr');
+          _notify('Impossible d\'appliquer le fallback PDF: $saveErr', title: 'Impression', type: POSSnackType.error);
+        }
+      } catch (e, st) {
+        debugPrint('Printing.layoutPdf error: $e\n$st');
+        _notify('Impossible d\'imprimer: $e', title: 'Impression', type: POSSnackType.error);
+      }
     } catch (e) {
       _notify(
         'Impossible d\'imprimer: $e',
@@ -2394,22 +2517,72 @@ class _PosStaffOrdersScreenState extends State<PosStaffOrdersScreen> {
                                           );
                                           return;
                                         }
-                                        await Printing.layoutPdf(
-                                          onLayout: (format) =>
-                                              buildCustomerBillPdf(
-                                                order,
-                                                paidItemsForPrint,
-                                                format: format,
-                                                restaurantAddress:
-                                                    restaurant?.address,
-                                                restaurantName:
-                                                    restaurant?.name,
-                                                restaurantPhone:
-                                                    restaurant?.phone,
-                                              ),
-                                          usePrinterSettings: false,
-                                          dynamicLayout: false,
-                                        );
+                                        // Same safe fallback as other print paths:
+                                        if (Platform.isMacOS) {
+                                          try {
+                                            final pdfData = await buildCustomerBillPdf(
+                                              order,
+                                              paidItemsForPrint,
+                                              restaurantAddress: restaurant?.address,
+                                              restaurantName: restaurant?.name,
+                                              restaurantPhone: restaurant?.phone,
+                                            );
+                                            final tmp = Directory.systemTemp;
+                                            final file = File('${tmp.path}/ticket_order_${order.id}.pdf');
+                                            await file.writeAsBytes(pdfData);
+                                            _notify('PDF sauvegardé: ${file.path}', title: 'Impression', type: POSSnackType.info);
+                                            try {
+                                              await Process.run('open', [file.path]);
+                                            } catch (_) {}
+                                            return;
+                                          } catch (e) {
+                                            debugPrint('macOS fallback save/open failed: $e');
+                                          }
+                                        }
+
+                                        try {
+                                          await Printing.layoutPdf(
+                                            onLayout: (format) =>
+                                                buildCustomerBillPdf(
+                                                  order,
+                                                  paidItemsForPrint,
+                                                  format: format,
+                                                  restaurantAddress:
+                                                      restaurant?.address,
+                                                  restaurantName:
+                                                      restaurant?.name,
+                                                  restaurantPhone:
+                                                      restaurant?.phone,
+                                                ),
+                                            usePrinterSettings: false,
+                                            dynamicLayout: false,
+                                          ).timeout(const Duration(seconds: 6));
+                                        } on Exception catch (e) {
+                                          debugPrint('Printing.layoutPdf error/timeout: $e');
+                                          _notify('Impression indisponible, sauvegarde du PDF en fallback', title: 'Impression', type: POSSnackType.warning);
+                                          try {
+                                            final pdfData = await buildCustomerBillPdf(
+                                              order,
+                                              paidItemsForPrint,
+                                              restaurantAddress: restaurant?.address,
+                                              restaurantName: restaurant?.name,
+                                              restaurantPhone: restaurant?.phone,
+                                            );
+                                            final tmp = Directory.systemTemp;
+                                            final file = File('${tmp.path}/ticket_order_${order.id}.pdf');
+                                            await file.writeAsBytes(pdfData);
+                                            _notify('PDF sauvegardé: ${file.path}', title: 'Impression', type: POSSnackType.info);
+                                            try {
+                                              await Process.run('open', [file.path]);
+                                            } catch (_) {}
+                                          } catch (saveErr) {
+                                            debugPrint('Saving PDF fallback failed: $saveErr');
+                                            _notify('Impossible d\'appliquer le fallback PDF: $saveErr', title: 'Impression', type: POSSnackType.error);
+                                          }
+                                        } catch (e, st) {
+                                          debugPrint('Printing.layoutPdf error: $e\n$st');
+                                          _notify('Erreur impression: $e', title: 'Impression', type: POSSnackType.error);
+                                        }
                                       } catch (e) {
                                         _notify(
                                           'Impossible d\'imprimer: $e',
@@ -2953,7 +3126,6 @@ class _PosStaffOrdersScreenState extends State<PosStaffOrdersScreen> {
     }
   }
 
-  // ignore: unused_element
   Widget _detailInfoCard({
     required IconData icon,
     required String label,
@@ -3005,7 +3177,6 @@ class _PosStaffOrdersScreenState extends State<PosStaffOrdersScreen> {
     );
   }
 
-  // ignore: unused_element
   String _labelForChannel(String value) {
     switch (value.trim().toLowerCase()) {
       case 'api':

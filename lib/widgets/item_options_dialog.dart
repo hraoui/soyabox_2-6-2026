@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 import '../models/product_model.dart';
-import '../utils/quick_notes_constants.dart';
 import '../utils/order_item_grouping.dart';
 
 /// Options d'article avec notes et cours
@@ -59,17 +60,21 @@ class _ItemOptionsDialog extends StatefulWidget {
 
 class _ItemOptionsDialogState extends State<_ItemOptionsDialog> {
   late final TextEditingController _customNoteController;
-  String? _selectedQuickNote;
   String? _selectedCourseKey;
   int? _selectedGroupNumber;
+  // Pinned notes (global)
+  bool _pinNote = false;
+  List<String> _pinnedNotes = [];
 
   @override
   void initState() {
     super.initState();
     _customNoteController = TextEditingController();
     _selectedGroupNumber = widget.currentGroupNumber;
-    // Détection automatique du cours (défaut: plat principal)
-    _selectedCourseKey = serviceCourseMain.key;
+    // Ne pas présélectionner le type de plat — le serveur choisira
+    _selectedCourseKey = null;
+    _pinNote = false;
+    _loadPinnedNotes();
   }
 
   @override
@@ -79,16 +84,21 @@ class _ItemOptionsDialogState extends State<_ItemOptionsDialog> {
   }
 
   String? get _finalNote {
-    if (_selectedQuickNote != null) return _selectedQuickNote;
     final custom = _customNoteController.text.trim();
     if (custom.isNotEmpty) return custom;
     return null;
   }
 
-  void _submit() {
+  Future<void> _submit() async {
+    // Save pinned note if requested
+    final note = _finalNote;
+    if (_pinNote && note != null) {
+      await _savePinnedNoteForScope(note);
+    }
+
     Get.back(
       result: ItemOptionsResult(
-        itemNote: _finalNote,
+        itemNote: note,
         serviceCourseKey: _selectedCourseKey,
         groupNumber: _selectedGroupNumber,
         groupLabel: _selectedGroupNumber != null
@@ -101,6 +111,37 @@ class _ItemOptionsDialogState extends State<_ItemOptionsDialog> {
             : null,
       ),
     );
+  }
+
+  // ----- Pinned notes storage (SharedPreferences) -----
+  String _prefsKeyForScope() => 'pinned_notes_global';
+
+  Future<void> _loadPinnedNotes() async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = _prefsKeyForScope();
+    final list = prefs.getStringList(key) ?? <String>[];
+    setState(() => _pinnedNotes = list);
+  }
+
+  Future<void> _savePinnedNoteForScope(String note) async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = _prefsKeyForScope();
+    final list = prefs.getStringList(key) ?? <String>[];
+    if (!list.contains(note)) {
+      list.insert(0, note);
+      if (list.length > 50) list.removeRange(50, list.length);
+      await prefs.setStringList(key, list);
+    }
+    await _loadPinnedNotes();
+  }
+
+  Future<void> _removePinnedNoteForScope(String note) async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = _prefsKeyForScope();
+    final list = prefs.getStringList(key) ?? <String>[];
+    list.remove(note);
+    await prefs.setStringList(key, list);
+    await _loadPinnedNotes();
   }
 
   @override
@@ -139,17 +180,7 @@ class _ItemOptionsDialogState extends State<_ItemOptionsDialog> {
               ),
               const SizedBox(height: 28),
 
-              // 📋 NOTES RAPIDES
-              _buildSectionTitle('📝 Notes Rapides'),
-              const SizedBox(height: 12),
-              Column(
-                children: quickNoteCategories.map((category) {
-                  return _buildQuickNoteCategory(category);
-                }).toList(),
-              ),
-              const SizedBox(height: 24),
-
-              // ✍️ NOTE PERSONNALISÉE
+              // ✍️ NOTE PERSONNALISÉE (champ libre — plus de suggestions)
               _buildSectionTitle('✏️ Note Personnalisée'),
               const SizedBox(height: 8),
               TextField(
@@ -177,13 +208,43 @@ class _ItemOptionsDialogState extends State<_ItemOptionsDialog> {
                   fillColor: Colors.grey[50],
                 ),
                 maxLines: 3,
-                onChanged: (_) {
-                  if (_customNoteController.text.trim().isNotEmpty) {
-                    setState(() => _selectedQuickNote = null);
-                  }
-                },
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 12),
+
+              // Option d'épinglage (global)
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Checkbox(
+                    value: _pinNote,
+                    onChanged: (v) => setState(() => _pinNote = v ?? false),
+                  ),
+                  const SizedBox(width: 8),
+                  const Text('Épingler'),
+                ],
+              ),
+              const SizedBox(height: 12),
+
+              // Afficher les notes épinglées pour l'utilisateur sélectionné
+              if (_pinnedNotes.isNotEmpty) ...[
+                _buildSectionTitle('📌 Notes épinglées'),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: _pinnedNotes.map((note) {
+                      return InputChip(
+                        label: Text(note, style: const TextStyle(fontSize: 12)),
+                        onPressed: () {
+                          _customNoteController.text = note;
+                          setState(() {});
+                        },
+                        onDeleted: () => _removePinnedNoteForScope(note),
+                      );
+                    }).toList(),
+                ),
+                const SizedBox(height: 12),
+              ],
 
               // 🍽️ TYPE DE PLAT / COURS
               _buildSectionTitle('🍽️ Type de Plat'),
@@ -290,67 +351,6 @@ class _ItemOptionsDialogState extends State<_ItemOptionsDialog> {
         fontSize: 15,
         fontWeight: FontWeight.w700,
         color: Color(0xFF1F2937),
-      ),
-    );
-  }
-
-  Widget _buildQuickNoteCategory(QuickNoteCategory category) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(top: 12, bottom: 10),
-          child: Text(
-            category.name,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF6B7280),
-              letterSpacing: 0.3,
-            ),
-          ),
-        ),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: category.notes.map((note) {
-            final selected = _selectedQuickNote == note.value;
-            return _buildQuickNoteChip(note, selected);
-          }).toList(),
-        ),
-        const SizedBox(height: 12),
-      ],
-    );
-  }
-
-  Widget _buildQuickNoteChip(QuickNote note, bool selected) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-      decoration: BoxDecoration(
-        color: selected ? const Color(0xFFFED7AA) : Colors.grey[100],
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: selected ? const Color(0xFFF97316) : Colors.grey[300]!,
-          width: selected ? 2 : 1,
-        ),
-      ),
-      child: GestureDetector(
-        onTap: () {
-          setState(() {
-            _selectedQuickNote = selected ? null : note.value;
-            if (!selected) {
-              _customNoteController.clear();
-            }
-          });
-        },
-        child: Text(
-          note.label,
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: selected ? const Color(0xFFF97316) : Colors.grey[700],
-          ),
-        ),
       ),
     );
   }

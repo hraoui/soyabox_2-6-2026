@@ -234,14 +234,14 @@ ThemeData buildPosTheme(ThemeData base) {
       actionTextColor: Colors.white70,
       elevation: 4,
     ),
-    pageTransitionsTheme: const PageTransitionsTheme(
-      builders: {
-        TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(),
-        TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
-        TargetPlatform.macOS: FadeUpwardsPageTransitionsBuilder(),
-        TargetPlatform.linux: FadeUpwardsPageTransitionsBuilder(),
-        TargetPlatform.windows: FadeUpwardsPageTransitionsBuilder(),
-      },
-    ),
+   pageTransitionsTheme: const PageTransitionsTheme(
+  builders: {
+    TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(),
+    TargetPlatform.iOS: FadeUpwardsPageTransitionsBuilder(),
+    TargetPlatform.macOS: FadeUpwardsPageTransitionsBuilder(),
+    TargetPlatform.linux: FadeUpwardsPageTransitionsBuilder(),
+    TargetPlatform.windows: FadeUpwardsPageTransitionsBuilder(),
+  },
+),
   );
 }

@@ -140,6 +140,19 @@ Future<void> _migrateAdminPins(Isar isar) async {
 
 void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Filtre temporaire: supprime le bruit d'assertions répétées liées
+  // à HardwareKeyboard (KeyDownEvent déjà pressé) en mode debug.
+  // Ceci n'affecte pas le comportement en release, et permet
+  // de continuer le développement sans spam dans la console.
+  FlutterError.onError = (FlutterErrorDetails details) {
+    final msg = details.exceptionAsString();
+    if (msg.contains(
+        'A KeyDownEvent is dispatched, but the state shows that the physical key is already pressed')) {
+      // Ignorer ce message récurrent (bug macOS/Flutter en debug)
+      return;
+    }
+    FlutterError.presentError(details);
+  };
   print('🚀 [MAIN] Starting app initialization...');
 
   const posOrientation = String.fromEnvironment(

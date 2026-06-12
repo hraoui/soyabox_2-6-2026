@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Comparatif prix & utilisation — SOYABOX (offline‑first) vs POS internationaux</title>
+  <style>
+    body{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;margin:0;background:#f6f8fb;color:#102a43}
+    .wrap{max-width:980px;margin:32px auto;padding:22px;background:#fff;border-radius:10px;box-shadow:0 8px 30px rgba(16,42,67,0.06)}
+    h1{font-size:20px;margin:0 0 8px}
+    p.lead{margin:6px 0 18px;color:#48657a}
+    table{width:100%;border-collapse:collapse;margin:12px 0}
+    th,td{padding:10px;border:1px solid #e6eef6;text-align:left;font-size:14px}
+    th{background:#f1f7fb;color:#08303a}
+    ul{margin:8px 0 12px 20px}
+    .muted{color:#627d89;font-size:13px}
+    .section{margin-top:16px}
+    .cols{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .card{background:#fbfeff;border:1px solid #e9f3f8;padding:12px;border-radius:8px}
+    footer{margin-top:18px;color:#8aa0ab;font-size:13px}
+    @media(max-width:720px){.cols{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>SOYABOX (offline‑first, multi‑restaurants) — Comparatif prix & utilisation</h1>
+    <p class="lead">Comparaison axée sur : réception commandes via application mobile & site web POS, capacité multi‑restaurants, fonctionnement offline vs solutions POS internationales. Données indicatives (2026).</p>
+
+    <div class="section">
+      <h2 style="font-size:16px;margin-bottom:6px">Contexte — SOYABOX</h2>
+      <p class="muted">SOYABOX est une application Flutter offline‑first avec base locale Isar, file d'attente de synchronisation et possibilité de déploiement self‑hosted. Supporte multi‑restaurants, réception de commandes depuis API/web/mobile et interface POS web/mobile pour le staff.</p>
+    </div>
+
+    <div class="section">
+      <h2 style="font-size:16px;margin-bottom:6px">Tableau comparatif (usage & prix)</h2>
+      <table>
+        <thead>
+          <tr><th>Critère</th><th>SOYABOX (offline‑first, multi‑restaurants)</th><th>POS commerciaux internationaux</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Usage principal</td><td>Chaînes locales / multi‑sites, zones offline, personnalisation métier, intégration APIs locales</td><td>Petits/moyens commerces, déploiement rapide, e‑commerce intégré, marketing & analytics</td></tr>
+          <tr><td>Reception commandes</td><td>Via app mobile + site web + API, files locales puis sync vers backend</td><td>Cloud‑centric : push en temps réel, intégration native marketplaces/plateformes</td></tr>
+          <tr><td>Offline support</td><td>Fort (Isar + queue de sync) — continue de fonctionner hors réseau</td><td>Faible à moyen — souvent dépend du cache local, pas toujours full offline</td></tr>
+          <tr><td>Personnalisation</td><td>Très élevée (accès code source, extensions possibles)</td><td>Limitée ; APIs payantes ou modules fermés</td></tr>
+          <tr><td>Déploiement</td><td>Self‑hosted ou cloud privé ; nécessite infra & dev</td><td>SaaS (éditeur héberge) — mise en service rapide</td></tr>
+          <tr><td>Coût initial typique</td><td>Développement & intégration : <strong>5k€–40k€</strong> (selon périmètre multi‑sites & PSP)</td><td>Matériel + abonnement : <strong>0€→3k€</strong> initial + abonnements mensuels</td></tr>
+          <tr><td>Coût récurrent</td><td>Hébergement & maintenance : <strong>20€–800€/mois</strong> + support (300€–2.5k€/mois)</td><td>Abonnement par site : <strong>20€–300€/mois</strong> + frais PSP/transaction</td></tr>
+          <tr><td>Frais transaction (PSP)</td><td>Selon PSP choisi : <strong>0,9%–3,5% + 0,05–0,30€</strong></td><td>Similaire ; certains packages incluent tarifs négociés</td></tr>
+          <tr><td>Support & SLA</td><td>Interne ou prestataire (à organiser)</td><td>Support fourni par l'éditeur (SLA selon offre)</td></tr>
+          <tr><td>Idéal pour</td><td>Multi‑restaurants, offline, besoin fort de personnalisation et contrôle données</td><td>Déploiement rapide, besoin de service complet (paiements + hardware + support)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="section cols">
+      <div class="card">
+        <h3 style="margin:0 0 8px">Détail coûts SOYABOX (indicatif)</h3>
+        <ul>
+          <li><strong>Intégration & dev multi‑restaurants</strong> : 5 000€ – 40 000€ (API, gestion multi‑sites, web POS, mobile apps).</li>
+          <li><strong>Hébergement</strong> : 20€ – 500€/mois (small → HA infra).</li>
+          <li><strong>PSP frais</strong> : 0,9%–3,5% + 0,05–0,30€/tx.</li>
+          <li><strong>Matériel par point</strong> : 300€ – 1 500€ (tablette/PC, imprimante, tiroir, lecteur CB).</li>
+          <li><strong>Maintenance</strong> : 300€ – 2 500€/mois selon SLA.</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3 style="margin:0 0 8px">Détail coûts POS commerciaux (indicatif)</h3>
+        <ul>
+          <li><strong>Abonnement par site</strong> : 0€ – 300€/mois (selon plan/features).</li>
+          <li><strong>Frais PSP/transaction</strong> : ~1% – 3% + fixe par tx (varie).</li>
+          <li><strong>Matériel</strong> : 50€ – 1 500€ (hardware vendu/lu en pack).</li>
+          <li><strong>Coûts cachés</strong> : intégrations, modules premium, frais de mise à l'échelle.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2 style="font-size:16px;margin-bottom:6px">Usage & recommandation pratique</h2>
+      <ul>
+        <li>Choisir <strong>SOYABOX</strong> si : vous gérez plusieurs restaurants, avez des contraintes réseau, voulez contrôler les données et adapter le workflow métier (ex : intégrations locales livraison).</li>
+        <li>Choisir une solution <strong>commerciale</strong> si : vous privilégiez déploiement rapide, support inclus, intégrations paiements & matériel clés en main, et coûts prévisibles.</li>
+        <li>Pour un MVP multi‑restaurants avec tests terrain : SOYABOX permet validation offline & processus métiers avant arbitrage PSP/infra.</li>
+        <li>Si vous n'avez pas équipe dev ni budget d'intégration, une offre SaaS peut être plus rentable à court terme.</li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <h2 style="font-size:16px;margin-bottom:6px">Checklist technique avant décision</h2>
+      <ul>
+        <li>Définir volumes estimés (transactions/jour par site) pour comparer coûts PSP et hébergement.</li>
+        <li>Valider capacité offline (durée sans réseau acceptable, files d'attente, conflits de sync).</li>
+        <li>Tester imprimantes/lecteurs CB sur toutes les plateformes ciblées (Windows/macOS/Android/iOS).</li>
+        <li>Évaluer nécessité d'intégrations externes (marketplaces, livreurs, compta) et complexité d'implémentation.</li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <h2 style="font-size:16px;margin-bottom:6px">Estimation coûts par pays (exemples indicatifs)</h2>
+      <p class="muted">Chiffres indicatifs pour un point de vente standard (tablet/print/CB). Les montants varient selon fournisseurs, volumes et négociations.</p>
+      <table>
+        <thead>
+          <tr><th>Poste / Pays</th><th>France</th><th>USA</th><th>Royaume‑Uni</th><th>Espagne</th><th>Allemagne</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Frais PSP (tx carte présent)</td>
+            <td>~0,9%–2,5% + 0,05€–0,30€</td>
+            <td>~1,5%–3,5% + $0,10–$0,30</td>
+            <td>~0,9%–2,9% + £0,05–£0,30</td>
+            <td>~0,9%–2,5% + 0,05€–0,30€</td>
+            <td>~0,9%–2,5% + 0,05€–0,30€</td>
+          </tr>
+          <tr>
+            <td>Coût matériel par point</td>
+            <td>300€ – 1 500€</td>
+            <td>$250 – $1 500</td>
+            <td>£250 – £1 400</td>
+            <td>300€ – 1 400€</td>
+            <td>300€ – 1 500€</td>
+          </tr>
+          <tr>
+            <td>Hébergement & infra (mensuel)</td>
+            <td>20€ – 500€/mois</td>
+            <td>$20 – $500/mo</td>
+            <td>£20 – £450/mo</td>
+            <td>20€ – 400€/mois</td>
+            <td>20€ – 500€/mois</td>
+          </tr>
+          <tr>
+            <td>Support & maintenance (mensuel)</td>
+            <td>300€ – 2 500€</td>
+            <td>$300 – $2 500</td>
+            <td>£300 – £2 500</td>
+            <td>300€ – 2 000€</td>
+            <td>300€ – 2 500€</td>
+          </tr>
+          <tr>
+            <td>Délai règlement moyen (PSP)</td>
+            <td>1–3 jours</td>
+            <td>1–7 jours</td>
+            <td>1–3 jours</td>
+            <td>1–3 jours</td>
+            <td>1–3 jours</td>
+          </tr>
+          <tr>
+            <td>Remarques</td>
+            <td>Options locales (Worldline, Lyra) et Stripe/Adyen disponibles.</td>
+            <td>Large choix PSP & intégrateurs, interchange souvent plus élevé.</td>
+            <td>Stripe très présent, banques locales pour acquiring.</td>
+            <td>Similaire à France; vérifier PSP locaux et volumes.</td>
+            <td>Marché européen mature; bonne couverture PSP.</td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="muted">Souhaitez‑vous des montants plus précis par pays (ex: estimation TCO sur 3 ans) ?</p>
+    </div>
+
+    <footer>
+      <p class="muted">Document généré le 7 juin 2026 — valeurs indicatives. Souhaitez‑vous que j'affine les coûts par pays ou fournisse un modèle de calcul TCO par site ?</p>
+    </footer>
+  </div>
+</body>
+</html>

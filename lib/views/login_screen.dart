@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/auth_controller.dart';
 import '../controllers/pos_controller.dart';
+import '../controllers/cash_register_controller.dart';
 import '../controllers/restaurant_controller.dart';
 import '../services/api_order_pull_service.dart';
 import '../services/database_service.dart';

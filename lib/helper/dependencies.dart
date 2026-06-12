@@ -22,6 +22,7 @@ import 'package:caisse_1/services/api_order_pull_service.dart';
 import 'package:caisse_1/services/isar_order_local_database.dart';
 import 'package:caisse_1/services/notification_sound_service.dart';
 import 'package:caisse_1/services/sync_queue_service.dart';
+import 'package:caisse_1/services/print_queue_service.dart';
 import 'package:caisse_1/utils/app_logger.dart';
 
 import 'package:get/get.dart';
@@ -162,6 +163,11 @@ class DependencyInjection {
       }
 
       print('🎉 [DEP] Dependency injection completed successfully!');
+      try {
+        print('🖨️ [DEP] Starting PrintQueueService...');
+        PrintQueueService.instance.start();
+        print('✅ [DEP] PrintQueueService started');
+      } catch (_) {}
     } catch (e, stackTrace) {
       print('❌ [DEP] Dependency injection FAILED: $e');
       print('❌ [DEP] Stack trace: $stackTrace');

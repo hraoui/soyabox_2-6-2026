@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Comparatif — SOYABOX POS vs POS internationaux</title>
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;line-height:1.5;color:#17202A;background:#F7FAFC;padding:24px}
+    .container{max-width:980px;margin:0 auto;background:#fff;padding:22px;border-radius:8px;box-shadow:0 6px 18px rgba(23,32,42,0.06)}
+    h1{font-size:20px;margin-bottom:8px}
+    h2{font-size:16px;margin-top:18px;margin-bottom:6px}
+    p{margin:8px 0;color:#34495E}
+    table{width:100%;border-collapse:collapse;margin-top:10px}
+    th,td{padding:10px;border:1px solid #E6EEF6;text-align:left;font-size:14px}
+    th{background:#F1F7FB;color:#0B3A57}
+    ul{margin:8px 0 8px 18px}
+    .badge{display:inline-block;padding:6px 8px;background:#E8F6EF;color:#0B6B4F;border-radius:6px;font-weight:700;font-size:12px}
+    .muted{color:#7B8A93;font-size:13px}
+    footer{margin-top:18px;font-size:13px;color:#97A5AB}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Comparatif — SOYABOX POS vs POS internationaux</h1>
+    <p class="muted">Généré le 7 juin 2026 — synthèse rapide pour décision et communication.</p>
+
+    <h2>Résumé</h2>
+    <p>Ce document compare rapidement l'application présente dans ce dépôt (<strong>SOYABOX POS</strong>) aux solutions POS grand public et aux solutions open-source/self-hosted courantes. L'objectif : mettre en évidence les atouts, limites et cas d'usage recommandés.</p>
+
+    <h2>Comparatif synthétique</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Critère</th>
+          <th>SOYABOX POS (ce dépôt)</th>
+          <th>POS commerciaux (ex. Square, Toast, Lightspeed, Shopify)</th>
+          <th>POS open-source / self‑hosted (ex. Odoo, Loyverse)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Plateformes</td>
+          <td>Flutter — multi‑plateforme : Android, iOS, Windows, macOS, Linux (app mobile + desktop)</td>
+          <td>Principalement cloud + apps mobiles/tablettes; certains proposent desktop</td>
+          <td>Dépend de la solution (web apps, modules server). Variable</td>
+        </tr>
+        <tr>
+          <td>Déploiement</td>
+          <td>Self‑hostable / intégrable avec votre backend (données locales via Isar)</td>
+          <td>Cloud géré par l'éditeur (hébergement, mises à jour automatiques)</td>
+          <td>Self‑host / cloud (selon fournisseur); souvent serveur requis</td>
+        </tr>
+        <tr>
+          <td>Fonctionnalités POS</td>
+          <td>Commande sur place, à emporter, livraison, plan de salle, rôles, PIN, impressions</td>
+          <td>Très riches (paiements intégrés, analyses avancées, marketing, fidélité)</td>
+          <td>Couverture variable — souvent solide pour vente au détail et restauration</td>
+        </tr>
+        <tr>
+          <td>Offline / Fiabilité</td>
+          <td>Offline‑first (Isar local) + queue de sync + auto‑sync (tick 15s)</td>
+          <td>La plupart s'appuient sur le cloud; certains offrent cache/offline limité</td>
+          <td>Peut être configuré en offline selon l'implémentation</td>
+        </tr>
+        <tr>
+          <td>Personnalisation</td>
+          <td>Code source modifiable — très facile à personnaliser pour besoins locaux</td>
+          <td>Personnalisation limitée ; API et intégrations payantes</td>
+          <td>Généralement hautement personnalisable (mais demande ressources)</td>
+        </tr>
+        <tr>
+          <td>Paiements & conformité</td>
+          <td>Intégrations tiers à implémenter (pas de PSP natif documenté) — attention PCI</td>
+          <td>Paiements intégrés, services marchands et conformité gérés par l'éditeur
+          </td>
+          <td>Varie — nécessite intégration et mise en conformité par l'équipe</td>
+        </tr>
+        <tr>
+          <td>Impression tickets</td>
+          <td>Support esc_pos / PDF / imprimantes thermiques (packages présents)</td>
+          <td>Support matériel et bundles certifiés</td>
+          <td>Souvent possible via modules/plug-ins</td>
+        </tr>
+        <tr>
+          <td>Coût initial & TCO</td>
+          <td>Coût d'intégration et de maintenance interne (licence repo libre ou privée)
+          </td>
+          <td>Abonnement + frais de transaction + matériel; faible maintenance interne
+          </td>
+          <td>Coût de déploiement variable; dépend du support et des services choisis</td>
+        </tr>
+        <tr>
+          <td>Support & SLA</td>
+          <td>Support interne / équipe dev (à mettre en place)</td>
+          <td>Support commercial, SLA, formation</td>
+          <td>Communauté ou contrat d'intégrateur (selon projet)</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>Atouts principaux de SOYABOX POS (extraits du dépôt)</h2>
+    <ul>
+      <li>Architecture <strong>multi‑plateforme</strong> (Flutter) — même base pour mobile et desktop.</li>
+      <li><strong>Offline‑first</strong> : base locale Isar + file d'attente de synchronisation (queue) pour garantir prises de commandes même sans réseau.</li>
+      <li><strong>Auto‑sync</strong> périodique (tick toutes les ~15s) et sync manuelle pour résilience.</li>
+      <li><strong>Impression tickets</strong> et génération PDF avec packages esc_pos et printing (prise en charge d'imprimantes thermiques).</li>
+      <li><strong>Gestion complète</strong> : tables, catalogue produits, multi‑rôles (superadmin/admin/staff/livreur), livraison et suivi livreurs.</li>
+      <li>Code structuré (GetX, repository pattern, DI) — facilite personnalisation et extensions.</li>
+      <li>Lightweight et adaptable : seeders pour comptes de test, audio notifications, paramétrage devise/logo.</li>
+      <li><strong>Propriété des données</strong> : self‑hosting possible, pas d'enfermement chez un éditeur.</li>
+    </ul>
+
+    <h2>Limites et points à vérifier</h2>
+    <ul>
+      <li>Pas d'intégration PSP (processeur de paiement) natif documenté — prévoir intégration avec Stripe, Adyen, Payline, etc., et conformité PCI.</li>
+      <li>Support commercial et SLA non fournis par défaut — nécessité d'une équipe pour maintenance et mises à jour.</li>
+      <li>Tests matériels (imprimantes, tiroirs, terminals CB) à réaliser pour chaque modèle et OS.</li>
+      <li>Scalabilité multi‑sites à grande échelle nécessitera architecture backend solide et monitoring.</li>
+    </ul>
+
+    <h2>Cas d'usage recommandés</h2>
+    <ul>
+      <li>Restaurants/chaînes locales souhaitant contrôle total des données et personnalisation métier.</li>
+      <li>Structures avec contraintes offline (zones avec réseau instable) — usage offline‑first.</li>
+      <li>Projets où l'intégration avec des APIs locales (livraison, logistique) est prioritaire.</li>
+      <li>Démarrage de MVP POS rapide pour tests terrain, avant intégration d'un PSP.</li>
+    </ul>
+
+    <h2>Recommandations rapides</h2>
+    <ul>
+      <li>Valider les workflows paiement : choisir un PSP et intégrer/mettre en conformité PCI avant déploiement production.</li>
+      <li>Réaliser tests matériels sur chaque OS cible (imprimantes, tiroirs, lecteurs CB).</li>
+      <li>Préparer un plan de support (contrat interne ou prestataire) pour SLA et mises à jour.</li>
+      <li>Si besoin d'un service clé en main (paiements + support), comparer coûts vs solutions commerciales.</li>
+    </ul>
+
+    <div class="card">
+      <h2>💳 PSP, coûts et comparaison fournisseurs</h2>
+      <h3>Intégration PSP (paiements)</h3>
+      <p class="muted">Pour la mise en production, intégrer un PSP (Payment Service Provider) évite de gérer l'acquiring et simplifie la conformité PCI si l'on utilise des pages hébergées ou des terminaux certifiés.</p>
+
+      <table>
+        <thead>
+          <tr><th>PSP</th><th>Type</th><th>Couverture</th><th>Intégration</th><th>Frais (indicatif)</th><th>Notes</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Stripe</td><td>Gateway &amp; PSP</td><td>Global</td><td>API, SDKs, Terminal SDK</td><td>~0,9–2,9% + 0,10–0,30€</td><td>Excellente dev‑expérience, bonne pour scale‑ups</td></tr>
+          <tr><td>Adyen</td><td>Enterprise PSP / Acquirer</td><td>Global</td><td>API enterprise</td><td>Sur devis (avantage volume)</td><td>Fort sur multidevise, adapté aux gros volumes</td></tr>
+          <tr><td>PayPal / Braintree</td><td>Gateway</td><td>Global</td><td>SDKs, hosted fields</td><td>Comparable à Stripe</td><td>Bonne couverture e‑commerce</td></tr>
+          <tr><td>Square</td><td>POS + PSP</td><td>Sélection de pays</td><td>Intégré (hardware + cloud)</td><td>Abonnement / frais transaction</td><td>Clé en main pour petits commerces</td></tr>
+          <tr><td>Acquirers locaux (ex. banques, Worldline)</td><td>Acquirer / Terminal</td><td>Régional</td><td>Terminal SDK / intégration</td><td>Variable</td><td>Souvent nécessaire pour paiements CB locaux</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Coûts estimés (indicatif)</h3>
+      <ul>
+        <li><strong>Intégration &amp; développement :</strong> 1 000€ – 50 000€ selon complexité (simple intégration PSP vs solution multi‑sites sur mesure).</li>
+        <li><strong>Hébergement / API :</strong> 10€ – 500€+/mois selon charge et HA.</li>
+        <li><strong>Frais PSP :</strong> ~0,2% – 3,5% + 0,10–0,30€ par transaction (varie par pays et type de carte).</li>
+        <li><strong>Matériel :</strong> imprimante thermique 50€–350€, tiroir 40€–120€, lecteur CB 100€–800€, tablette/PC 200€–2 000€.</li>
+        <li><strong>Maintenance &amp; support :</strong> 200€ – 2 000€/mois (ou contrat d'intégrateur), selon SLA.</li>
+        <li><strong>Conformité PCI &amp; audits :</strong> coût variable — l'utilisation de terminaux certifiés ou de pages hébergées réduit la portée PCI.</li>
+      </ul>
+
+      <h3>Comparaison rapide : fournisseurs POS &amp; modèles</h3>
+      <table>
+        <thead>
+          <tr><th>Fournisseur</th><th>Modèle</th><th>Paiement intégré?</th><th>Personnalisation</th><th>Coût indicatif</th><th>Idéal pour</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Square</td><td>SaaS + hardware</td><td>Oui</td><td>Limitée</td><td>Frais transaction + matériel</td><td>Petits commerces, rapidité de déploiement</td></tr>
+          <tr><td>Toast</td><td>SaaS (restauration)</td><td>Oui (US)</td><td>Moyenne</td><td>Abonnement + matériel</td><td>Restaurants full‑service (US)</td></tr>
+          <tr><td>Lightspeed</td><td>SaaS (retail/restaurant)</td><td>Oui/Option</td><td>Bonne (APIs)</td><td>Abonnement</td><td>Retail multi‑sites, franchises</td></tr>
+          <tr><td>Shopify POS</td><td>SaaS / e‑commerce</td><td>Oui (Shopify Payments)</td><td>Bonne pour e‑commerce</td><td>Abonnement + frais</td><td>Magasins omnicanaux</td></tr>
+          <tr><td>SOYABOX + PSP</td><td>Self‑hosted + PSP</td><td>Selon intégration</td><td>Très élevée</td><td>Développement + hébergement + frais PSP</td><td>Chaînes locales, offline‑first, besoin de contrôle</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Checklist avant production</h3>
+      <ul>
+        <li>Choisir un PSP adapté aux pays et volumes.</li>
+        <li>Valider la portée PCI et préférer solutions réduisant la portée (hosted pages / terminaux).</li>
+        <li>Planifier tests matériels sur chaque OS et modèle d'imprimante/terminal.</li>
+        <li>Mettre en place monitoring, sauvegardes et procédures de reprise.</li>
+      </ul>
+    </div>
+
+    <footer>
+      <p>Fichier généré automatiquement à partir du code et documentation du projet.</p>
+    </footer>
+  </div>
+</body>
+</html>

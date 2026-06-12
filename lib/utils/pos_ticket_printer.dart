@@ -6,12 +6,31 @@ import 'package:image/image.dart' as img;
 import 'package:printing/printing.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
+import 'package:flutter/foundation.dart';
 import '../models/pos_order.dart';
 import '../models/pos_order_item.dart';
 import '../services/database_service.dart';
 import '../services/app_settings_service.dart';
 import 'order_item_grouping.dart';
 import 'payment_method_utils.dart';
+
+// Cache fonts and logo to speed up repeated PDF generation
+pw.Font? _cachedRegularFont;
+pw.Font? _cachedBoldFont;
+pw.MemoryImage? _cachedLogoImage;
+String? _cachedLogoPath;
+
+Future<pw.Font> _getRegularFont() async {
+  if (_cachedRegularFont != null) return _cachedRegularFont!;
+  _cachedRegularFont = await PdfGoogleFonts.notoSansRegular();
+  return _cachedRegularFont!;
+}
+
+Future<pw.Font> _getBoldFont() async {
+  if (_cachedBoldFont != null) return _cachedBoldFont!;
+  _cachedBoldFont = await PdfGoogleFonts.notoSansBold();
+  return _cachedBoldFont!;
+}
 
 const double _ticketLogoHeight = 44;
 const double _ticketLogoWidth = 140;
@@ -610,8 +629,9 @@ Future<Uint8List> buildKitchenTicketPdf(
   String? restaurantName,
   String? restaurantPhone,
 }) async {
-  final regularFont = await PdfGoogleFonts.notoSansRegular();
-  final boldFont = await PdfGoogleFonts.notoSansBold();
+  final regularFont = await _getRegularFont();
+  final boldFont = await _getBoldFont();
+  final sw = Stopwatch()..start();
   final doc = pw.Document();
   final pageFormat =
       format ??
@@ -689,7 +709,14 @@ Future<Uint8List> buildKitchenTicketPdf(
     ),
   );
 
-  return doc.save();
+  final bytes = await doc.save();
+  sw.stop();
+  try {
+    debugPrint(
+      'PDF: buildKitchenTicketPdf order=${order.id} time=${sw.elapsedMilliseconds}ms size=${bytes.length} bytes',
+    );
+  } catch (_) {}
+  return bytes;
 }
 
 Future<Uint8List> buildCustomerBillPdf(
@@ -701,8 +728,9 @@ Future<Uint8List> buildCustomerBillPdf(
   String? restaurantName,
   String? restaurantPhone,
 }) async {
-  final regularFont = await PdfGoogleFonts.notoSansRegular();
-  final boldFont = await PdfGoogleFonts.notoSansBold();
+  final regularFont = await _getRegularFont();
+  final boldFont = await _getBoldFont();
+  final sw = Stopwatch()..start();
   final doc = pw.Document();
   final pageFormat =
       format ??
@@ -884,7 +912,14 @@ Future<Uint8List> buildCustomerBillPdf(
     ),
   );
 
-  return doc.save();
+  final bytes = await doc.save();
+  sw.stop();
+  try {
+    debugPrint(
+      'PDF: buildCustomerBillPdf order=${order.id} time=${sw.elapsedMilliseconds}ms size=${bytes.length} bytes',
+    );
+  } catch (_) {}
+  return bytes;
 }
 
 Future<Uint8List> buildKitchenAndCustomerTicketsPdf(
@@ -896,8 +931,8 @@ Future<Uint8List> buildKitchenAndCustomerTicketsPdf(
   String? restaurantName,
   String? restaurantPhone,
 }) async {
-  final regularFont = await PdfGoogleFonts.notoSansRegular();
-  final boldFont = await PdfGoogleFonts.notoSansBold();
+  final regularFont = await _getRegularFont();
+  final boldFont = await _getBoldFont();
   final pageFormat =
       format ??
       PdfPageFormat.roll80.copyWith(
@@ -906,6 +941,7 @@ Future<Uint8List> buildKitchenAndCustomerTicketsPdf(
         marginLeft: 6,
         marginRight: 6,
       );
+  final sw = Stopwatch()..start();
   final doc = pw.Document();
   final logoImage = await _loadLogoImage();
   final money = AppSettingsService.instance.formatAmount;
@@ -1155,7 +1191,14 @@ Future<Uint8List> buildKitchenAndCustomerTicketsPdf(
     ),
   );
 
-  return doc.save();
+  final bytes = await doc.save();
+  sw.stop();
+  try {
+    debugPrint(
+      'PDF: buildKitchenAndCustomerTicketsPdf order=${order.id} time=${sw.elapsedMilliseconds}ms size=${bytes.length} bytes',
+    );
+  } catch (_) {}
+  return bytes;
 }
 
 List<pw.Widget> _buildRestaurantHeaderWidgets(
@@ -1230,34 +1273,45 @@ Future<pw.MemoryImage?> _loadLogoImage() async {
   final settings = AppSettingsService.instance.settings;
   final logoPath = settings.ticketLogoPath;
   if (logoPath == null || logoPath.trim().isEmpty) {
+    _cachedLogoPath = null;
+    _cachedLogoImage = null;
     return null;
   }
+
+  // Return cached image if path unchanged
+  if (_cachedLogoPath == logoPath && _cachedLogoImage != null) {
+    return _cachedLogoImage;
+  }
+
+  pw.MemoryImage? result;
   try {
     if (logoPath.startsWith('http://') || logoPath.startsWith('https://')) {
       final response = await http.get(Uri.parse(logoPath));
       if (response.statusCode == 200) {
         final decoded = img.decodeImage(response.bodyBytes);
         if (decoded != null) {
-          return pw.MemoryImage(response.bodyBytes);
+          result = pw.MemoryImage(response.bodyBytes);
         }
       }
-      return null;
-    }
-
-    var resolvedPath = logoPath.trim();
-    if (resolvedPath.startsWith('file://')) {
-      resolvedPath = resolvedPath.replaceFirst('file://', '');
-    }
-    final file = File(resolvedPath);
-    if (await file.exists()) {
-      final bytes = await file.readAsBytes();
-      final decoded = img.decodeImage(bytes);
-      if (decoded != null) {
-        return pw.MemoryImage(bytes);
+    } else {
+      var resolvedPath = logoPath.trim();
+      if (resolvedPath.startsWith('file://')) {
+        resolvedPath = resolvedPath.replaceFirst('file://', '');
+      }
+      final file = File(resolvedPath);
+      if (await file.exists()) {
+        final bytes = await file.readAsBytes();
+        final decoded = img.decodeImage(bytes);
+        if (decoded != null) {
+          result = pw.MemoryImage(bytes);
+        }
       }
     }
   } catch (_) {}
-  return null;
+
+  _cachedLogoPath = logoPath;
+  _cachedLogoImage = result;
+  return result;
 }
 
 String _fulfillmentLabel(String value) {
@@ -1283,8 +1337,9 @@ String _formatOrderTime(DateTime value) {
 
 /// Génère un PDF pour un rapport journalier
 Future<Uint8List> buildDailyReportPdf(Map<String, dynamic> reportData) async {
-  final regularFont = await PdfGoogleFonts.notoSansRegular();
-  final boldFont = await PdfGoogleFonts.notoSansBold();
+  final regularFont = await _getRegularFont();
+  final boldFont = await _getBoldFont();
+  final sw = Stopwatch()..start();
   final doc = pw.Document();
   final pageFormat = PdfPageFormat.roll80.copyWith(
     marginTop: 6,
@@ -1559,7 +1614,14 @@ Future<Uint8List> buildDailyReportPdf(Map<String, dynamic> reportData) async {
     ),
   );
 
-  return doc.save();
+  final bytes = await doc.save();
+  sw.stop();
+  try {
+    debugPrint(
+      'PDF: buildDailyReportPdf time=${sw.elapsedMilliseconds}ms size=${bytes.length} bytes',
+    );
+  } catch (_) {}
+  return bytes;
 }
 
 pw.Widget _buildReportRow(String label, String value) {

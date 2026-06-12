@@ -6,6 +6,8 @@ import 'package:printing/printing.dart';
 import '../controllers/pos_controller.dart';
 import '../models/pos_order.dart';
 import '../services/esc_pos_printer_service.dart';
+import '../services/print_queue_service.dart';
+import '../services/app_settings_service.dart';
 import '../utils/payment_method_utils.dart';
 import '../utils/pos_ticket_printer.dart';
 import '../widgets/order_details_dialog.dart';
@@ -211,18 +213,31 @@ class _PosStaffPaidOrdersScreenState extends State<PosStaffPaidOrdersScreen> {
           ? await DatabaseService.getRestaurantById(order.restaurantId!)
           : null;
 
-      final directPrinted = await EscPosPrinterService.instance
-          .tryPrintCustomerTicket(
-            order,
-            items,
-            restaurantAddress: restaurant?.address,
-            restaurantName: restaurant?.name,
-            restaurantPhone: restaurant?.phone,
-          );
-      if (directPrinted) {
+      await AppSettingsService.instance.init();
+      final settings = AppSettingsService.instance.settings;
+      if (settings.useEscPosPrinting) {
+        final bytes = await EscPosPrinterService.instance.buildCustomerTicketEscPos(
+          order,
+          items,
+          restaurantAddress: restaurant?.address,
+          restaurantName: restaurant?.name,
+          restaurantPhone: restaurant?.phone,
+        );
+
+        final host = settings.receiptPrinterHost?.trim() ?? '';
+        final port = settings.receiptPrinterPort;
+
+        await PrintQueueService.instance.enqueueAndStart(
+          ticketType: 'customer',
+          printerHost: host,
+          printerPort: port,
+          payload: bytes,
+          orderRef: order.id.toString(),
+        );
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Ticket client imprimé directement')),
+            const SnackBar(content: Text('Ticket mis en file d\'impression')),
           );
         }
         return;

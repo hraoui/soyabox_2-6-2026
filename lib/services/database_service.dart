@@ -16,6 +16,7 @@ import '../models/delivery.dart';
 import '../models/order_delivery.dart';
 import '../models/customer.dart';
 import '../models/cash_register_state.dart'; // Ajout du modèle CashRegisterState
+import '../models/print_job.dart';
 import '../utils/app_logger.dart';
 import '../utils/badge_code_utils.dart';
 
@@ -55,6 +56,7 @@ class DatabaseService {
         OrderDeliverySchema,
         CustomerSchema,
         CashRegisterStateSchema, // Ajout du schéma CashRegisterState
+        PrintJobSchema,
       ], directory: dir.path);
 
       _isInitialized = true;
